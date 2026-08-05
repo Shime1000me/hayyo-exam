@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+    <title>Hayyo Academy - Teacher Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@100..900&family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Raleway', 'Inter', sans-serif; background: #f8fafc; min-height: 100vh; }
+
+        .app-header {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            height: 48px;
+            padding: 0 1rem;
+            gap: 0.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .app-header .logo { font-size: 1.25rem; font-weight: 700; color: #2563eb; margin-right: 1rem; }
+        .app-header nav { display: flex; align-items: stretch; height: 100%; }
+        .app-header nav a {
+            display: flex; align-items: center; padding: 0 0.75rem; font-size: 0.875rem;
+            border-bottom: 2px solid transparent; text-decoration: none; color: #64748b; cursor: pointer;
+        }
+        .app-header nav a:hover { color: #0f172a; }
+        .app-header nav a.active { border-bottom-color: #2563eb; color: #2563eb; font-weight: 500; }
+        .app-header .user-menu { margin-left: auto; display: flex; align-items: center; }
+        .app-header .user-menu .avatar {
+            width: 28px; height: 28px; border-radius: 50%; background: #2563eb; color: white;
+            font-size: 0.65rem; font-weight: 600; display: flex; align-items: center; justify-content: center;
+            text-transform: uppercase;
+        }
+        .red-line { height: 2px; background: #dc2626; }
+
+        .main-content { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+
+        .welcome-section { margin-bottom: 1.5rem; }
+        .welcome-section h1 { font-size: 1.5rem; font-weight: 700; color: #0f172a; }
+
+        .exam-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;
+        }
+        .exam-card {
+            background: white; border-radius: 8px; padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0; transition: box-shadow 0.2s;
+        }
+        .exam-card:hover { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .exam-card .exam-title { font-weight: 600; font-size: 1rem; color: #0f172a; }
+        .exam-card .exam-meta { font-size: 0.875rem; color: #64748b; margin-top: 0.25rem; }
+        .exam-card .exam-actions { margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .exam-card .exam-actions button {
+            padding: 4px 14px; border-radius: 4px; border: none; font-size: 0.75rem;
+            font-weight: 600; cursor: pointer; font-family: 'Raleway', sans-serif; transition: background 0.15s;
+        }
+        .btn-edit { background: #2563eb; color: white; }
+        .btn-edit:hover { background: #1d4ed8; }
+        .btn-questions { background: #e2e8f0; color: #0f172a; }
+        .btn-questions:hover { background: #cbd5e1; }
+        .btn-sync { background: #10b981; color: white; }
+        .btn-sync:hover { background: #059669; }
+
+        .empty-state { text-align: center; padding: 3rem 1rem; color: #64748b; }
+
+        .toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: #1f2937; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px;
+            font-family: 'Inter', sans-serif; z-index: 99999; opacity: 0; transition: opacity 0.3s ease;
+            pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); max-width: 90%;
+        }
+        .toast.show { opacity: 1; }
+        .toast.error { background: #dc2626; }
+        .toast.success { background: #16a34a; }
+
+        @media (max-width: 640px) {
+            .exam-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- HEADER -->
+    <header class="app-header">
+        <div class="logo">🏫 Hayyo</div>
+        <nav>
+            <a href="dashboard.html">Home</a>
+            <a href="exams.html">My exam</a>
+            <a href="#" class="active">Teacher</a>
+        </nav>
+        <div class="user-menu">
+            <div class="avatar" id="userAvatar">TC</div>
+        </div>
+    </header>
+
+    <div class="red-line"></div>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+
+        <div class="welcome-section">
+            <h1>👨‍🏫 Teacher Dashboard</h1>
+            <p style="color: #64748b; margin-top: 0.25rem;">Manage your assigned exams</p>
+        </div>
+
+        <div id="examList">
+            <div class="empty-state">Loading your exams...</div>
+        </div>
+
+    </main>
+
+    <script>
+        // ============================================
+        // JWT API HELPER
+        // ============================================
+
+        const API_BASE = '';
+
+        function getToken() {
+            return localStorage.getItem('token');
+        }
+
+        function apiCall(endpoint, options = {}) {
+            const token = getToken();
+            return fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                    ...options.headers
+                }
+            });
+        }
+
+        // ============================================
+        // AUTH CHECK & TEACHER VERIFICATION
+        // ============================================
+
+        function checkAuth() {
+            const token = getToken();
+            if (!token) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            apiCall('/api/me')
+                .then(res => {
+                    if (res.status === 401) {
+                        localStorage.removeItem('token');
+                        window.location.href = 'index.html';
+                        return null;
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    if (!data || !data.authenticated) {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+
+                    const userName = data.user.name || 'Teacher';
+                    const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                    document.getElementById('userAvatar').textContent = initials;
+
+                    // Check if user is teacher
+                    const teacherEmails = ['shimelis@hayyo.com', 'teacher1@hayyo.com', 'teacher2@hayyo.com'];
+                    if (!teacherEmails.includes(data.user.email) && data.user.email !== 'admin@hayyo.com') {
+                        document.getElementById('examList').innerHTML = `
+                            <div class="empty-state" style="padding: 4rem 1rem;">
+                                <h2>⛔ Teacher Access Required</h2>
+                                <p style="color: #64748b; margin-top: 0.5rem;">You do not have permission to view this page.</p>
+                                <button class="btn-edit" onclick="window.location.href='dashboard.html'" style="padding: 8px 24px; font-size: 0.875rem; border-radius: 6px;">
+                                    Go to Dashboard
+                                </button>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    loadExams();
+                })
+                .catch(() => {
+                    window.location.href = 'index.html';
+                });
+        }
+
+        // ============================================
+        // LOAD EXAMS
+        // ============================================
+
+        function loadExams() {
+            const container = document.getElementById('examList');
+            container.innerHTML = '<div class="empty-state">Loading your exams...</div>';
+
+            apiCall('/api/teacher/exams')
+                .then(res => {
+                    if (res.status === 403) {
+                        container.innerHTML = `
+                            <div class="empty-state">
+                                <h2>⛔ Access Denied</h2>
+                                <p style="color: #64748b; margin-top: 0.5rem;">You are not assigned to any exams.</p>
+                            </div>
+                        `;
+                        return null;
+                    }
+                    if (res.status === 401) {
+                        localStorage.removeItem('token');
+                        window.location.href = 'index.html';
+                        return null;
+                    }
+                    return res.json();
+                })
+                .then(exams => {
+                    if (!exams) return;
+
+                    if (exams.length === 0) {
+                        container.innerHTML = `
+                            <div class="empty-state" style="padding: 4rem 1rem;">
+                                <h2>📚 No Assigned Exams</h2>
+                                <p style="color: #64748b; margin-top: 0.5rem;">You are not assigned to any exams yet.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    container.innerHTML = `
+                        <div class="exam-grid">
+                            ${exams.map(exam => `
+                                <div class="exam-card">
+                                    <div class="exam-title">${exam.title || exam.id}</div>
+                                    <div class="exam-meta">
+                                        📖 ${exam.subject || 'General'} · 📝 ${exam.total_questions || 0} questions
+                                        <br>⏱ ${exam.time_limit || 0} min · ${exam.is_premium_only ? '🔒 Premium' : '🔓 Free'}
+                                    </div>
+                                    <div class="exam-actions">
+                                        <button class="btn-edit" onclick="editExam('${exam.id}')">✏️ Edit</button>
+                                        <button class="btn-questions" onclick="manageQuestions('${exam.id}')">📝 Questions</button>
+                                        <button class="btn-sync" onclick="syncExam('${exam.id}')">🔄 Sync</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                })
+                .catch(err => {
+                    console.error('Error loading exams:', err);
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <h2>⚠️ Error loading exams</h2>
+                            <p style="color: #64748b; margin-top: 0.5rem;">${err.message || 'Please try again.'}</p>
+                        </div>
+                    `;
+                });
+        }
+
+        // ============================================
+        // ACTIONS
+        // ============================================
+
+        function editExam(examId) {
+            window.location.href = `teacher-exam-edit.html?id=${examId}`;
+        }
+
+        function manageQuestions(examId) {
+            window.location.href = `teacher-question-edit.html?id=${examId}`;
+        }
+
+        function syncExam(examId) {
+            if (!confirm(`Sync exam "${examId}" to Google Sheets?`)) return;
+
+            apiCall(`/api/teacher/exams/${examId}/sync`, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('✅ Exam synced to Google Sheets!', 'success');
+                    } else {
+                        showToast('❌ Sync failed: ' + (data.error || 'Unknown error'), 'error');
+                    }
+                })
+                .catch(() => showToast('❌ Error syncing exam.', 'error'));
+        }
+
+        // ============================================
+        // TOAST
+        // ============================================
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => { toast.className = 'toast'; }, 3000);
+        }
+
+        // ============================================
+        // RUN
+        // ============================================
+
+        document.addEventListener('DOMContentLoaded', checkAuth);
+
+        console.log('✅ Teacher Dashboard loaded with JWT');
+    </script>
+
+</body>
+</html>
