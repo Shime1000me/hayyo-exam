@@ -1,309 +1,620 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-    <title>Hayyo Academy - Teacher Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@100..900&family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - HAYYO</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Raleway', 'Inter', sans-serif; background: #f8fafc; min-height: 100vh; }
+        .teacher-header {
+            background: linear-gradient(135deg, #2d3436 0%, #636e72 100%);
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+            border-left: 4px solid #2d3436;
+            cursor: pointer;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-card .number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2d3436;
+        }
+        .stat-card .label {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .stat-card .icon {
+            font-size: 2.5rem;
+            opacity: 0.3;
+            float: right;
+        }
+        .stat-card.primary { border-left-color: #0984e3; }
+        .stat-card.success { border-left-color: #00b894; }
+        .stat-card.warning { border-left-color: #fdcb6e; }
+        .stat-card.danger { border-left-color: #e17055; }
+        .stat-card.info { border-left-color: #74b9ff; }
+        .stat-card.purple { border-left-color: #6c5ce7; }
 
-        .app-header {
-            background: #ffffff;
-            border-bottom: 1px solid #e2e8f0;
+        .exam-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+            border-left: 5px solid #0984e3;
+        }
+        .exam-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 25px rgba(0,0,0,0.12);
+        }
+        .exam-card .exam-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #2d3436;
+        }
+        .exam-card .exam-meta {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        .exam-status {
+            padding: 3px 12px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .exam-status.active {
+            background: #d4edda;
+            color: #155724;
+        }
+        .exam-status.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .exam-status.draft {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .quick-actions .btn {
+            border-radius: 50px;
+            padding: 10px 25px;
+            margin: 5px;
+        }
+        .feedback-msg {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        }
+        .chart-container {
+            position: relative;
+            height: 250px;
+        }
+        .activity-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
             display: flex;
             align-items: center;
-            height: 48px;
-            padding: 0 1rem;
-            gap: 0.5rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
+            gap: 15px;
         }
-        .app-header .logo { font-size: 1.25rem; font-weight: 700; color: #2563eb; margin-right: 1rem; }
-        .app-header nav { display: flex; align-items: stretch; height: 100%; }
-        .app-header nav a {
-            display: flex; align-items: center; padding: 0 0.75rem; font-size: 0.875rem;
-            border-bottom: 2px solid transparent; text-decoration: none; color: #64748b; cursor: pointer;
+        .activity-item:last-child {
+            border-bottom: none;
         }
-        .app-header nav a:hover { color: #0f172a; }
-        .app-header nav a.active { border-bottom-color: #2563eb; color: #2563eb; font-weight: 500; }
-        .app-header .user-menu { margin-left: auto; display: flex; align-items: center; }
-        .app-header .user-menu .avatar {
-            width: 28px; height: 28px; border-radius: 50%; background: #2563eb; color: white;
-            font-size: 0.65rem; font-weight: 600; display: flex; align-items: center; justify-content: center;
-            text-transform: uppercase;
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
         }
-        .red-line { height: 2px; background: #dc2626; }
-
-        .main-content { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
-
-        .welcome-section { margin-bottom: 1.5rem; }
-        .welcome-section h1 { font-size: 1.5rem; font-weight: 700; color: #0f172a; }
-
-        .exam-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;
+        .activity-icon.blue { background: #dbeafe; color: #1e40af; }
+        .activity-icon.green { background: #d1fae5; color: #065f46; }
+        .activity-icon.yellow { background: #fef3c7; color: #92400e; }
+        .activity-icon.red { background: #fee2e2; color: #991b1b; }
+        .activity-icon.purple { background: #ede9fe; color: #5b21b6; }
+        .activity-text {
+            flex: 1;
         }
-        .exam-card {
-            background: white; border-radius: 8px; padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border: 1px solid #e2e8f0; transition: box-shadow 0.2s;
+        .activity-text .title {
+            font-weight: 500;
+            color: #1a1a2e;
         }
-        .exam-card:hover { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .exam-card .exam-title { font-weight: 600; font-size: 1rem; color: #0f172a; }
-        .exam-card .exam-meta { font-size: 0.875rem; color: #64748b; margin-top: 0.25rem; }
-        .exam-card .exam-actions { margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
-        .exam-card .exam-actions button {
-            padding: 4px 14px; border-radius: 4px; border: none; font-size: 0.75rem;
-            font-weight: 600; cursor: pointer; font-family: 'Raleway', sans-serif; transition: background 0.15s;
+        .activity-text .time {
+            font-size: 0.8rem;
+            color: #6c757d;
         }
-        .btn-edit { background: #2563eb; color: white; }
-        .btn-edit:hover { background: #1d4ed8; }
-        .btn-questions { background: #e2e8f0; color: #0f172a; }
-        .btn-questions:hover { background: #cbd5e1; }
-        .btn-sync { background: #10b981; color: white; }
-        .btn-sync:hover { background: #059669; }
-
-        .empty-state { text-align: center; padding: 3rem 1rem; color: #64748b; }
-
-        .toast {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: #1f2937; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px;
-            font-family: 'Inter', sans-serif; z-index: 99999; opacity: 0; transition: opacity 0.3s ease;
-            pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); max-width: 90%;
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
         }
-        .toast.show { opacity: 1; }
-        .toast.error { background: #dc2626; }
-        .toast.success { background: #16a34a; }
-
-        @media (max-width: 640px) {
-            .exam-grid { grid-template-columns: 1fr; }
+        .empty-state .icon {
+            font-size: 4rem;
+            opacity: 0.3;
+            margin-bottom: 15px;
         }
     </style>
 </head>
 <body>
+    <!-- Feedback Messages -->
+    <div class="feedback-msg" id="feedbackMsg"></div>
 
-    <div class="toast" id="toast"></div>
-
-    <!-- HEADER -->
-    <header class="app-header">
-        <div class="logo">🏫 Hayyo</div>
-        <nav>
-            <a href="dashboard.html">Home</a>
-            <a href="exams.html">My exam</a>
-            <a href="#" class="active">Teacher</a>
-        </nav>
-        <div class="user-menu">
-            <div class="avatar" id="userAvatar">TC</div>
+    <!-- Teacher Header -->
+    <div class="teacher-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="display-6 fw-bold mb-2">
+                        <i class="bi bi-person-badge me-2"></i>Teacher Dashboard
+                    </h1>
+                    <p class="mb-0 opacity-75" id="teacherName">Welcome back, Teacher!</p>
+                </div>
+                <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                    <button class="btn btn-light me-2" onclick="refreshData()">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                    <a href="teacher-exam-edit.html" class="btn btn-success">
+                        <i class="bi bi-plus-circle"></i> Create New Exam
+                    </a>
+                </div>
+            </div>
         </div>
-    </header>
+    </div>
 
-    <div class="red-line"></div>
-
-    <!-- MAIN CONTENT -->
-    <main class="main-content">
-
-        <div class="welcome-section">
-            <h1>👨‍🏫 Teacher Dashboard</h1>
-            <p style="color: #64748b; margin-top: 0.25rem;">Manage your assigned exams</p>
+    <!-- Main Content -->
+    <div class="container mb-5">
+        <!-- Statistics -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card primary">
+                    <div class="icon"><i class="bi bi-journal"></i></div>
+                    <div class="number" id="totalExams">0</div>
+                    <div class="label">Total Exams</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card success">
+                    <div class="icon"><i class="bi bi-people"></i></div>
+                    <div class="number" id="totalStudents">0</div>
+                    <div class="label">Total Students</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card warning">
+                    <div class="icon"><i class="bi bi-check-circle"></i></div>
+                    <div class="number" id="totalSubmissions">0</div>
+                    <div class="label">Submissions</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card purple">
+                    <div class="icon"><i class="bi bi-trophy"></i></div>
+                    <div class="number" id="avgScore">0%</div>
+                    <div class="label">Average Score</div>
+                </div>
+            </div>
         </div>
 
-        <div id="examList">
-            <div class="empty-state">Loading your exams...</div>
+        <!-- Quick Actions -->
+        <div class="quick-actions mb-4 text-center">
+            <a href="teacher-exam-edit.html" class="btn btn-primary">
+                <i class="bi bi-file-earmark-plus"></i> New Exam
+            </a>
+            <a href="teacher-question-edit.html" class="btn btn-info text-white">
+                <i class="bi bi-question-circle"></i> Add Questions
+            </a>
+            <button class="btn btn-warning" onclick="viewResults()">
+                <i class="bi bi-bar-chart"></i> View Results
+            </button>
+            <button class="btn btn-secondary" onclick="viewPayments()">
+                <i class="bi bi-credit-card"></i> Payments
+            </button>
         </div>
 
-    </main>
+        <!-- Charts Row -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Performance Overview</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="performanceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Exam Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
+        <!-- Recent Exams & Activity -->
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-journal me-2"></i>Recent Exams</h5>
+                        <a href="#" class="text-decoration-none">View All</a>
+                    </div>
+                    <div class="card-body" id="recentExams">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Activity</h5>
+                    </div>
+                    <div class="card-body" id="recentActivity">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ============================================
-        // JWT API HELPER
-        // ============================================
+        // ============================================================
+        // 1. API Base URL - UPDATED
+        // ============================================================
+        const API_BASE = 'https://hayyo-exam.onrender.com';
 
-        const API_BASE = '';
+        // ============================================================
+        // 2. Global State
+        // ============================================================
+        let dashboardData = null;
+        let performanceChart = null;
+        let statusChart = null;
 
-        function getToken() {
-            return localStorage.getItem('token');
+        // DOM elements
+        const teacherName = document.getElementById('teacherName');
+        const totalExams = document.getElementById('totalExams');
+        const totalStudents = document.getElementById('totalStudents');
+        const totalSubmissions = document.getElementById('totalSubmissions');
+        const avgScore = document.getElementById('avgScore');
+        const recentExams = document.getElementById('recentExams');
+        const recentActivity = document.getElementById('recentActivity');
+        const feedbackMsg = document.getElementById('feedbackMsg');
+
+        // ============================================================
+        // 3. Helper Functions
+        // ============================================================
+        function showFeedback(message, type = 'success') {
+            const bgColor = type === 'success' ? '#d4edda' : type === 'error' ? '#f8d7da' : '#fff3cd';
+            const textColor = type === 'success' ? '#155724' : type === 'error' ? '#721c24' : '#856404';
+            feedbackMsg.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert" style="background: ${bgColor}; color: ${textColor}; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            setTimeout(() => {
+                const alert = feedbackMsg.querySelector('.alert');
+                if (alert) alert.classList.remove('show');
+            }, 5000);
         }
 
-        function apiCall(endpoint, options = {}) {
-            const token = getToken();
-            return fetch(`${API_BASE}${endpoint}`, {
-                ...options,
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                    ...options.headers
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = now - date;
+            if (diff < 60000) return 'Just now';
+            if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function getStatusClass(status) {
+            const map = {
+                'active': 'exam-status active',
+                'inactive': 'exam-status inactive',
+                'draft': 'exam-status draft'
+            };
+            return map[status] || 'exam-status draft';
+        }
+
+        function getActivityIcon(type) {
+            const map = {
+                'exam_created': 'blue bi-file-earmark-plus',
+                'exam_updated': 'yellow bi-pencil',
+                'submission': 'green bi-check-circle',
+                'student_joined': 'purple bi-person-plus',
+                'payment': 'green bi-credit-card',
+                'result_viewed': 'blue bi-eye'
+            };
+            return map[type] || 'blue bi-circle';
+        }
+
+        function getActivityColor(type) {
+            const map = {
+                'exam_created': 'blue',
+                'exam_updated': 'yellow',
+                'submission': 'green',
+                'student_joined': 'purple',
+                'payment': 'green',
+                'result_viewed': 'blue'
+            };
+            return map[type] || 'blue';
+        }
+
+        // ============================================================
+        // 4. Load Dashboard Data
+        // ============================================================
+        function loadDashboard() {
+            fetch(`${API_BASE}/api/teacher/dashboard`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    dashboardData = data;
+                    renderDashboard(data);
+                } else {
+                    showFeedback('Failed to load dashboard: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Load dashboard error:', error);
+                showFeedback('Network error loading dashboard.', 'error');
+            });
+        }
+
+        // ============================================================
+        // 5. Render Dashboard
+        // ============================================================
+        function renderDashboard(data) {
+            // Teacher name
+            teacherName.textContent = `Welcome back, ${data.teacher_name || 'Teacher'}!`;
+
+            // Stats
+            totalExams.textContent = data.total_exams || 0;
+            totalStudents.textContent = data.total_students || 0;
+            totalSubmissions.textContent = data.total_submissions || 0;
+            avgScore.textContent = `${data.avg_score || 0}%`;
+
+            // Recent exams
+            renderRecentExams(data.recent_exams || []);
+
+            // Recent activity
+            renderRecentActivity(data.recent_activity || []);
+
+            // Charts
+            renderPerformanceChart(data.performance_data || { labels: [], values: [] });
+            renderStatusChart(data.status_data || { labels: [], values: [] });
+        }
+
+        // ============================================================
+        // 6. Render Recent Exams
+        // ============================================================
+        function renderRecentExams(exams) {
+            if (!exams || exams.length === 0) {
+                recentExams.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon"><i class="bi bi-journal"></i></div>
+                        <p>No exams created yet.</p>
+                        <a href="teacher-exam-edit.html" class="btn btn-primary btn-sm">
+                            <i class="bi bi-plus-circle"></i> Create First Exam
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            recentExams.innerHTML = exams.map(exam => `
+                <div class="exam-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="exam-title">${exam.title || 'Untitled Exam'}</div>
+                            <div class="exam-meta">
+                                <i class="bi bi-people me-1"></i>${exam.student_count || 0} students
+                                <span class="mx-2">•</span>
+                                <i class="bi bi-check-circle me-1"></i>${exam.submission_count || 0} submissions
+                                <span class="mx-2">•</span>
+                                <i class="bi bi-clock me-1"></i>${formatDate(exam.created_at)}
+                            </div>
+                        </div>
+                        <span class="${getStatusClass(exam.status)}">${exam.status || 'draft'}</span>
+                    </div>
+                    <div class="mt-2 d-flex gap-2">
+                        <a href="teacher-exam-edit.html?id=${exam.id}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        <a href="teacher-question-edit.html?exam=${exam.id}" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-question-circle"></i> Questions
+                        </a>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="viewExamResults('${exam.id}')">
+                            <i class="bi bi-bar-chart"></i> Results
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ============================================================
+        // 7. Render Recent Activity
+        // ============================================================
+        function renderRecentActivity(activities) {
+            if (!activities || activities.length === 0) {
+                recentActivity.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon"><i class="bi bi-clock-history"></i></div>
+                        <p>No recent activity</p>
+                    </div>
+                `;
+                return;
+            }
+
+            recentActivity.innerHTML = activities.map(activity => `
+                <div class="activity-item">
+                    <div class="activity-icon ${getActivityColor(activity.type)}">
+                        <i class="bi ${getActivityIcon(activity.type)}"></i>
+                    </div>
+                    <div class="activity-text">
+                        <div class="title">${activity.title || 'Activity'}</div>
+                        <div class="time">${formatDate(activity.created_at)}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ============================================================
+        // 8. Render Charts
+        // ============================================================
+        function renderPerformanceChart(data) {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            
+            if (performanceChart) {
+                performanceChart.destroy();
+            }
+
+            performanceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Average Score',
+                        data: data.values || [0, 0, 0, 0, 0, 0],
+                        borderColor: '#0984e3',
+                        backgroundColor: 'rgba(9, 132, 227, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#0984e3',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
                 }
             });
         }
 
-        // ============================================
-        // AUTH CHECK & TEACHER VERIFICATION
-        // ============================================
-
-        function checkAuth() {
-            const token = getToken();
-            if (!token) {
-                window.location.href = 'index.html';
-                return;
+        function renderStatusChart(data) {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            
+            if (statusChart) {
+                statusChart.destroy();
             }
 
-            apiCall('/api/me')
-                .then(res => {
-                    if (res.status === 401) {
-                        localStorage.removeItem('token');
-                        window.location.href = 'index.html';
-                        return null;
-                    }
-                    return res.json();
-                })
-                .then(data => {
-                    if (!data || !data.authenticated) {
-                        window.location.href = 'index.html';
-                        return;
-                    }
-
-                    const userName = data.user.name || 'Teacher';
-                    const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-                    document.getElementById('userAvatar').textContent = initials;
-
-                    // Check if user is teacher
-                    const teacherEmails = ['shimelis@hayyo.com', 'teacher1@hayyo.com', 'teacher2@hayyo.com'];
-                    if (!teacherEmails.includes(data.user.email) && data.user.email !== 'admin@hayyo.com') {
-                        document.getElementById('examList').innerHTML = `
-                            <div class="empty-state" style="padding: 4rem 1rem;">
-                                <h2>⛔ Teacher Access Required</h2>
-                                <p style="color: #64748b; margin-top: 0.5rem;">You do not have permission to view this page.</p>
-                                <button class="btn-edit" onclick="window.location.href='dashboard.html'" style="padding: 8px 24px; font-size: 0.875rem; border-radius: 6px;">
-                                    Go to Dashboard
-                                </button>
-                            </div>
-                        `;
-                        return;
-                    }
-
-                    loadExams();
-                })
-                .catch(() => {
-                    window.location.href = 'index.html';
-                });
+            statusChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.labels || ['Active', 'Inactive', 'Draft'],
+                    datasets: [{
+                        data: data.values || [0, 0, 0],
+                        backgroundColor: ['#00b894', '#e17055', '#fdcb6e'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 10,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
         }
 
-        // ============================================
-        // LOAD EXAMS
-        // ============================================
-
-        function loadExams() {
-            const container = document.getElementById('examList');
-            container.innerHTML = '<div class="empty-state">Loading your exams...</div>';
-
-            apiCall('/api/teacher/exams')
-                .then(res => {
-                    if (res.status === 403) {
-                        container.innerHTML = `
-                            <div class="empty-state">
-                                <h2>⛔ Access Denied</h2>
-                                <p style="color: #64748b; margin-top: 0.5rem;">You are not assigned to any exams.</p>
-                            </div>
-                        `;
-                        return null;
-                    }
-                    if (res.status === 401) {
-                        localStorage.removeItem('token');
-                        window.location.href = 'index.html';
-                        return null;
-                    }
-                    return res.json();
-                })
-                .then(exams => {
-                    if (!exams) return;
-
-                    if (exams.length === 0) {
-                        container.innerHTML = `
-                            <div class="empty-state" style="padding: 4rem 1rem;">
-                                <h2>📚 No Assigned Exams</h2>
-                                <p style="color: #64748b; margin-top: 0.5rem;">You are not assigned to any exams yet.</p>
-                            </div>
-                        `;
-                        return;
-                    }
-
-                    container.innerHTML = `
-                        <div class="exam-grid">
-                            ${exams.map(exam => `
-                                <div class="exam-card">
-                                    <div class="exam-title">${exam.title || exam.id}</div>
-                                    <div class="exam-meta">
-                                        📖 ${exam.subject || 'General'} · 📝 ${exam.total_questions || 0} questions
-                                        <br>⏱ ${exam.time_limit || 0} min · ${exam.is_premium_only ? '🔒 Premium' : '🔓 Free'}
-                                    </div>
-                                    <div class="exam-actions">
-                                        <button class="btn-edit" onclick="editExam('${exam.id}')">✏️ Edit</button>
-                                        <button class="btn-questions" onclick="manageQuestions('${exam.id}')">📝 Questions</button>
-                                        <button class="btn-sync" onclick="syncExam('${exam.id}')">🔄 Sync</button>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `;
-                })
-                .catch(err => {
-                    console.error('Error loading exams:', err);
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <h2>⚠️ Error loading exams</h2>
-                            <p style="color: #64748b; margin-top: 0.5rem;">${err.message || 'Please try again.'}</p>
-                        </div>
-                    `;
-                });
+        // ============================================================
+        // 9. Actions
+        // ============================================================
+        function refreshData() {
+            showFeedback('Refreshing dashboard...', 'info');
+            loadDashboard();
         }
 
-        // ============================================
-        // ACTIONS
-        // ============================================
-
-        function editExam(examId) {
-            window.location.href = `teacher-exam-edit.html?id=${examId}`;
+        function viewResults() {
+            window.location.href = 'results.html';
         }
 
-        function manageQuestions(examId) {
-            window.location.href = `teacher-question-edit.html?id=${examId}`;
+        function viewPayments() {
+            window.location.href = 'admin-payments.html';
         }
 
-        function syncExam(examId) {
-            if (!confirm(`Sync exam "${examId}" to Google Sheets?`)) return;
-
-            apiCall(`/api/teacher/exams/${examId}/sync`, { method: 'POST' })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast('✅ Exam synced to Google Sheets!', 'success');
-                    } else {
-                        showToast('❌ Sync failed: ' + (data.error || 'Unknown error'), 'error');
-                    }
-                })
-                .catch(() => showToast('❌ Error syncing exam.', 'error'));
+        function viewExamResults(examId) {
+            window.location.href = `results.html?exam=${examId}`;
         }
 
-        // ============================================
-        // TOAST
-        // ============================================
+        // ============================================================
+        // 10. Initialize
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', loadDashboard);
 
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = 'toast ' + type + ' show';
-            setTimeout(() => { toast.className = 'toast'; }, 3000);
-        }
-
-        // ============================================
-        // RUN
-        // ============================================
-
-        document.addEventListener('DOMContentLoaded', checkAuth);
-
-        console.log('✅ Teacher Dashboard loaded with JWT');
+        // Make functions globally accessible
+        window.refreshData = refreshData;
+        window.viewResults = viewResults;
+        window.viewPayments = viewPayments;
+        window.viewExamResults = viewExamResults;
     </script>
-
 </body>
 </html>
