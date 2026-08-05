@@ -22,14 +22,17 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ============================================
-// 1. DATABASE CONNECTION
+// 1. DATABASE CONNECTION (FIXED)
 // ============================================
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-  max: 20,
+  ssl: {
+    rejectUnauthorized: false,
+    require: true
+  },
+  max: 10,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000
+  connectionTimeoutMillis: 10000
 });
 
 // ============================================
@@ -485,7 +488,8 @@ app.get('/health', async (req, res) => {
     await pool.query('SELECT 1');
     res.json({ status: 'ok', timestamp: new Date().toISOString(), database: 'connected' });
   } catch (error) {
-    res.status(500).json({ status: 'error', timestamp: new Date().toISOString(), database: 'disconnected' });
+    console.error('Health check error:', error.message);
+    res.status(500).json({ status: 'error', timestamp: new Date().toISOString(), database: 'disconnected', error: error.message });
   }
 });
 
