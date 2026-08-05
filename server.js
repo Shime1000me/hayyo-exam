@@ -9,6 +9,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
+const dns = require('dns');
 const pgSession = require('connect-pg-simple')(session);
 const cors = require('cors');
 const helmet = require('helmet');
@@ -18,11 +19,14 @@ const multer = require('multer');
 const { v2: cloudinary } = require('cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
+// FORCE IPv4 (Fixes Supabase connection)
+dns.setDefaultResultOrder('ipv4first');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ============================================
-// 1. DATABASE CONNECTION (FIXED)
+// 1. DATABASE CONNECTION (FIXED - IPv4)
 // ============================================
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -32,7 +36,7 @@ const pool = new Pool({
   },
   max: 10,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000
+  connectionTimeoutMillis: 15000
 });
 
 // ============================================
