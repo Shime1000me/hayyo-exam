@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+    <title>Hayyo Academy - Mathematics Exam</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@100..900&family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+    <style>
+        /* ----- RESET & BASE ----- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Raleway', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ----- HEADER ----- */
+        .header {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            height: 48px;
+            padding: 0 1rem;
+            gap: 0.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #2563eb;
+            margin-right: 1rem;
+        }
+
+        .header nav {
+            display: flex;
+            align-items: stretch;
+            height: 100%;
+        }
+
+        .header nav a {
+            display: flex;
+            align-items: center;
+            padding: 0 0.75rem;
+            font-size: 0.875rem;
+            border-bottom: 2px solid transparent;
+            text-decoration: none;
+            color: #64748b;
+            cursor: pointer;
+        }
+
+        .header nav a:hover {
+            color: #0f172a;
+        }
+
+        .header nav a.active {
+            border-bottom-color: #2563eb;
+            color: #2563eb;
+            font-weight: 500;
+        }
+
+        .header .user-menu {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+        }
+
+        .header .user-menu button {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.375rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #64748b;
+        }
+
+        .header .user-menu button:hover {
+            background: #f1f5f9;
+        }
+
+        .header .user-menu .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #2563eb;
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-transform: uppercase;
+        }
+
+        .red-line {
+            height: 2px;
+            background: #dc2626;
+        }
+
+        /* ----- LAYOUT (full width, no sidebar) ----- */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            min-height: calc(100vh - 50px);
+        }
+
+        .main-content {
+            flex: 1;
+            min-width: 0;
+            padding: 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 768px) {
+            .main-content {
+                padding: 1rem 1.5rem;
+            }
+        }
+
+        /* ----- INFO BOX ----- */
+        .info-box {
+            border: 1px solid #e2e8f0;
+            font-size: 0.875rem;
+            width: 100%;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-box .info-header {
+            background: #f1f5f9;
+            padding: 0.375rem 1rem;
+            font-weight: 600;
+            color: #0f172a;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .info-box .info-row {
+            display: grid;
+            grid-template-columns: 160px 1fr 160px 1fr;
+            gap: 1.5rem;
+            padding: 0.5rem 1rem;
+            align-items: center;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .info-box .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-box .info-row .label {
+            font-weight: 600;
+            color: #0f172a;
+            white-space: nowrap;
+        }
+
+        .info-box .info-row .value {
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        /* ----- EXAM SECTION (no breadcrumb) ----- */
+        .exam-section {
+            margin-top: 0;
+        }
+
+        .exam-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .exam-icon {
+            width: 36px;
+            height: 36px;
+            background: #10b981;
+            border-radius: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .exam-icon svg {
+            width: 16px;
+            height: 16px;
+            color: white;
+        }
+
+        .exam-label {
+            font-size: 0.6rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .exam-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.2;
+        }
+
+        /* ----- TOOLBAR ----- */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 1rem;
+            height: 36px;
+            background: transparent;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: background 0.15s;
+            color: #0f172a;
+            font-family: 'Raleway', sans-serif;
+        }
+
+        .btn-back:hover {
+            background: #f1f5f9;
+        }
+
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-overview {
+            display: none;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0 0.5rem;
+            height: 28px;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            color: #0f172a;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .btn-overview:hover {
+            background: #f1f5f9;
+        }
+
+        @media (min-width: 1024px) {
+            .btn-overview {
+                display: flex;
+            }
+        }
+
+        .timer-display {
+            border: 1px solid #e2e8f0;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.875rem;
+            border-radius: 0.25rem;
+        }
+
+        .timer-display .label {
+            color: #64748b;
+        }
+
+        .timer-display .time {
+            font-weight: 700;
+            color: #f59e0b;
+        }
+
+        /* ----- QUESTION AREA ----- */
+        .question-area {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .question-area {
+                flex-direction: column;
+            }
+        }
+
+        .question-info {
+            width: 112px;
+            flex-shrink: 0;
+        }
+
+        @media (min-width: 768px) {
+            .question-info {
+                width: 144px;
+            }
+        }
+
+        .question-info .card {
+            background: #f3f4f6;
+            border-radius: 0.375rem;
+            padding: 1rem;
+        }
+
+        .question-info .q-number {
+            font-weight: 700;
+            font-size: 0.875rem;
+            color: #0f172a;
+            margin-bottom: 0.25rem;
+        }
+
+        .question-info .q-status {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .question-info .q-marks {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn-flag {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            color: #3b82f6;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .btn-flag .flag-icon {
+            color: #ef4444;
+        }
+
+        .question-content {
+            flex: 1;
+            min-width: 0;
+            background: #eff6ff;
+            border-radius: 0.375rem;
+            padding: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .question-content {
+                padding: 1rem 1.25rem;
+            }
+        }
+
+        .question-text {
+            font-size: 0.875rem;
+            color: #0f172a;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .question-text b {
+            font-weight: 700;
+        }
+
+        .options {
+            display: grid;
+            gap: 0.375rem;
+            width: 100%;
+        }
+
+        .option {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: background 0.15s;
+            font-size: 0.875rem;
+        }
+
+        .option:hover {
+            background: #f1f5f9;
+        }
+
+        .option .radio {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #9ca3af;
+            border-radius: 50%;
+            flex-shrink: 0;
+            margin-top: 1px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            cursor: pointer;
+        }
+
+        .option .radio.checked {
+            border-color: #2563eb;
+            background: #2563eb;
+        }
+
+        .option .radio.checked::after {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .option .letter {
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        /* ----- NAV AREA ----- */
+        .nav-area {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .btn-prev {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 1rem;
+            height: 36px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: background 0.15s;
+            color: #0f172a;
+            font-family: 'Raleway', sans-serif;
+        }
+
+        .btn-prev:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .btn-prev:not(:disabled):hover {
+            background: #e2e8f0;
+        }
+
+        .nav-center {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-grid {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0 0.5rem;
+            height: 28px;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            color: #0f172a;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .btn-grid:hover {
+            background: #f1f5f9;
+        }
+
+        .btn-grid .count {
+            font-weight: 600;
+        }
+
+        .btn-next {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 1rem;
+            height: 36px;
+            background: #2563eb;
+            border: none;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: background 0.15s;
+            color: white;
+            font-family: 'Raleway', sans-serif;
+        }
+
+        .btn-next:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-next:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .finish-link {
+            display: block;
+            text-align: left;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #2563eb;
+            cursor: pointer;
+            padding: 0.5rem 0.75rem;
+            margin-top: 0.5rem;
+            background: none;
+            border: none;
+            width: 100%;
+        }
+
+        .finish-link:hover {
+            text-decoration: underline;
+        }
+
+        /* ----- OVERVIEW SIDEBAR (desktop) ----- */
+        .overview-sidebar {
+            display: none;
+            flex-shrink: 0;
+            border-left: 1px solid #e2e8f0;
+            background: #ffffff;
+            width: 0;
+            overflow: hidden;
+            transition: width 0.3s ease;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        @media (min-width: 1024px) {
+            .overview-sidebar {
+                display: block;
+            }
+        }
+
+        .overview-sidebar.open {
+            width: 240px;
+        }
+
+        .overview-content {
+            padding: 0.75rem;
+        }
+
+        .overview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 0.75rem;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+        }
+
+        .overview-header h4 {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .overview-header .close-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #64748b;
+            padding: 0.25rem;
+        }
+
+        .overview-header .close-btn:hover {
+            color: #0f172a;
+        }
+
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.25rem;
+        }
+
+        .grid-btn {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 0.125rem;
+            height: 40px;
+            width: 100%;
+            border: 1px solid #d1d5db;
+            border-radius: 0.25rem;
+            background: #ffffff;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: background 0.15s;
+            position: relative;
+        }
+
+        .grid-btn:hover {
+            background: #f1f5f9;
+        }
+
+        .grid-btn.current {
+            border-color: #0f172a;
+            border-width: 2px;
+            font-weight: 700;
+            z-index: 10;
+        }
+
+        .grid-btn.answered {
+            background: #d1fae5;
+            border-color: #10b981;
+        }
+
+        .grid-btn.flagged {
+            border-color: #ef4444;
+            border-width: 2px;
+        }
+
+        .grid-btn .number {
+            position: relative;
+            z-index: 1;
+        }
+
+        .finish-overview {
+            display: block;
+            width: 100%;
+            text-align: left;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #2563eb;
+            cursor: pointer;
+            padding: 0.5rem 0.75rem;
+            margin-top: 0.5rem;
+            background: none;
+            border: none;
+        }
+
+        .finish-overview:hover {
+            text-decoration: underline;
+        }
+
+        /* ----- NAV OVERLAY (mobile) ----- */
+        .nav-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            display: none;
+            justify-content: flex-end;
+            z-index: 9999;
+        }
+
+        .nav-overlay.show {
+            display: flex;
+        }
+
+        .nav-panel {
+            width: 300px;
+            background: #fff;
+            height: 100%;
+            overflow: auto;
+            padding: 15px;
+            box-shadow: -4px 0 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .nav-panel .overview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .nav-panel .overview-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .nav-panel .overview-header .close-nav {
+            border: none;
+            background: none;
+            font-size: 22px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .nav-panel .overview-header .close-nav:hover {
+            color: #333;
+        }
+
+        .nav-panel .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+
+        .nav-panel .overview-grid button {
+            height: 38px;
+            border: 1px solid #ccc;
+            background: #fff;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 13px;
+            transition: all 0.15s;
+        }
+
+        .nav-panel .overview-grid button:hover {
+            background: #f1f5f9;
+        }
+
+        .nav-panel .overview-grid button.answered {
+            background: #d1fae5;
+            border-color: #10b981;
+        }
+
+        .nav-panel .overview-grid button.current {
+            border: 2px solid #000;
+            font-weight: bold;
+        }
+
+        .nav-panel .finish-attempt {
+            margin-top: 15px;
+            background: none;
+            border: none;
+            color: #2563eb;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            text-align: left;
+            padding: 0;
+        }
+
+        .nav-panel .finish-attempt:hover {
+            text-decoration: underline;
+        }
+
+        /* ===== FULL-PAGE REVIEW (not popup) ===== */
+        .review-overlay {
+            position: fixed;
+            inset: 0;
+            background: #f8fafc;
+            display: none;
+            justify-content: center;
+            align-items: flex-start;
+            z-index: 9999;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .review-overlay.show {
+            display: flex;
+        }
+
+        .review-modal {
+            max-width: 820px;
+            width: 100%;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.10);
+            padding: 28px 32px;
+            margin-top: 10px;
+            margin-bottom: 40px;
+        }
+
+        .review-modal .review-header-clear {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .review-modal h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: -0.3px;
+        }
+
+        .review-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #94a3b8;
+            padding: 0 6px;
+            line-height: 1;
+        }
+        .review-close:hover { color: #1e293b; }
+
+        .review-stats {
+            display: flex;
+            gap: 32px;
+            font-size: 15px;
+            font-weight: 500;
+            margin: 16px 0 18px 0;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e9edf2;
+        }
+        .review-stats span { display: flex; align-items: center; gap: 5px; }
+
+        .review-warning {
+            background: #fef9e7;
+            border-left: 5px solid #f59e0b;
+            padding: 14px 18px;
+            border-radius: 6px;
+            margin-bottom: 22px;
+            font-size: 15px;
+            color: #78350f;
+            font-weight: 500;
+        }
+        .review-warning strong { font-weight: 700; }
+
+        .review-list {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            max-height: 420px;
+            overflow-y: auto;
+            background: #fff;
+            margin-bottom: 24px;
+        }
+
+        .review-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 18px;
+            border-bottom: 1px solid #edf2f7;
+            font-size: 15px;
+            background: #fff;
+            transition: background 0.1s;
+        }
+        .review-row:nth-child(even) { background: #fafcff; }
+        .review-row:last-child { border-bottom: none; }
+
+        .review-row .qnum { font-weight: 600; color: #0f172a; width: 60px; }
+        .review-row .qstatus { flex: 1; color: #1e293b; }
+        .review-row .qflag { color: #ef4444; font-weight: 600; width: 40px; text-align: right; }
+
+        .review-footer {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+
+        .btn-return {
+            padding: 10px 24px;
+            border: 1px solid #d1d9e6;
+            background: #f8fafc;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            color: #1e293b;
+            transition: 0.15s;
+            font-family: 'Raleway', sans-serif;
+        }
+        .btn-return:hover { background: #edf2f7; border-color: #b9c4d4; }
+
+        .btn-submit {
+            padding: 10px 32px;
+            border: none;
+            background: #2563eb;
+            color: #fff;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.15s;
+            font-family: 'Raleway', sans-serif;
+            box-shadow: 0 2px 6px rgba(37,99,235,0.25);
+        }
+        .btn-submit:hover { background: #1d4ed8; transform: scale(1.01); }
+
+        /* ----- RESPONSIVE TWEAKS ----- */
+        @media (max-width: 768px) {
+            .info-box .info-row {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.5rem 1rem;
+            }
+            .question-info {
+                width: 100%;
+            }
+            .question-info .card {
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 0.5rem;
+                align-items: center;
+            }
+            .question-info .q-marks { margin-bottom: 0; }
+            .question-info .btn-flag { grid-column: span 3; }
+            .toolbar { flex-direction: column; align-items: stretch; }
+            .toolbar-right { justify-content: space-between; }
+            .nav-area { flex-direction: column; align-items: stretch; }
+            .nav-center { justify-content: center; }
+            .overview-sidebar {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 280px !important;
+                height: 100vh;
+                transition: right 0.3s ease;
+                z-index: 999;
+                display: block;
+                border-left: 1px solid #e2e8f0;
+            }
+            .overview-sidebar.open { right: 0; width: 280px !important; }
+            .overlay-backdrop {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.3);
+                z-index: 998;
+            }
+            .overlay-backdrop.show { display: block; }
+            .review-modal { padding: 20px 18px; margin: 10px; }
+            .review-stats { gap: 16px; flex-wrap: wrap; }
+            .review-footer { flex-direction: column; }
+            .review-footer button { width: 100%; justify-content: center; }
+            .nav-panel { width: 100%; }
+        }
+
+        @media (max-width: 480px) {
+            .info-box .info-row { grid-template-columns: 1fr; gap: 0.25rem; }
+            .header .logo { font-size: 1rem; }
+            .header nav a { font-size: 0.75rem; padding: 0 0.5rem; }
+            .question-content { padding: 0.75rem; }
+            .review-modal h2 { font-size: 20px; }
+        }
+
+        .mobile-menu-btn {
+            display: flex;
+            position: absolute;
+            top: 62px;
+            left: 8px;
+            z-index: 20;
+            width: 28px;
+            height: 28px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.25rem;
+            color: #64748b;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .mobile-menu-btn:hover { background: #f1f5f9; }
+        @media (min-width: 768px) { .mobile-menu-btn { display: none; } }
+
+        .overlay-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 998;
+        }
+        .overlay-backdrop.show { display: block; }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1f2937;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            z-index: 99999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            max-width: 90%;
+        }
+        .toast.show { opacity: 1; }
+        .toast.error { background: #dc2626; }
+        .toast.success { background: #16a34a; }
+    </style>
+</head>
+<body>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Backdrop (mobile) -->
+    <div class="overlay-backdrop" id="backdrop"></div>
+
+    <!-- ===== NAV OVERLAY (mobile) ===== -->
+    <div class="nav-overlay" id="navOverlay">
+        <div class="nav-panel">
+            <div class="overview-header">
+                <h3>Exam Overview</h3>
+                <button class="close-nav" id="closeNavBtn">✕</button>
+            </div>
+            <div class="overview-grid" id="navGrid"></div>
+            <button class="finish-attempt" id="navFinishBtn">Finish Attempt ...</button>
+        </div>
+    </div>
+
+    <!-- ===== FULL-PAGE REVIEW ===== -->
+    <div class="review-overlay" id="reviewOverlay">
+        <div class="review-modal">
+            <div class="review-header-clear">
+                <h2>📋 Review Your Answers</h2>
+                <button class="review-close" id="closeReviewBtn">✕</button>
+            </div>
+
+            <div class="review-stats">
+                <span style="color:#16a34a;">✅ <span id="reviewAnswered">0</span> answered</span>
+                <span style="color:#64748b;">○ <span id="reviewUnanswered">100</span> unanswered</span>
+                <span style="color:#d97706;">⚑ <span id="reviewFlagged">0</span> flagged</span>
+            </div>
+
+            <div class="review-warning">
+                ⚠️ You have <strong id="reviewWarningCount">100</strong> unanswered questions. You can still go back and answer them.
+            </div>
+
+            <div class="review-list" id="reviewList"></div>
+
+            <div class="review-footer">
+                <button class="btn-return" id="reviewReturnBtn">← RETURN TO ATTEMPT</button>
+                <button class="btn-submit" id="reviewSubmitBtn">SUBMIT ALL AND FINISH</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+        <div class="logo">🏫 Hayyo</div>
+        <nav>
+            <a href="dashboard.html">Home</a>
+            <a href="exams.html" class="active">My exam</a>
+        </nav>
+        <div class="user-menu">
+            <button>
+                <span class="avatar" id="userAvatar">SH</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6l6 -6"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- RED LINE -->
+    <div class="red-line"></div>
+
+    <!-- ===== MAIN LAYOUT (no sidebar, no breadcrumb) ===== -->
+    <div class="main-layout">
+
+        <!-- MOBILE MENU BUTTON (hidden on desktop) -->
+        <button class="mobile-menu-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l16 0"></path><path d="M4 12l16 0"></path><path d="M4 18l16 0"></path></svg>
+        </button>
+
+        <!-- MAIN CONTENT (full width) -->
+        <main class="main-content">
+
+            <div id="examContent" class="exam-content">
+
+                <!-- Basic Information -->
+                <div class="info-box">
+                    <div class="info-header">Basic Information</div>
+                    <div class="info-row">
+                        <span class="label">Full Name:</span>
+                        <span class="value" id="userName">SHIMELIS HATISO</span>
+                        <span class="label">School:</span>
+                        <span class="value">Hayyo Academy</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Is Blind / Is Deaf:</span>
+                        <span class="value">No / No</span>
+                        <span class="label">Admission Number:</span>
+                        <span class="value">HAY001</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Exam Center:</span>
+                        <span class="value">ADDIS ABABA</span>
+                        <span class="label">Enrollment Type:</span>
+                        <span class="value">Regular</span>
+                    </div>
+                </div>
+
+                <!-- Exam Section (no breadcrumb) -->
+                <div class="exam-section">
+
+                    <!-- Exam header (no breadcrumb above) -->
+                    <div class="exam-header">
+                        <div class="exam-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"></path><path d="M13.5 6.5l4 4"></path></svg>
+                        </div>
+                        <div>
+                            <p class="exam-label">Exam</p>
+                            <h1 class="exam-title">Mathematics</h1>
+                        </div>
+                    </div>
+
+                    <div class="toolbar">
+                        <button class="btn-back" onclick="window.location.href='exam-detail.html'">Back</button>
+                        <div class="toolbar-right">
+                            <button class="btn-overview" id="toggleOverviewBtn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"></path><path d="M14 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"></path><path d="M4 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"></path><path d="M14 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"></path></svg>
+                                Overview
+                            </button>
+                            <div class="timer-display">
+                                <span class="label">Time left </span>
+                                <span class="time" id="timerDisplay">2:29:44</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="question-area">
+
+                        <div class="question-info">
+                            <div class="card">
+                                <p class="q-number" id="questionNumberDisplay">Question 1</p>
+                                <p class="q-status" id="questionStatusDisplay">Not yet answered</p>
+                                <p class="q-marks">Marked out of 1.00</p>
+                                <button class="btn-flag" id="flagButton">
+                                    <svg class="flag-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5a5 5 0 0 1 7 0a5 5 0 0 0 7 0v9a5 5 0 0 1 -7 0a5 5 0 0 0 -7 0v-9"></path><path d="M5 21v-7"></path></svg>
+                                    <span id="flagText">Flagged question</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="question-content">
+                            <div class="question-text" id="questionText">
+                                <p><b>What is the value of x in the equation 2x + 5 = 13?</b></p>
+                            </div>
+
+                            <div class="options" id="optionsContainer" role="radiogroup">
+                                <label class="option" data-option="a">
+                                    <span class="radio"></span>
+                                    <span class="letter">a.</span>
+                                    <span>4</span>
+                                </label>
+                                <label class="option" data-option="b">
+                                    <span class="radio"></span>
+                                    <span class="letter">b.</span>
+                                    <span>5</span>
+                                </label>
+                                <label class="option" data-option="c">
+                                    <span class="radio"></span>
+                                    <span class="letter">c.</span>
+                                    <span>6</span>
+                                </label>
+                                <label class="option" data-option="d">
+                                    <span class="radio"></span>
+                                    <span class="letter">d.</span>
+                                    <span>3</span>
+                                </label>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="nav-area">
+                        <button class="btn-prev" id="prevButton" disabled>Previous Page</button>
+                        <div class="nav-center">
+                            <button class="btn-grid" id="gridButton">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"></path><path d="M14 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"></path><path d="M4 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"></path><path d="M14 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"></path></svg>
+                                <span class="count" id="progressCount">0/100</span>
+                            </button>
+                            <button class="btn-next" id="nextButton">Next Page</button>
+                        </div>
+                    </div>
+
+                    <button class="finish-link" id="finishAttemptBtn">Finish Attempt ...</button>
+
+                </div>
+            </div>
+
+        </main>
+
+        <!-- OVERVIEW SIDEBAR (desktop) -->
+        <div class="overview-sidebar" id="overviewSidebar">
+            <div class="overview-content">
+                <div class="overview-header">
+                    <h4>Exam Overview</h4>
+                    <button class="close-btn" id="closeOverviewBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6l-12 12"></path><path d="M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div class="overview-grid" id="overviewGrid"></div>
+                <button class="finish-overview" id="finishOverviewBtn">Finish Attempt ...</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ============================================
+        // JWT API HELPER
+        // ============================================
+
+        const API_BASE = '';
+
+        function getToken() {
+            return localStorage.getItem('token');
+        }
+
+        function apiCall(endpoint, options = {}) {
+            const token = getToken();
+            return fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                    ...options.headers
+                }
+            });
+        }
+
+        // ============================================
+        // AUTH CHECK
+        // ============================================
+
+        function checkAuth() {
+            const token = getToken();
+            if (!token) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            apiCall('/api/me')
+                .then(res => {
+                    if (res.status === 401) {
+                        localStorage.removeItem('token');
+                        window.location.href = 'index.html';
+                        return null;
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    if (data && data.authenticated) {
+                        console.log('✅ Maths Exam loaded! Welcome:', data.user);
+                        const userName = data.user.name || 'Student';
+                        document.getElementById('userName').textContent = userName.toUpperCase();
+                        const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                        document.getElementById('userAvatar').textContent = initials;
+                    }
+                })
+                .catch(() => {
+                    window.location.href = 'index.html';
+                });
+        }
+
+        // ============================================
+        // LOAD QUESTIONS FROM BACKEND
+        // ============================================
+
+        let totalQuestions = 100;
+        let currentQuestion = 1;
+        let answers = {};
+        let flagged = {};
+        let attemptId = null;
+        let examId = null;
+        const questionsPerPage = 15;
+
+        function loadExamData() {
+            examId = localStorage.getItem('examId') || 'uee2018r1-math';
+            attemptId = localStorage.getItem('attemptId');
+            
+            // Load saved answers from localStorage
+            const savedAnswers = localStorage.getItem('answers');
+            if (savedAnswers) {
+                try {
+                    answers = JSON.parse(savedAnswers);
+                } catch (e) {
+                    answers = {};
+                }
+            }
+            
+            const savedCurrent = localStorage.getItem('currentQuestion');
+            if (savedCurrent) {
+                currentQuestion = parseInt(savedCurrent) || 1;
+            }
+
+            // Fetch questions from backend
+            apiCall(`/api/exams/${examId}/questions`)
+                .then(res => {
+                    if (res.status === 401) {
+                        localStorage.removeItem('token');
+                        window.location.href = 'index.html';
+                        return null;
+                    }
+                    return res.json();
+                })
+                .then(questions => {
+                    if (!questions) return;
+                    
+                    // Store questions globally
+                    window.questionsData = questions.map(q => ({
+                        id: q.question_number,
+                        text: q.text,
+                        options: q.options,
+                        // NO correct_answer sent to client
+                    }));
+                    
+                    totalQuestions = window.questionsData.length;
+                    document.getElementById('progressCount').textContent = `${Object.keys(answers).length}/${totalQuestions}`;
+                    
+                    renderQuestion();
+                    updateGrid();
+                    updateNavGrid();
+                })
+                .catch(err => {
+                    console.error('Error loading questions:', err);
+                    showToast('❌ Failed to load exam questions. Please refresh.', 'error');
+                });
+        }
+
+        // ============================================
+        // RENDER FUNCTIONS (UNCHANGED UI)
+        // ============================================
+
+        function renderQuestion() {
+            const q = window.questionsData?.[currentQuestion - 1];
+            if (!q) return;
+            
+            document.getElementById('questionText').innerHTML = `<p><b>${q.text}</b></p>`;
+            document.getElementById('questionNumberDisplay').textContent = `Question ${currentQuestion}`;
+
+            const isAnswered = answers[currentQuestion] !== undefined;
+            document.getElementById('questionStatusDisplay').textContent = isAnswered ? 'Answered' : 'Not yet answered';
+            document.getElementById('questionStatusDisplay').style.color = isAnswered ? '#16a34a' : '#64748b';
+
+            const optionLabels = ['a', 'b', 'c', 'd'];
+            const container = document.getElementById('optionsContainer');
+            container.innerHTML = '';
+            q.options.forEach((opt, idx) => {
+                const label = document.createElement('label');
+                label.className = 'option';
+                label.dataset.option = optionLabels[idx];
+                const radio = document.createElement('span');
+                radio.className = 'radio';
+                if (answers[currentQuestion] === idx) radio.classList.add('checked');
+                const letter = document.createElement('span');
+                letter.className = 'letter';
+                letter.textContent = optionLabels[idx] + '.';
+                const text = document.createElement('span');
+                text.textContent = opt;
+                label.appendChild(radio);
+                label.appendChild(letter);
+                label.appendChild(text);
+                label.addEventListener('click', function() {
+                    const optIndex = optionLabels.indexOf(this.dataset.option);
+                    selectOption(optIndex);
+                });
+                container.appendChild(label);
+            });
+
+            const totalPages = Math.ceil(totalQuestions / questionsPerPage);
+            const page = Math.ceil(currentQuestion / questionsPerPage);
+            document.getElementById('prevButton').disabled = page <= 1;
+            document.getElementById('nextButton').disabled = page >= totalPages;
+
+            const answeredCount = Object.keys(answers).length;
+            document.getElementById('progressCount').textContent = `${answeredCount}/${totalQuestions}`;
+
+            const isFlagged = flagged[currentQuestion] || false;
+            document.getElementById('flagText').textContent = isFlagged ? 'Remove flag' : 'Flagged question';
+            document.getElementById('flagButton').style.color = isFlagged ? '#ef4444' : '#3b82f6';
+
+            updateGrid();
+            updateNavGrid();
+        }
+
+        function selectOption(index) {
+            answers[currentQuestion] = index;
+            renderQuestion();
+            updateGrid();
+            updateNavGrid();
+            autoSave();
+        }
+
+        // ============================================
+        // AUTO-SAVE WITH JWT
+        // ============================================
+
+        function autoSave() {
+            if (!attemptId) return;
+            
+            const saveData = {
+                attempt_id: parseInt(attemptId),
+                answers: answers,
+                current: currentQuestion
+            };
+            
+            apiCall('/api/exams/save-answer', {
+                method: 'POST',
+                body: JSON.stringify(saveData)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('✅ Auto-save successful');
+                } else {
+                    console.warn('⚠️ Auto-save failed:', data);
+                }
+            })
+            .catch(err => console.error('Auto-save error:', err));
+        }
+
+        // ============================================
+        // FLAG BUTTON
+        // ============================================
+
+        document.getElementById('flagButton').addEventListener('click', function() {
+            flagged[currentQuestion] = !flagged[currentQuestion];
+            renderQuestion();
+            updateGrid();
+            updateNavGrid();
+        });
+
+        // ============================================
+        // NAVIGATION
+        // ============================================
+
+        function goToQuestion(qId) {
+            if (qId < 1 || qId > totalQuestions) return;
+            currentQuestion = qId;
+            localStorage.setItem('currentQuestion', currentQuestion);
+            renderQuestion();
+            document.querySelector('.question-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (window.innerWidth < 1024) closeSidebar();
+            closeNavOverlay();
+        }
+
+        document.getElementById('prevButton').addEventListener('click', function() {
+            const page = Math.ceil(currentQuestion / questionsPerPage);
+            const newPage = Math.max(1, page - 1);
+            goToQuestion((newPage - 1) * questionsPerPage + 1);
+        });
+
+        document.getElementById('nextButton').addEventListener('click', function() {
+            const page = Math.ceil(currentQuestion / questionsPerPage);
+            const totalPages = Math.ceil(totalQuestions / questionsPerPage);
+            const newPage = Math.min(totalPages, page + 1);
+            goToQuestion((newPage - 1) * questionsPerPage + 1);
+        });
+
+        // ============================================
+        // GRID / SIDEBAR FUNCTIONS
+        // ============================================
+
+        function toggleSidebar() {
+            document.getElementById('overviewSidebar').classList.toggle('open');
+            document.getElementById('backdrop').classList.toggle('show');
+        }
+
+        function closeSidebar() {
+            document.getElementById('overviewSidebar').classList.remove('open');
+            document.getElementById('backdrop').classList.remove('show');
+        }
+
+        document.getElementById('gridButton').addEventListener('click', toggleSidebar);
+        document.getElementById('toggleOverviewBtn').addEventListener('click', toggleSidebar);
+        document.getElementById('closeOverviewBtn').addEventListener('click', closeSidebar);
+        document.getElementById('backdrop').addEventListener('click', closeSidebar);
+
+        function updateGrid() {
+            const grid = document.getElementById('overviewGrid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= totalQuestions; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'grid-btn';
+                if (i === currentQuestion) btn.classList.add('current');
+                if (answers[i] !== undefined) btn.classList.add('answered');
+                if (flagged[i]) btn.classList.add('flagged');
+                const span = document.createElement('span');
+                span.className = 'number';
+                span.textContent = i;
+                btn.appendChild(span);
+                btn.addEventListener('click', function() {
+                    goToQuestion(i);
+                    if (window.innerWidth < 1024) closeSidebar();
+                });
+                grid.appendChild(btn);
+            }
+        }
+
+        // ===== NAVIGATION POPUP =====
+        function openNavOverlay() {
+            document.getElementById('navOverlay').classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeNavOverlay() {
+            document.getElementById('navOverlay').classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        function updateNavGrid() {
+            const grid = document.getElementById('navGrid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= totalQuestions; i++) {
+                const btn = document.createElement('button');
+                btn.textContent = i;
+                if (i === currentQuestion) btn.classList.add('current');
+                if (answers[i] !== undefined) btn.classList.add('answered');
+                if (flagged[i]) btn.classList.add('flagged');
+                btn.addEventListener('click', function() {
+                    goToQuestion(i);
+                    closeNavOverlay();
+                });
+                grid.appendChild(btn);
+            }
+        }
+
+        document.querySelector('.btn-grid').addEventListener('click', openNavOverlay);
+
+        document.getElementById('toggleOverviewBtn').addEventListener('click', function() {
+            if (window.innerWidth < 1024) {
+                openNavOverlay();
+            } else {
+                toggleSidebar();
+            }
+        });
+
+        document.getElementById('closeNavBtn').addEventListener('click', closeNavOverlay);
+        document.getElementById('navOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeNavOverlay();
+        });
+
+        // ============================================
+        // REVIEW & SUBMIT WITH JWT
+        // ============================================
+
+        function openReviewPopup() {
+            const list = document.getElementById('reviewList');
+            list.innerHTML = '';
+            for (let i = 1; i <= totalQuestions; i++) {
+                const isAnswered = answers[i] !== undefined;
+                const row = document.createElement('div');
+                row.className = 'review-row';
+                row.innerHTML = `
+                    <span class="qnum">${i}</span>
+                    <span class="qstatus">${isAnswered ? '✅ Answered' : '○ Not answered'}</span>
+                    <span class="qflag">${flagged[i] ? '⚑' : ''}</span>
+                `;
+                list.appendChild(row);
+            }
+
+            const answeredCount = Object.keys(answers).length;
+            const flaggedCount = Object.keys(flagged).filter(k => flagged[k]).length;
+            const unansweredCount = totalQuestions - answeredCount;
+            document.getElementById('reviewAnswered').textContent = answeredCount;
+            document.getElementById('reviewUnanswered').textContent = unansweredCount;
+            document.getElementById('reviewFlagged').textContent = flaggedCount;
+            document.getElementById('reviewWarningCount').textContent = unansweredCount;
+
+            document.getElementById('reviewOverlay').classList.add('show');
+            document.body.style.overflow = 'hidden';
+            closeNavOverlay();
+        }
+
+        function closeReviewPopup() {
+            document.getElementById('reviewOverlay').classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        document.getElementById('finishAttemptBtn').addEventListener('click', openReviewPopup);
+        document.getElementById('finishOverviewBtn').addEventListener('click', openReviewPopup);
+        document.getElementById('navFinishBtn').addEventListener('click', function() {
+            closeNavOverlay();
+            openReviewPopup();
+        });
+        document.getElementById('closeReviewBtn').addEventListener('click', closeReviewPopup);
+        document.getElementById('reviewReturnBtn').addEventListener('click', closeReviewPopup);
+        document.getElementById('reviewOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeReviewPopup();
+        });
+
+        // ============================================
+        // SUBMIT WITH JWT
+        // ============================================
+
+        document.getElementById('reviewSubmitBtn').addEventListener('click', function() {
+            const answeredCount = Object.keys(answers).length;
+            if (!confirm(`You have answered ${answeredCount}/${totalQuestions} questions. Are you sure you want to submit?`)) {
+                return;
+            }
+
+            this.textContent = 'Submitting...';
+            this.disabled = true;
+
+            apiCall('/api/exams/submit', {
+                method: 'POST',
+                body: JSON.stringify({
+                    attempt_id: parseInt(attemptId),
+                    answers: answers
+                })
+            })
+            .then(res => {
+                if (res.status === 401) {
+                    localStorage.removeItem('token');
+                    window.location.href = 'index.html';
+                    return null;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (!data) return;
+                
+                if (data.success) {
+                    showToast(`✅ Exam submitted! Score: ${data.score}/${data.total} (${data.percentage}%)`, 'success');
+                    closeReviewPopup();
+                    
+                    // Clear exam data from localStorage
+                    localStorage.removeItem('attemptId');
+                    localStorage.removeItem('answers');
+                    localStorage.removeItem('currentQuestion');
+                    
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 2000);
+                } else {
+                    showToast('❌ Submission failed. Please try again.', 'error');
+                }
+            })
+            .catch(err => {
+                console.error('Submit error:', err);
+                showToast('❌ Error submitting exam. Please try again.', 'error');
+            })
+            .finally(() => {
+                this.textContent = 'SUBMIT ALL AND FINISH';
+                this.disabled = false;
+            });
+        });
+
+        // ============================================
+        // TIMER
+        // ============================================
+
+        let timerSeconds = parseInt(localStorage.getItem('timeRemaining')) || 8984;
+
+        function updateTimer() {
+            const hours = Math.floor(timerSeconds / 3600);
+            const mins = Math.floor((timerSeconds % 3600) / 60);
+            const secs = timerSeconds % 60;
+            document.getElementById('timerDisplay').textContent =
+                `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            
+            // Auto-save timer progress
+            if (timerSeconds % 30 === 0) {
+                localStorage.setItem('timeRemaining', timerSeconds);
+            }
+            
+            if (timerSeconds <= 0) {
+                clearInterval(timerInterval);
+                showToast('⏰ Time is up! Your exam will be submitted automatically.', 'error');
+                // Auto-submit
+                document.getElementById('reviewSubmitBtn').click();
+            }
+            timerSeconds--;
+        }
+
+        const timerInterval = setInterval(updateTimer, 1000);
+
+        // ============================================
+        // INIT
+        // ============================================
+
+        // Toast helper
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => { toast.className = 'toast'; }, 3000);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            loadExamData();
+            renderQuestion();
+            updateGrid();
+            updateNavGrid();
+        });
+
+        console.log('✅ Maths Exam loaded with JWT');
+    </script>
+</body>
+</html>
