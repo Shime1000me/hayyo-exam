@@ -1,440 +1,787 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-    <title>Hayyo Academy - Admin Payments</title>
-    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@100..900&family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Payments Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Raleway', 'Inter', sans-serif; background: #f8fafc; min-height: 100vh; }
-
-        .app-header {
-            background: #ffffff;
-            border-bottom: 1px solid #e2e8f0;
-            display: flex;
-            align-items: center;
-            height: 48px;
-            padding: 0 1rem;
-            gap: 0.5rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .app-header .logo { font-size: 1.25rem; font-weight: 700; color: #2563eb; margin-right: 1rem; }
-        .app-header nav { display: flex; align-items: stretch; height: 100%; }
-        .app-header nav a {
-            display: flex; align-items: center; padding: 0 0.75rem; font-size: 0.875rem;
-            border-bottom: 2px solid transparent; text-decoration: none; color: #64748b; cursor: pointer;
-        }
-        .app-header nav a:hover { color: #0f172a; }
-        .app-header nav a.active { border-bottom-color: #2563eb; color: #2563eb; font-weight: 500; }
-        .app-header .user-menu { margin-left: auto; display: flex; align-items: center; }
-        .app-header .user-menu .avatar {
-            width: 28px; height: 28px; border-radius: 50%; background: #2563eb; color: white;
-            font-size: 0.65rem; font-weight: 600; display: flex; align-items: center; justify-content: center;
-            text-transform: uppercase;
-        }
-        .red-line { height: 2px; background: #dc2626; }
-
-        .main-content { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
-
-        .stats-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;
-            margin-bottom: 1.5rem;
+        .admin-header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
         .stat-card {
-            background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            text-align: center;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+            border-left: 4px solid #667eea;
         }
-        .stat-card .number { font-size: 1.75rem; font-weight: 700; color: #0f172a; }
-        .stat-card .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
-
-        .payment-card {
-            background: white; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 0.75rem;
-            border-left: 4px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem;
+        .stat-card:hover {
+            transform: translateY(-5px);
         }
-        .payment-card.pending { border-left-color: #f59e0b; }
-        .payment-card.approved { border-left-color: #10b981; }
-        .payment-card.rejected { border-left-color: #ef4444; }
-
-        .payment-info { flex: 1; min-width: 200px; }
-        .payment-info .name { font-weight: 600; }
-        .payment-info .email { font-size: 0.875rem; color: #64748b; }
-        .payment-info .details { font-size: 0.875rem; color: #0f172a; margin-top: 0.25rem; }
-        .payment-info .badge {
-            display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem;
-            font-weight: 600; text-transform: uppercase;
+        .stat-card .number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1a1a2e;
         }
-        .badge-pending { background: #fef3c7; color: #92400e; }
-        .badge-approved { background: #d1fae5; color: #065f46; }
-        .badge-rejected { background: #fee2e2; color: #991b1b; }
-
-        .payment-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-        .btn-approve {
-            background: #10b981; color: white; border: none; padding: 6px 16px; border-radius: 4px;
-            font-weight: 600; cursor: pointer; font-size: 0.8rem; font-family: 'Raleway', sans-serif;
+        .stat-card .label {
+            font-size: 0.9rem;
+            color: #6c757d;
         }
-        .btn-approve:hover { background: #059669; }
-        .btn-reject {
-            background: #ef4444; color: white; border: none; padding: 6px 16px; border-radius: 4px;
-            font-weight: 600; cursor: pointer; font-size: 0.8rem; font-family: 'Raleway', sans-serif;
+        .stat-card .icon {
+            font-size: 2.5rem;
+            opacity: 0.3;
+            float: right;
         }
-        .btn-reject:hover { background: #dc2626; }
-        .btn-view {
-            background: #e2e8f0; color: #0f172a; border: none; padding: 6px 16px; border-radius: 4px;
-            font-weight: 500; cursor: pointer; font-size: 0.8rem; font-family: 'Raleway', sans-serif;
+        .payment-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
         }
-        .btn-view:hover { background: #cbd5e1; }
-
-        .filter-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
-        .filter-tabs button {
-            padding: 6px 16px; border: 1px solid #e2e8f0; border-radius: 20px; background: white;
-            cursor: pointer; font-size: 0.8rem; font-family: 'Raleway', sans-serif; color: #64748b;
-            transition: all 0.15s;
+        .payment-table thead {
+            background: #f8f9fa;
         }
-        .filter-tabs button:hover { background: #f1f5f9; }
-        .filter-tabs button.active { background: #2563eb; color: white; border-color: #2563eb; }
-
-        .toast {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: #1f2937; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px;
-            font-family: 'Inter', sans-serif; z-index: 99999; opacity: 0; transition: opacity 0.3s ease;
-            pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); max-width: 90%;
+        .payment-table th {
+            font-weight: 600;
+            color: #1a1a2e;
+            border-bottom: 2px solid #e9ecef;
         }
-        .toast.show { opacity: 1; }
-        .toast.error { background: #dc2626; }
-        .toast.success { background: #16a34a; }
-
-        .empty-state {
-            text-align: center; padding: 3rem 1rem; color: #64748b;
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 500;
         }
-
-        @media (max-width: 640px) {
-            .payment-card { flex-direction: column; align-items: stretch; }
-            .payment-actions { justify-content: flex-start; }
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status-refunded {
+            background: #cce5ff;
+            color: #004085;
+        }
+        .search-box {
+            border-radius: 50px;
+            padding: 10px 20px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s;
+        }
+        .search-box:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        .filter-btn {
+            border-radius: 50px;
+            padding: 8px 20px;
+            margin: 0 5px;
+            transition: all 0.3s;
+        }
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .payment-modal .modal-content {
+            border-radius: 20px;
+            border: none;
+        }
+        .payment-modal .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px 20px 0 0;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-label {
+            font-weight: 500;
+            color: #6c757d;
+        }
+        .detail-value {
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        .feedback-msg {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        }
+        .pagination-custom .page-link {
+            border-radius: 8px;
+            margin: 0 3px;
+            color: #667eea;
+        }
+        .pagination-custom .page-item.active .page-link {
+            background: #667eea;
+            border-color: #667eea;
+            color: white;
+        }
+        .export-btn {
+            border-radius: 50px;
+            padding: 8px 20px;
         }
     </style>
 </head>
 <body>
+    <!-- Feedback Messages -->
+    <div class="feedback-msg" id="feedbackMsg"></div>
 
-    <div class="toast" id="toast"></div>
-
-    <!-- HEADER -->
-    <header class="app-header">
-        <div class="logo">🏫 Hayyo</div>
-        <nav>
-            <a href="dashboard.html">Home</a>
-            <a href="exams.html">My exam</a>
-            <a href="#" class="active">Admin</a>
-        </nav>
-        <div class="user-menu">
-            <div class="avatar" id="userAvatar">AD</div>
+    <!-- Admin Header -->
+    <div class="admin-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="display-6 fw-bold mb-2">
+                        <i class="bi bi-credit-card me-2"></i>Payments Management
+                    </h1>
+                    <p class="mb-0 opacity-75">
+                        <i class="bi bi-person me-1"></i>Admin Dashboard
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                    <button class="btn btn-light me-2" onclick="refreshData()">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                    <button class="btn btn-success" onclick="exportData()">
+                        <i class="bi bi-download"></i> Export CSV
+                    </button>
+                </div>
+            </div>
         </div>
-    </header>
+    </div>
 
-    <div class="red-line"></div>
-
-    <!-- MAIN CONTENT -->
-    <main class="main-content">
-
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
-            <h1 style="font-size: 1.5rem; font-weight: 700;">💳 Payment Requests</h1>
-            <span id="adminEmail" style="font-size: 0.875rem; color: #64748b;"></span>
-        </div>
-
-        <!-- Stats -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="number" id="statTotal">0</div>
-                <div class="label">Total</div>
+    <!-- Main Content -->
+    <div class="container mb-5">
+        <!-- Statistics -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card">
+                    <div class="icon"><i class="bi bi-cash-stack"></i></div>
+                    <div class="number" id="totalRevenue">₦0</div>
+                    <div class="label">Total Revenue</div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="number" id="statPending">0</div>
-                <div class="label">Pending</div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card" style="border-left-color: #28a745;">
+                    <div class="icon"><i class="bi bi-check-circle"></i></div>
+                    <div class="number" id="totalPayments">0</div>
+                    <div class="label">Total Payments</div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="number" id="statApproved">0</div>
-                <div class="label">Approved</div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card" style="border-left-color: #ffc107;">
+                    <div class="icon"><i class="bi bi-clock"></i></div>
+                    <div class="number" id="pendingPayments">0</div>
+                    <div class="label">Pending</div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="number" id="statRevenue">0</div>
-                <div class="label">Revenue (Birr)</div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card" style="border-left-color: #17a2b8;">
+                    <div class="icon"><i class="bi bi-people"></i></div>
+                    <div class="number" id="uniqueStudents">0</div>
+                    <div class="label">Unique Students</div>
+                </div>
             </div>
         </div>
 
         <!-- Filters -->
-        <div class="filter-tabs">
-            <button class="active" data-filter="all">All</button>
-            <button data-filter="pending">⏳ Pending</button>
-            <button data-filter="approved">✅ Approved</button>
-            <button data-filter="rejected">❌ Rejected</button>
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <input type="text" class="search-box w-100" id="searchInput" placeholder="🔍 Search by student name, email, or transaction ID...">
+            </div>
+            <div class="col-md-8">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span class="text-muted me-2">Filter:</span>
+                    <button class="btn btn-outline-secondary filter-btn active" data-filter="all">All</button>
+                    <button class="btn btn-outline-success filter-btn" data-filter="completed">Completed</button>
+                    <button class="btn btn-outline-warning filter-btn" data-filter="pending">Pending</button>
+                    <button class="btn btn-outline-danger filter-btn" data-filter="failed">Failed</button>
+                    <button class="btn btn-outline-info filter-btn" data-filter="refunded">Refunded</button>
+                    <span class="text-muted ms-2 me-2">|</span>
+                    <input type="date" class="form-control form-control-sm" id="dateFilter" style="width: auto;">
+                </div>
+            </div>
         </div>
 
-        <!-- Payments List -->
-        <div id="paymentsList">
-            <div class="empty-state">Loading payments...</div>
+        <!-- Payments Table -->
+        <div class="payment-table">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>Student</th>
+                            <th>Exam</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paymentsTableBody">
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-3 bg-light d-flex justify-content-between align-items-center">
+                <span id="paymentCount" class="text-muted">Showing 0 payments</span>
+                <nav>
+                    <ul class="pagination pagination-custom mb-0" id="pagination">
+                        <!-- Pagination will be rendered here -->
+                    </ul>
+                </nav>
+            </div>
         </div>
+    </div>
 
-    </main>
+    <!-- Payment Detail Modal -->
+    <div class="modal fade payment-modal" id="paymentModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-receipt me-2"></i>Payment Details</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="paymentDetails">
+                    <!-- Details will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button class="btn btn-primary" id="updateStatusBtn" onclick="updatePaymentStatus()">
+                        <i class="bi bi-pencil"></i> Update Status
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- Update Status Modal -->
+    <div class="modal fade" id="statusModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Payment Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="statusForm">
+                        <div class="mb-3">
+                            <label class="form-label">Payment ID</label>
+                            <input type="text" class="form-control" id="statusPaymentId" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">New Status</label>
+                            <select class="form-select" id="newStatus">
+                                <option value="pending">Pending</option>
+                                <option value="completed">Completed</option>
+                                <option value="failed">Failed</option>
+                                <option value="refunded">Refunded</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notes (optional)</label>
+                            <textarea class="form-control" id="statusNotes" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary" onclick="confirmStatusUpdate()">
+                        <i class="bi bi-check-circle"></i> Update
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ============================================
-        // JWT API HELPER
-        // ============================================
+        // ============================================================
+        // 1. API Base URL - UPDATED
+        // ============================================================
+        const API_BASE = 'https://hayyo-exam.onrender.com';
 
-        const API_BASE = '';
+        // ============================================================
+        // 2. Global State
+        // ============================================================
+        let payments = [];
+        let filteredPayments = [];
+        let currentPage = 1;
+        const pageSize = 10;
+        let selectedPaymentId = null;
+        let currentFilter = 'all';
 
-        function getToken() {
-            return localStorage.getItem('token');
+        // DOM elements
+        const paymentsTableBody = document.getElementById('paymentsTableBody');
+        const pagination = document.getElementById('pagination');
+        const paymentCount = document.getElementById('paymentCount');
+        const searchInput = document.getElementById('searchInput');
+        const dateFilter = document.getElementById('dateFilter');
+        const totalRevenue = document.getElementById('totalRevenue');
+        const totalPayments = document.getElementById('totalPayments');
+        const pendingPayments = document.getElementById('pendingPayments');
+        const uniqueStudents = document.getElementById('uniqueStudents');
+        const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+        const statusModal = new bootstrap.Modal(document.getElementById('statusModal'));
+        const feedbackMsg = document.getElementById('feedbackMsg');
+
+        // ============================================================
+        // 3. Helper Functions
+        // ============================================================
+        function showFeedback(message, type = 'success') {
+            const bgColor = type === 'success' ? '#d4edda' : type === 'error' ? '#f8d7da' : '#fff3cd';
+            const textColor = type === 'success' ? '#155724' : type === 'error' ? '#721c24' : '#856404';
+            feedbackMsg.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert" style="background: ${bgColor}; color: ${textColor}; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            setTimeout(() => {
+                const alert = feedbackMsg.querySelector('.alert');
+                if (alert) alert.classList.remove('show');
+            }, 5000);
         }
 
-        function apiCall(endpoint, options = {}) {
-            const token = getToken();
-            return fetch(`${API_BASE}${endpoint}`, {
-                ...options,
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                    ...options.headers
-                }
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-NG', {
+                style: 'currency',
+                currency: 'NGN',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
             });
         }
 
-        // ============================================
-        // AUTH CHECK & ADMIN VERIFICATION
-        // ============================================
-
-        let currentUser = null;
-
-        function checkAuth() {
-            const token = getToken();
-            if (!token) {
-                window.location.href = 'index.html';
-                return;
-            }
-
-            apiCall('/api/me')
-                .then(res => {
-                    if (res.status === 401) {
-                        localStorage.removeItem('token');
-                        window.location.href = 'index.html';
-                        return null;
-                    }
-                    return res.json();
-                })
-                .then(data => {
-                    if (!data || !data.authenticated) {
-                        window.location.href = 'index.html';
-                        return;
-                    }
-
-                    currentUser = data.user;
-                    const userName = data.user.name || 'Admin';
-                    const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-                    document.getElementById('userAvatar').textContent = initials;
-                    document.getElementById('adminEmail').textContent = `👤 ${data.user.email}`;
-
-                    // Check if user is admin
-                    const adminEmails = ['admin@hayyo.com', 'shimelis@hayyo.com'];
-                    if (!adminEmails.includes(data.user.email)) {
-                        document.getElementById('paymentsList').innerHTML = `
-                            <div class="empty-state" style="padding: 4rem 1rem;">
-                                <h2>⛔ Admin Access Required</h2>
-                                <p style="color: #64748b; margin-top: 0.5rem;">You do not have permission to view this page.</p>
-                                <button class="btn-approve" onclick="window.location.href='dashboard.html'" style="margin-top: 1rem;">
-                                    Go to Dashboard
-                                </button>
-                            </div>
-                        `;
-                        return;
-                    }
-
-                    loadPayments();
-                })
-                .catch(() => {
-                    window.location.href = 'index.html';
-                });
+        function getStatusBadge(status) {
+            const statusMap = {
+                'completed': 'status-completed',
+                'pending': 'status-pending',
+                'failed': 'status-failed',
+                'refunded': 'status-refunded'
+            };
+            return `status-badge ${statusMap[status] || 'status-pending'}`;
         }
 
-        // ============================================
-        // LOAD PAYMENTS
-        // ============================================
+        function getStatusIcon(status) {
+            const icons = {
+                'completed': 'bi-check-circle',
+                'pending': 'bi-clock',
+                'failed': 'bi-x-circle',
+                'refunded': 'bi-arrow-counterclockwise'
+            };
+            return icons[status] || 'bi-circle';
+        }
 
-        let allPayments = [];
-        let currentFilter = 'all';
-
+        // ============================================================
+        // 4. Load Data
+        // ============================================================
         function loadPayments() {
-            document.getElementById('paymentsList').innerHTML = '<div class="empty-state">Loading payments...</div>';
-
-            apiCall('/api/admin/payments')
-                .then(res => {
-                    if (res.status === 403) {
-                        document.getElementById('paymentsList').innerHTML = `
-                            <div class="empty-state">
-                                <h2>⛔ Access Denied</h2>
-                                <p style="color: #64748b; margin-top: 0.5rem;">Admin access required.</p>
-                            </div>
-                        `;
-                        return null;
-                    }
-                    if (res.status === 401) {
-                        localStorage.removeItem('token');
-                        window.location.href = 'index.html';
-                        return null;
-                    }
-                    return res.json();
-                })
-                .then(data => {
-                    if (!data) return;
-                    allPayments = data;
+            fetch(`${API_BASE}/api/admin/payments`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    payments = data.payments || [];
                     updateStats();
-                    renderPayments();
-                })
-                .catch(err => {
-                    console.error('Error loading payments:', err);
-                    document.getElementById('paymentsList').innerHTML = `
-                        <div class="empty-state">
-                            <h2>⚠️ Error loading payments</h2>
-                            <p style="color: #64748b; margin-top: 0.5rem;">${err.message || 'Please try again.'}</p>
-                        </div>
-                    `;
-                });
+                    applyFilters();
+                } else {
+                    showFeedback('Failed to load payments: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Load payments error:', error);
+                showFeedback('Network error loading payments.', 'error');
+            });
         }
 
+        // ============================================================
+        // 5. Update Statistics
+        // ============================================================
         function updateStats() {
-            const total = allPayments.length;
-            const pending = allPayments.filter(p => p.status === 'pending').length;
-            const approved = allPayments.filter(p => p.status === 'approved').length;
-            const revenue = allPayments.filter(p => p.status === 'approved').reduce((sum, p) => sum + (p.amount || 0), 0);
+            const total = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+            const completed = payments.filter(p => p.status === 'completed').length;
+            const pending = payments.filter(p => p.status === 'pending').length;
+            const unique = new Set(payments.map(p => p.student_id)).size;
 
-            document.getElementById('statTotal').textContent = total;
-            document.getElementById('statPending').textContent = pending;
-            document.getElementById('statApproved').textContent = approved;
-            document.getElementById('statRevenue').textContent = revenue;
+            totalRevenue.textContent = formatCurrency(total);
+            totalPayments.textContent = payments.length;
+            pendingPayments.textContent = pending;
+            uniqueStudents.textContent = unique;
         }
 
-        function renderPayments() {
-            const filtered = currentFilter === 'all' 
-                ? allPayments 
-                : allPayments.filter(p => p.status === currentFilter);
+        // ============================================================
+        // 6. Filter & Search
+        // ============================================================
+        function applyFilters() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const dateValue = dateFilter.value;
 
-            const container = document.getElementById('paymentsList');
+            filteredPayments = payments.filter(p => {
+                // Status filter
+                if (currentFilter !== 'all' && p.status !== currentFilter) return false;
 
-            if (filtered.length === 0) {
-                container.innerHTML = `<div class="empty-state">No ${currentFilter === 'all' ? '' : currentFilter} payments found.</div>`;
+                // Date filter
+                if (dateValue) {
+                    const paymentDate = new Date(p.created_at).toISOString().split('T')[0];
+                    if (paymentDate !== dateValue) return false;
+                }
+
+                // Search filter
+                if (searchTerm) {
+                    const searchable = `${p.transaction_id || ''} ${p.student_name || ''} ${p.student_email || ''} ${p.exam_title || ''}`.toLowerCase();
+                    if (!searchable.includes(searchTerm)) return false;
+                }
+
+                return true;
+            });
+
+            currentPage = 1;
+            renderTable();
+        }
+
+        // ============================================================
+        // 7. Render Table
+        // ============================================================
+        function renderTable() {
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageItems = filteredPayments.slice(start, end);
+
+            if (pageItems.length === 0) {
+                paymentsTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                            No payments found
+                        </td>
+                    </tr>
+                `;
+            } else {
+                paymentsTableBody.innerHTML = pageItems.map(p => `
+                    <tr>
+                        <td><code>${p.transaction_id || 'N/A'}</code></td>
+                        <td>
+                            <strong>${p.student_name || 'Unknown'}</strong><br>
+                            <small class="text-muted">${p.student_email || ''}</small>
+                        </td>
+                        <td>${p.exam_title || 'N/A'}</td>
+                        <td><strong>${formatCurrency(p.amount || 0)}</strong></td>
+                        <td>${formatDate(p.created_at)}</td>
+                        <td>
+                            <span class="${getStatusBadge(p.status)}">
+                                <i class="bi ${getStatusIcon(p.status)} me-1"></i>
+                                ${p.status || 'pending'}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewPayment('${p.id}')">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="editPayment('${p.id}')">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            // Update count
+            paymentCount.textContent = `Showing ${filteredPayments.length} payments`;
+
+            // Render pagination
+            renderPagination();
+        }
+
+        // ============================================================
+        // 8. Pagination
+        // ============================================================
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredPayments.length / pageSize);
+            let html = '';
+
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
                 return;
             }
 
-            container.innerHTML = filtered.map(p => {
-                const statusClass = p.status || 'pending';
-                const statusLabel = statusClass.charAt(0).toUpperCase() + statusClass.slice(1);
-                const date = new Date(p.created_at).toLocaleString();
+            // Previous
+            html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="changePage(${currentPage - 1})">&laquo;</a>
+            </li>`;
 
-                return `
-                    <div class="payment-card ${statusClass}">
-                        <div class="payment-info">
-                            <div class="name">${p.name || 'Unknown User'}</div>
-                            <div class="email">${p.email || 'No email'}</div>
-                            <div class="details">
-                                💰 ${p.amount || 100} Birr · ${p.payment_method || 'N/A'} · Ref: ${p.reference_number || 'N/A'}
-                                <span style="display: inline-block; margin-left: 0.5rem;">${date}</span>
-                            </div>
-                            <div style="margin-top: 0.25rem;">
-                                <span class="badge badge-${statusClass}">${statusLabel}</span>
-                                ${p.receipt_url ? `<span style="margin-left: 0.5rem; font-size: 0.75rem; color: #10b981;">📎 Receipt uploaded</span>` : ''}
-                            </div>
+            // Pages
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === currentPage) {
+                    html += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+                } else if (i <= 3 || i > totalPages - 3 || Math.abs(i - currentPage) <= 1) {
+                    html += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${i})">${i}</a></li>`;
+                } else if (i === 4 && currentPage > 5) {
+                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                } else if (i === totalPages - 3 && currentPage < totalPages - 4) {
+                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+            }
+
+            // Next
+            html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="changePage(${currentPage + 1})">&raquo;</a>
+            </li>`;
+
+            pagination.innerHTML = html;
+        }
+
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredPayments.length / pageSize);
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderTable();
+        }
+
+        // ============================================================
+        // 9. View & Edit Payment
+        // ============================================================
+        function viewPayment(id) {
+            const payment = payments.find(p => p.id === id);
+            if (!payment) {
+                showFeedback('Payment not found.', 'error');
+                return;
+            }
+
+            document.getElementById('paymentDetails').innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">Payment Information</h6>
+                        <div class="detail-row">
+                            <span class="detail-label">Transaction ID</span>
+                            <span class="detail-value"><code>${payment.transaction_id || 'N/A'}</code></span>
                         </div>
-                        <div class="payment-actions">
-                            ${p.receipt_url ? `<button class="btn-view" onclick="viewReceipt('${p.receipt_url}')">📄 View</button>` : ''}
-                            ${p.status === 'pending' ? `
-                                <button class="btn-approve" onclick="approvePayment(${p.id})">✅ Approve</button>
-                                <button class="btn-reject" onclick="rejectPayment(${p.id})">❌ Reject</button>
-                            ` : ''}
+                        <div class="detail-row">
+                            <span class="detail-label">Amount</span>
+                            <span class="detail-value">${formatCurrency(payment.amount || 0)}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Status</span>
+                            <span class="detail-value">
+                                <span class="${getStatusBadge(payment.status)}">
+                                    <i class="bi ${getStatusIcon(payment.status)} me-1"></i>
+                                    ${payment.status || 'pending'}
+                                </span>
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Payment Method</span>
+                            <span class="detail-value">${payment.payment_method || 'N/A'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Date</span>
+                            <span class="detail-value">${formatDate(payment.created_at)}</span>
                         </div>
                     </div>
-                `;
-            }).join('');
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">Student Information</h6>
+                        <div class="detail-row">
+                            <span class="detail-label">Name</span>
+                            <span class="detail-value">${payment.student_name || 'Unknown'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Email</span>
+                            <span class="detail-value">${payment.student_email || 'N/A'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Student ID</span>
+                            <span class="detail-value"><code>${payment.student_id || 'N/A'}</code></span>
+                        </div>
+                        <h6 class="text-muted mt-3 mb-3">Exam Information</h6>
+                        <div class="detail-row">
+                            <span class="detail-label">Exam</span>
+                            <span class="detail-value">${payment.exam_title || 'N/A'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Exam ID</span>
+                            <span class="detail-value"><code>${payment.exam_id || 'N/A'}</code></span>
+                        </div>
+                    </div>
+                </div>
+                ${payment.notes ? `<div class="mt-3"><strong>Notes:</strong> ${payment.notes}</div>` : ''}
+            `;
+
+            selectedPaymentId = id;
+            paymentModal.show();
         }
 
-        // ============================================
-        // FILTERS
-        // ============================================
+        function editPayment(id) {
+            const payment = payments.find(p => p.id === id);
+            if (!payment) {
+                showFeedback('Payment not found.', 'error');
+                return;
+            }
 
-        document.querySelectorAll('.filter-tabs button').forEach(btn => {
+            document.getElementById('statusPaymentId').value = id;
+            document.getElementById('newStatus').value = payment.status || 'pending';
+            document.getElementById('statusNotes').value = '';
+            selectedPaymentId = id;
+            paymentModal.hide();
+            statusModal.show();
+        }
+
+        // ============================================================
+        // 10. Update Status
+        // ============================================================
+        function updatePaymentStatus() {
+            // This is called from the modal footer
+            // The actual function is confirmStatusUpdate
+        }
+
+        function confirmStatusUpdate() {
+            const id = document.getElementById('statusPaymentId').value;
+            const status = document.getElementById('newStatus').value;
+            const notes = document.getElementById('statusNotes').value;
+
+            fetch(`${API_BASE}/api/admin/payments/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status, notes })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showFeedback('Payment status updated successfully!', 'success');
+                    statusModal.hide();
+                    loadPayments(); // Reload data
+                } else {
+                    showFeedback('Failed to update status: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Update status error:', error);
+                showFeedback('Network error updating status.', 'error');
+            });
+        }
+
+        // Make function globally accessible
+        window.confirmStatusUpdate = confirmStatusUpdate;
+        window.updatePaymentStatus = updatePaymentStatus;
+
+        // ============================================================
+        // 11. Export Data
+        // ============================================================
+        function exportData() {
+            if (filteredPayments.length === 0) {
+                showFeedback('No data to export.', 'error');
+                return;
+            }
+
+            // Build CSV
+            const headers = ['Transaction ID', 'Student Name', 'Student Email', 'Exam', 'Amount', 'Status', 'Date', 'Payment Method', 'Notes'];
+            const rows = filteredPayments.map(p => [
+                p.transaction_id || '',
+                p.student_name || '',
+                p.student_email || '',
+                p.exam_title || '',
+                p.amount || 0,
+                p.status || 'pending',
+                formatDate(p.created_at),
+                p.payment_method || '',
+                p.notes || ''
+            ]);
+
+            let csv = headers.join(',') + '\n';
+            rows.forEach(row => {
+                csv += row.map(cell => `"${cell}"`).join(',') + '\n';
+            });
+
+            // Download
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `payments_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showFeedback('Data exported successfully!', 'success');
+        }
+
+        // ============================================================
+        // 12. Refresh
+        // ============================================================
+        function refreshData() {
+            showFeedback('Refreshing data...', 'info');
+            loadPayments();
+        }
+
+        // ============================================================
+        // 13. Event Listeners
+        // ============================================================
+        // Search
+        searchInput.addEventListener('input', applyFilters);
+        dateFilter.addEventListener('change', applyFilters);
+
+        // Filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', function() {
-                document.querySelectorAll('.filter-tabs button').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 currentFilter = this.dataset.filter;
-                renderPayments();
+                applyFilters();
             });
         });
 
-        // ============================================
-        // ADMIN ACTIONS
-        // ============================================
+        // ============================================================
+        // 14. Initialize
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', loadPayments);
 
-        function viewReceipt(url) {
-            window.open(url, '_blank');
-        }
-
-        function approvePayment(id) {
-            if (!confirm('Approve this payment and grant premium access to the user?')) return;
-
-            apiCall(`/api/admin/payments/${id}/approve`, { method: 'PUT' })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast('✅ Payment approved! Premium access granted.', 'success');
-                        loadPayments();
-                    } else {
-                        showToast('❌ Failed to approve payment.', 'error');
-                    }
-                })
-                .catch(() => showToast('❌ Error approving payment.', 'error'));
-        }
-
-        function rejectPayment(id) {
-            const reason = prompt('Reason for rejection (optional):');
-            if (reason === null) return;
-
-            apiCall(`/api/admin/payments/${id}/reject`, {
-                method: 'PUT',
-                body: JSON.stringify({ reason: reason || 'Rejected by admin' })
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast('❌ Payment rejected.', 'error');
-                        loadPayments();
-                    } else {
-                        showToast('❌ Failed to reject payment.', 'error');
-                    }
-                })
-                .catch(() => showToast('❌ Error rejecting payment.', 'error'));
-        }
-
-        // ============================================
-        // TOAST
-        // ============================================
-
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = 'toast ' + type + ' show';
-            setTimeout(() => { toast.className = 'toast'; }, 3000);
-        }
-
-        // ============================================
-        // RUN
-        // ============================================
-
-        document.addEventListener('DOMContentLoaded', checkAuth);
-
-        console.log('✅ Admin Payments page loaded with JWT');
+        // Make functions globally accessible
+        window.viewPayment = viewPayment;
+        window.editPayment = editPayment;
+        window.changePage = changePage;
+        window.exportData = exportData;
+        window.refreshData = refreshData;
     </script>
-
 </body>
-</html>
+                        </html>
