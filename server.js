@@ -91,6 +91,14 @@ async function supabaseUpdate(table, data, eq) {
   });
 }
 
+// Helper for DELETE
+async function supabaseDelete(table, eq) {
+  const [key, value] = Object.entries(eq)[0];
+  return supabaseFetch(`/${table}?${key}=eq.${value}`, {
+    method: 'DELETE'
+  });
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -128,18 +136,65 @@ const upload = multer({
 // ============================================
 // MIDDLEWARE
 // ============================================
-app.enable('trust proxy');
-app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
+// FIX: Set trust proxy to 1 (Render's load balancer) instead of true
+app.set('trust proxy', 1);
+
+// Helmet with relaxed CSP for better compatibility
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      connectSrc: ["'self'", "https://*.supabase.co"],
+      frameSrc: ["'self'", "https://*.supabase.co"]
+    }
+  },
+  crossOriginEmbedderPolicy: false
+}));
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'https://hayyo-exam.onrender.com',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
 app.use(compression());
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // ============================================
-// RATE LIMITING
+// RATE LIMITING - FIXED with proper configuration
 // ============================================
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
-const strictLimiter = rateLimit({ windowMs: 60 * 1000, max: 10 });
+// General API rate limiter
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    // Use the actual client IP from the proxy
+    return req.ip || req.connection.remoteAddress;
+  },
+  skip: (req) => {
+    // Skip rate limiting for health checks and keep-alive
+    return req.path === '/health' || req.path === '/api/keep-alive';
+  }
+});
+
+// Strict rate limiter for sensitive endpoints
+const strictLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // 10 requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    return req.ip || req.connection.remoteAddress;
+  }
+});
+
 app.use('/api/', limiter);
 app.use('/api/payment/', strictLimiter);
 app.use('/api/admin/', strictLimiter);
@@ -158,15 +213,15 @@ const pool = new Pool({
 
 app.use(session({
   store: new pgSession({ pool, tableName: 'session', createTableIfMissing: true }),
-  secret: process.env.SESSION_SECRET || 'fallback-secret',
+  secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
   proxy: true,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: 'none',
-    maxAge: 24 * 60 * 60 * 1000
+    sameSite: 'lax', // Changed from 'none' for better security
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
 
@@ -179,7 +234,7 @@ app.use(passport.session());
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: `${process.env.BACKEND_URL}/auth/google/callback`
+  callbackURL: `${process.env.BACKEND_URL || 'https://hayyo-exam.onrender.com'}/auth/google/callback`
 }, async (accessToken, refreshToken, profile, done) => {
   try {
     const users = await supabaseSelect('users', {
@@ -192,7 +247,8 @@ passport.use(new GoogleStrategy({
         id: profile.id,
         email: profile.emails[0].value,
         name: profile.displayName,
-        avatar_url: profile.photos?.[0]?.value
+        avatar_url: profile.photos?.[0]?.value,
+        created_at: new Date().toISOString()
       });
     }
     return done(null, { id: profile.id, email: profile.emails[0].value, name: profile.displayName });
@@ -211,7 +267,7 @@ function generateToken(user) {
   return jwt.sign(
     { userId: user.id, email: user.email },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '15m' }
+    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } // Extended to 7 days for better UX
   );
 }
 
@@ -230,21 +286,26 @@ function verifyToken(req, res, next) {
 }
 
 async function isAuthenticated(req, res, next) {
-  await verifyToken(req, res, async () => {
-    try {
-      const users = await supabaseSelect('users', {
-        eq: { id: req.user.userId },
-        select: '*'
-      });
-      if (users.length === 0) {
-        return res.status(401).json({ error: 'User not found' });
-      }
-      req.userData = users[0];
-      next();
-    } catch (error) {
-      return res.status(500).json({ error: error.message });
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    const users = await supabaseSelect('users', {
+      eq: { id: decoded.userId },
+      select: '*'
+    });
+    if (users.length === 0) {
+      return res.status(401).json({ error: 'User not found' });
     }
-  });
+    req.userData = users[0];
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
 }
 
 async function isAdmin(req, res, next) {
@@ -271,7 +332,8 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 
 app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => {
   const token = generateToken(req.user);
-  res.redirect(`${process.env.FRONTEND_URL}/dashboard.html?token=${token}`);
+  const frontendUrl = process.env.FRONTEND_URL || 'https://hayyo-exam.onrender.com';
+  res.redirect(`${frontendUrl}/dashboard.html?token=${token}`);
 });
 
 app.get('/auth/logout', (req, res) => {
@@ -286,7 +348,7 @@ app.get('/api/me', verifyToken, async (req, res) => {
   try {
     const users = await supabaseSelect('users', {
       eq: { id: req.user.userId },
-      select: 'id, email, name, is_premium'
+      select: 'id, email, name, is_premium, premium_expires_at, is_teacher, created_at'
     });
     if (users.length === 0) {
       return res.status(404).json({ error: 'User not found' });
@@ -297,13 +359,31 @@ app.get('/api/me', verifyToken, async (req, res) => {
   }
 });
 
+// --- ROOT ROUTE - Serve a simple API info page ---
+app.get('/', (req, res) => {
+  res.json({
+    name: 'Hayyo Exam API',
+    version: '1.0.0',
+    status: 'running',
+    documentation: 'https://hayyo-exam.onrender.com/api-docs',
+    endpoints: {
+      auth: '/auth/google',
+      exams: '/api/exams',
+      payment: '/api/payment',
+      admin: '/api/admin',
+      teacher: '/api/teacher',
+      health: '/health'
+    }
+  });
+});
+
 // --- EXAM ROUTES ---
 app.get('/api/exams', isAuthenticated, async (req, res) => {
   try {
     const exams = await supabaseSelect('exams', {
       order: { column: 'year', direction: 'desc' }
     });
-    res.json(exams);
+    res.json({ success: true, exams: exams });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -316,7 +396,7 @@ app.get('/api/exams/:id', isAuthenticated, async (req, res) => {
       select: '*'
     });
     if (exams.length === 0) return res.status(404).json({ error: 'Exam not found' });
-    res.json(exams[0]);
+    res.json({ success: true, exam: exams[0] });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -326,7 +406,7 @@ app.get('/api/exams/:id/access', isAuthenticated, async (req, res) => {
   try {
     const exams = await supabaseSelect('exams', {
       eq: { id: req.params.id },
-      select: 'is_premium_only'
+      select: 'is_premium_only, title'
     });
     if (exams.length === 0) return res.status(404).json({ error: 'Exam not found' });
     const exam = exams[0];
@@ -352,7 +432,7 @@ app.get('/api/exams/:id/questions', isAuthenticated, async (req, res) => {
       order: { column: 'question_number' },
       select: 'id, question_number, text, options'
     });
-    res.json(questions);
+    res.json({ success: true, questions: questions });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -388,11 +468,12 @@ app.post('/api/exams/start', isAuthenticated, async (req, res) => {
       user_id: req.user.userId,
       exam_id: exam_id,
       time_remaining: exam.time_limit * 60,
-      status: 'in-progress'
+      status: 'in-progress',
+      started_at: new Date().toISOString()
     });
     const questions = await supabaseSelect('questions', {
       eq: { exam_id: exam_id },
-      order: { column: 'RANDOM()' },
+      order: { column: 'question_number' },
       select: 'id, question_number, text, options'
     });
     res.json({
@@ -444,6 +525,41 @@ app.post('/api/exams/submit', isAuthenticated, async (req, res) => {
   }
 });
 
+// --- GET EXAM RESULTS ---
+app.get('/api/exams/:exam_id/results/:user_id', async (req, res) => {
+  try {
+    const { exam_id, user_id } = req.params;
+    const attempts = await supabaseSelect('exam_attempts', {
+      eq: { exam_id: exam_id, user_id: user_id, status: 'submitted' },
+      order: { column: 'submitted_at', direction: 'desc' },
+      limit: 1
+    });
+    if (attempts.length === 0) {
+      return res.status(404).json({ error: 'Results not found' });
+    }
+    const attempt = attempts[0];
+    const user = await supabaseSelect('users', {
+      eq: { id: user_id },
+      select: 'name, email'
+    });
+    const exam = await supabaseSelect('exams', {
+      eq: { id: exam_id },
+      select: 'title, total_questions'
+    });
+    res.json({
+      success: true,
+      results: {
+        ...attempt,
+        user_name: user[0]?.name || 'Unknown',
+        exam_title: exam[0]?.title || 'Unknown Exam',
+        total_questions: exam[0]?.total_questions || 0
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- PAYMENT ROUTES ---
 app.post('/api/payment/request', isAuthenticated, async (req, res) => {
   const { exam_id, payment_method, reference_number } = req.body;
@@ -453,7 +569,8 @@ app.post('/api/payment/request', isAuthenticated, async (req, res) => {
       exam_id: exam_id,
       payment_method: payment_method,
       reference_number: reference_number,
-      status: 'pending'
+      status: 'pending',
+      created_at: new Date().toISOString()
     });
     res.json({ success: true, payment_id: result[0]?.id, message: 'Payment request submitted. Awaiting approval.' });
   } catch (error) {
@@ -472,7 +589,8 @@ app.post('/api/payment/upload', isAuthenticated, upload.single('receipt'), async
     if (payments.length === 0) return res.status(404).json({ error: 'No pending payment found' });
     await supabaseUpdate('payments', {
       receipt_url: req.file.path,
-      receipt_filename: req.file.originalname
+      receipt_filename: req.file.originalname,
+      updated_at: new Date().toISOString()
     }, { id: payments[0].id });
     res.json({ success: true, receipt_url: req.file.path, message: 'Receipt uploaded successfully' });
   } catch (error) {
@@ -487,6 +605,7 @@ app.get('/api/payment/status', isAuthenticated, async (req, res) => {
       order: { column: 'created_at', direction: 'desc' }
     });
     res.json({
+      success: true,
       payments: payments,
       is_premium: req.userData?.is_premium || false,
       premium_expires_at: req.userData?.premium_expires_at
@@ -507,9 +626,18 @@ app.get('/api/admin/payments', isAuthenticated, isAdmin, async (req, res) => {
         eq: { id: p.user_id },
         select: 'name, email'
       });
-      return { ...p, name: users[0]?.name, email: users[0]?.email };
+      const exams = await supabaseSelect('exams', {
+        eq: { id: p.exam_id },
+        select: 'title'
+      });
+      return { 
+        ...p, 
+        student_name: users[0]?.name || 'Unknown',
+        student_email: users[0]?.email || 'Unknown',
+        exam_title: exams[0]?.title || 'Unknown Exam'
+      };
     }));
-    res.json(paymentsWithUsers);
+    res.json({ success: true, payments: paymentsWithUsers });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -530,7 +658,8 @@ app.put('/api/admin/payments/:id/approve', isAuthenticated, isAdmin, async (req,
     }, { id: id });
     await supabaseUpdate('users', {
       is_premium: true,
-      premium_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+      premium_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      updated_at: new Date().toISOString()
     }, { id: userId });
     res.json({ success: true, message: 'Payment approved and premium access granted' });
   } catch (error) {
@@ -562,7 +691,7 @@ app.get('/api/admin/payments/:id/receipt', isAuthenticated, isAdmin, async (req,
     if (payments.length === 0 || !payments[0].receipt_url) {
       return res.status(404).json({ error: 'Receipt not found' });
     }
-    res.json({ receipt_url: payments[0].receipt_url });
+    res.json({ success: true, receipt_url: payments[0].receipt_url });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -577,13 +706,43 @@ app.get('/api/teacher/exams', isAuthenticated, isTeacher, async (req, res) => {
     });
     const examIds = teacherExams.map(te => te.exam_id);
     if (examIds.length === 0) {
-      return res.json([]);
+      return res.json({ success: true, exams: [] });
     }
     const exams = await supabaseSelect('exams', {
       select: '*'
     });
     const filtered = exams.filter(e => examIds.includes(e.id));
-    res.json(filtered);
+    res.json({ success: true, exams: filtered });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/teacher/exams/:id', isAuthenticated, isTeacher, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const teacherExams = await supabaseSelect('teacher_exams', {
+      eq: { teacher_id: req.user.userId, exam_id: id },
+      select: '*'
+    });
+    if (teacherExams.length === 0) {
+      return res.status(403).json({ error: 'You are not assigned to this exam' });
+    }
+    const exams = await supabaseSelect('exams', {
+      eq: { id: id },
+      select: '*'
+    });
+    if (exams.length === 0) return res.status(404).json({ error: 'Exam not found' });
+    const questions = await supabaseSelect('questions', {
+      eq: { exam_id: id },
+      order: { column: 'question_number' },
+      select: '*'
+    });
+    res.json({ 
+      success: true, 
+      exam: exams[0],
+      questions: questions 
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -591,7 +750,7 @@ app.get('/api/teacher/exams', isAuthenticated, isTeacher, async (req, res) => {
 
 app.put('/api/teacher/exams/:id', isAuthenticated, isTeacher, async (req, res) => {
   const { id } = req.params;
-  const { title, subject, year, type, category, is_premium_only, time_limit, total_questions } = req.body;
+  const { title, subject, year, type, category, is_premium_only, time_limit, total_questions, description } = req.body;
   try {
     const teacherExams = await supabaseSelect('teacher_exams', {
       eq: { teacher_id: req.user.userId, exam_id: id },
@@ -599,7 +758,8 @@ app.put('/api/teacher/exams/:id', isAuthenticated, isTeacher, async (req, res) =
     });
     if (teacherExams.length === 0) return res.status(403).json({ error: 'You are not assigned to this exam' });
     await supabaseUpdate('exams', {
-      title, subject, year, type, category, is_premium_only, time_limit, total_questions
+      title, subject, year, type, category, is_premium_only, time_limit, total_questions, description,
+      updated_at: new Date().toISOString()
     }, { id: id });
     res.json({ success: true, message: 'Exam updated successfully' });
   } catch (error) {
@@ -620,9 +780,44 @@ app.put('/api/teacher/exams/:id/questions/:num', isAuthenticated, isTeacher, asy
       text: text,
       options: JSON.stringify([option_a, option_b, option_c, option_d]),
       correct_answer: correct_answer,
-      explanation: explanation
+      explanation: explanation,
+      updated_at: new Date().toISOString()
     }, { exam_id: id, question_number: num });
     res.json({ success: true, message: 'Question updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- BULK INSERT QUESTIONS ---
+app.post('/api/teacher/exams/:id/questions/bulk', isAuthenticated, isTeacher, async (req, res) => {
+  const { id } = req.params;
+  const { questions } = req.body;
+  try {
+    const teacherExams = await supabaseSelect('teacher_exams', {
+      eq: { teacher_id: req.user.userId, exam_id: id },
+      select: '*'
+    });
+    if (teacherExams.length === 0) return res.status(403).json({ error: 'You are not assigned to this exam' });
+    
+    // Delete existing questions
+    await supabaseDelete('questions', { exam_id: id });
+    
+    // Insert new questions
+    const inserted = [];
+    for (const q of questions) {
+      const result = await supabaseInsert('questions', {
+        exam_id: id,
+        question_number: q.question_number,
+        text: q.text,
+        options: q.options ? JSON.stringify(q.options) : null,
+        correct_answer: q.correct_answer,
+        explanation: q.explanation,
+        marks: q.marks || 1
+      });
+      inserted.push(result[0]);
+    }
+    res.json({ success: true, message: `${inserted.length} questions imported successfully` });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -634,23 +829,48 @@ app.put('/api/teacher/exams/:id/questions/:num', isAuthenticated, isTeacher, asy
 app.get('/health', async (req, res) => {
   try {
     await supabaseSelect('users', { limit: 1 });
-    res.json({ status: 'ok', timestamp: new Date().toISOString(), database: 'connected' });
+    res.json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(), 
+      database: 'connected',
+      uptime: process.uptime()
+    });
   } catch (error) {
     console.error('Health check error:', error.message);
-    res.status(500).json({ status: 'error', timestamp: new Date().toISOString(), database: 'disconnected', error: error.message });
+    res.status(500).json({ 
+      status: 'error', 
+      timestamp: new Date().toISOString(), 
+      database: 'disconnected', 
+      error: error.message 
+    });
   }
 });
 
 // ============================================
-// KEEP-ALIVE
+// KEEP-ALIVE (Prevents Render from spinning down)
 // ============================================
 app.get('/api/keep-alive', async (req, res) => {
   try {
     await supabaseSelect('users', { limit: 1 });
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    res.json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// ============================================
+// 404 Handler
+// ============================================
+app.use((req, res) => {
+  res.status(404).json({ 
+    error: 'Endpoint not found',
+    path: req.path,
+    method: req.method
+  });
 });
 
 // ============================================
@@ -658,7 +878,11 @@ app.get('/api/keep-alive', async (req, res) => {
 // ============================================
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);
-  res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+  res.status(err.status || 500).json({ 
+    error: err.message || 'Internal Server Error',
+    path: req.path,
+    method: req.method
+  });
 });
 
 // ============================================
@@ -668,4 +892,14 @@ app.listen(PORT, () => {
   console.log(`🚀 Hayyo Academy backend running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Supabase API: ${SUPABASE_URL}`);
+  console.log(`🌐 Trust proxy: ${app.get('trust proxy')}`);
+});
+
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, closing server...');
+  pool.end(() => {
+    console.log('Database pool closed');
+    process.exit(0);
+  });
 });
