@@ -1,5 +1,5 @@
 // ============================================
-// server.js - Hayyo Exam Backend
+// server.js - Hayyo Exam Backend (Supabase REST API)
 // ============================================
 
 require('dotenv').config();
@@ -8,8 +8,6 @@ const session = require('express-session');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const jwt = require('jsonwebtoken');
-const { Pool } = require('pg');
-const dns = require('dns');
 const pgSession = require('connect-pg-simple')(session);
 const cors = require('cors');
 const helmet = require('helmet');
@@ -19,28 +17,85 @@ const multer = require('multer');
 const { v2: cloudinary } = require('cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// FORCE IPv4 (Fixes Supabase connection)
-dns.setDefaultResultOrder('ipv4first');
+// ============================================
+// SUPABASE REST API CLIENT
+// ============================================
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+// Helper function for Supabase REST API calls
+async function supabaseFetch(endpoint, options = {}) {
+  const url = `${SUPABASE_URL}/rest/v1${endpoint}`;
+  const headers = {
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  };
+
+  if (options.admin) {
+    headers['Authorization'] = `Bearer ${SUPABASE_SERVICE_KEY}`;
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...headers,
+      ...options.headers
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Supabase API error: ${response.status} - ${error}`);
+  }
+
+  return response.json();
+}
+
+// Helper for SELECT queries
+async function supabaseSelect(table, params = {}) {
+  let url = `/${table}`;
+  const queryParams = new URLSearchParams();
+
+  if (params.select) queryParams.append('select', params.select);
+  if (params.eq) {
+    Object.entries(params.eq).forEach(([key, value]) => {
+      queryParams.append(`${key}=eq.${value}`, '');
+    });
+  }
+  if (params.order) queryParams.append('order', `${params.order.column}.${params.order.direction || 'asc'}`);
+  if (params.limit) queryParams.append('limit', params.limit);
+
+  const queryString = queryParams.toString();
+  if (queryString) url += `?${queryString}`;
+
+  return supabaseFetch(url);
+}
+
+// Helper for INSERT
+async function supabaseInsert(table, data) {
+  return supabaseFetch(`/${table}`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+}
+
+// Helper for UPDATE
+async function supabaseUpdate(table, data, eq) {
+  const [key, value] = Object.entries(eq)[0];
+  return supabaseFetch(`/${table}?${key}=eq.${value}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+  });
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ============================================
-// 1. DATABASE CONNECTION (FIXED - IPv4)
-// ============================================
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-    require: true
-  },
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 15000
-});
-
-// ============================================
-// 2. CLOUDINARY SETUP
+// CLOUDINARY SETUP
 // ============================================
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -71,7 +126,7 @@ const upload = multer({
 });
 
 // ============================================
-// 3. MIDDLEWARE
+// MIDDLEWARE
 // ============================================
 app.enable('trust proxy');
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -81,7 +136,7 @@ app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // ============================================
-// 4. RATE LIMITING
+// RATE LIMITING
 // ============================================
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 const strictLimiter = rateLimit({ windowMs: 60 * 1000, max: 10 });
@@ -90,8 +145,17 @@ app.use('/api/payment/', strictLimiter);
 app.use('/api/admin/', strictLimiter);
 
 // ============================================
-// 5. SESSION STORE (PostgreSQL)
+// SESSION STORE (PostgreSQL - only for sessions)
 // ============================================
+const { Pool } = require('pg');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000
+});
+
 app.use(session({
   store: new pgSession({ pool, tableName: 'session', createTableIfMissing: true }),
   secret: process.env.SESSION_SECRET || 'fallback-secret',
@@ -107,7 +171,7 @@ app.use(session({
 }));
 
 // ============================================
-// 6. PASSPORT (Google OAuth)
+// PASSPORT (Google OAuth)
 // ============================================
 app.use(passport.initialize());
 app.use(passport.session());
@@ -118,12 +182,18 @@ passport.use(new GoogleStrategy({
   callbackURL: `${process.env.BACKEND_URL}/auth/google/callback`
 }, async (accessToken, refreshToken, profile, done) => {
   try {
-    const result = await pool.query('SELECT * FROM users WHERE id = $1', [profile.id]);
-    if (result.rows.length === 0) {
-      await pool.query(
-        'INSERT INTO users (id, email, name, avatar_url) VALUES ($1, $2, $3, $4)',
-        [profile.id, profile.emails[0].value, profile.displayName, profile.photos?.[0]?.value]
-      );
+    const users = await supabaseSelect('users', {
+      eq: { id: profile.id },
+      select: '*'
+    });
+
+    if (users.length === 0) {
+      await supabaseInsert('users', {
+        id: profile.id,
+        email: profile.emails[0].value,
+        name: profile.displayName,
+        avatar_url: profile.photos?.[0]?.value
+      });
     }
     return done(null, { id: profile.id, email: profile.emails[0].value, name: profile.displayName });
   } catch (error) {
@@ -135,7 +205,7 @@ passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((user, done) => done(null, user));
 
 // ============================================
-// 7. JWT HELPERS
+// JWT HELPERS
 // ============================================
 function generateToken(user) {
   return jwt.sign(
@@ -161,12 +231,19 @@ function verifyToken(req, res, next) {
 
 async function isAuthenticated(req, res, next) {
   await verifyToken(req, res, async () => {
-    const result = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.userId]);
-    if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'User not found' });
+    try {
+      const users = await supabaseSelect('users', {
+        eq: { id: req.user.userId },
+        select: '*'
+      });
+      if (users.length === 0) {
+        return res.status(401).json({ error: 'User not found' });
+      }
+      req.userData = users[0];
+      next();
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
     }
-    req.userData = result.rows[0];
-    next();
   });
 }
 
@@ -185,19 +262,8 @@ async function isTeacher(req, res, next) {
   next();
 }
 
-async function checkPremium(req, res, next) {
-  const result = await pool.query('SELECT is_premium, premium_expires_at FROM users WHERE id = $1', [req.user.userId]);
-  const user = result.rows[0];
-  const isPremium = user?.is_premium && (!user.premium_expires_at || new Date(user.premium_expires_at) > new Date());
-  if (!isPremium) {
-    return res.status(403).json({ error: 'Premium access required', payment_required: true });
-  }
-  req.isPremium = true;
-  next();
-}
-
 // ============================================
-// 8. ROUTES
+// ROUTES
 // ============================================
 
 // --- AUTH ROUTES ---
@@ -218,11 +284,14 @@ app.get('/auth/logout', (req, res) => {
 
 app.get('/api/me', verifyToken, async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, email, name, is_premium FROM users WHERE id = $1', [req.user.userId]);
-    if (result.rows.length === 0) {
+    const users = await supabaseSelect('users', {
+      eq: { id: req.user.userId },
+      select: 'id, email, name, is_premium'
+    });
+    if (users.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
-    res.json({ authenticated: true, user: result.rows[0] });
+    res.json({ authenticated: true, user: users[0] });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -231,8 +300,10 @@ app.get('/api/me', verifyToken, async (req, res) => {
 // --- EXAM ROUTES ---
 app.get('/api/exams', isAuthenticated, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM exams ORDER BY year DESC, title ASC');
-    res.json(result.rows);
+    const exams = await supabaseSelect('exams', {
+      order: { column: 'year', direction: 'desc' }
+    });
+    res.json(exams);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -240,9 +311,12 @@ app.get('/api/exams', isAuthenticated, async (req, res) => {
 
 app.get('/api/exams/:id', isAuthenticated, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM exams WHERE id = $1', [req.params.id]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Exam not found' });
-    res.json(result.rows[0]);
+    const exams = await supabaseSelect('exams', {
+      eq: { id: req.params.id },
+      select: '*'
+    });
+    if (exams.length === 0) return res.status(404).json({ error: 'Exam not found' });
+    res.json(exams[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -250,15 +324,16 @@ app.get('/api/exams/:id', isAuthenticated, async (req, res) => {
 
 app.get('/api/exams/:id/access', isAuthenticated, async (req, res) => {
   try {
-    const examResult = await pool.query('SELECT is_premium_only FROM exams WHERE id = $1', [req.params.id]);
-    if (examResult.rows.length === 0) return res.status(404).json({ error: 'Exam not found' });
-    const exam = examResult.rows[0];
+    const exams = await supabaseSelect('exams', {
+      eq: { id: req.params.id },
+      select: 'is_premium_only'
+    });
+    if (exams.length === 0) return res.status(404).json({ error: 'Exam not found' });
+    const exam = exams[0];
     if (!exam.is_premium_only) {
       return res.json({ can_access: true, is_free: true, message: 'Free exam - access granted' });
     }
-    const userResult = await pool.query('SELECT is_premium, premium_expires_at FROM users WHERE id = $1', [req.user.userId]);
-    const user = userResult.rows[0];
-    const isPremium = user?.is_premium && (!user.premium_expires_at || new Date(user.premium_expires_at) > new Date());
+    const isPremium = req.userData?.is_premium && (!req.userData.premium_expires_at || new Date(req.userData.premium_expires_at) > new Date());
     res.json({
       can_access: isPremium,
       is_premium_only: true,
@@ -272,11 +347,12 @@ app.get('/api/exams/:id/access', isAuthenticated, async (req, res) => {
 
 app.get('/api/exams/:id/questions', isAuthenticated, async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT id, question_number, text, options FROM questions WHERE exam_id = $1 ORDER BY question_number ASC',
-      [req.params.id]
-    );
-    res.json(result.rows);
+    const questions = await supabaseSelect('questions', {
+      eq: { exam_id: req.params.id },
+      order: { column: 'question_number' },
+      select: 'id, question_number, text, options'
+    });
+    res.json(questions);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -288,37 +364,44 @@ app.post('/api/exams/start', isAuthenticated, async (req, res) => {
     return res.status(401).json({ error: 'Invalid password' });
   }
   try {
-    const existing = await pool.query(
-      'SELECT * FROM exam_attempts WHERE user_id = $1 AND exam_id = $2 AND status = $3',
-      [req.user.userId, exam_id, 'in-progress']
-    );
-    if (existing.rows.length > 0) {
+    const existing = await supabaseSelect('exam_attempts', {
+      eq: { user_id: req.user.userId, exam_id: exam_id },
+      select: '*'
+    });
+    const inProgress = existing.find(a => a.status === 'in-progress');
+    if (inProgress) {
       return res.json({
         success: true,
-        attempt_id: existing.rows[0].id,
-        current_question: existing.rows[0].current_question,
-        time_remaining: existing.rows[0].time_remaining,
-        answers: existing.rows[0].answers
+        attempt_id: inProgress.id,
+        current_question: inProgress.current_question,
+        time_remaining: inProgress.time_remaining,
+        answers: inProgress.answers
       });
     }
-    const examResult = await pool.query('SELECT time_limit, total_questions FROM exams WHERE id = $1', [exam_id]);
-    if (examResult.rows.length === 0) return res.status(404).json({ error: 'Exam not found' });
-    const exam = examResult.rows[0];
-    const result = await pool.query(
-      'INSERT INTO exam_attempts (user_id, exam_id, time_remaining, status) VALUES ($1, $2, $3, $4) RETURNING id',
-      [req.user.userId, exam_id, exam.time_limit * 60, 'in-progress']
-    );
-    const questionsResult = await pool.query(
-      'SELECT id, question_number, text, options FROM questions WHERE exam_id = $1 ORDER BY RANDOM()',
-      [exam_id]
-    );
+    const exams = await supabaseSelect('exams', {
+      eq: { id: exam_id },
+      select: 'time_limit, total_questions'
+    });
+    if (exams.length === 0) return res.status(404).json({ error: 'Exam not found' });
+    const exam = exams[0];
+    const newAttempt = await supabaseInsert('exam_attempts', {
+      user_id: req.user.userId,
+      exam_id: exam_id,
+      time_remaining: exam.time_limit * 60,
+      status: 'in-progress'
+    });
+    const questions = await supabaseSelect('questions', {
+      eq: { exam_id: exam_id },
+      order: { column: 'RANDOM()' },
+      select: 'id, question_number, text, options'
+    });
     res.json({
       success: true,
-      attempt_id: result.rows[0].id,
+      attempt_id: newAttempt[0]?.id,
       current_question: 1,
       time_remaining: exam.time_limit * 60,
       total_questions: exam.total_questions,
-      questions: questionsResult.rows
+      questions: questions
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -328,24 +411,33 @@ app.post('/api/exams/start', isAuthenticated, async (req, res) => {
 app.post('/api/exams/submit', isAuthenticated, async (req, res) => {
   const { attempt_id, answers } = req.body;
   try {
-    const attemptResult = await pool.query('SELECT exam_id FROM exam_attempts WHERE id = $1 AND user_id = $2', [attempt_id, req.user.userId]);
-    if (attemptResult.rows.length === 0) return res.status(404).json({ error: 'Attempt not found' });
-    const exam_id = attemptResult.rows[0].exam_id;
-    const questionsResult = await pool.query('SELECT question_number, correct_answer FROM questions WHERE exam_id = $1', [exam_id]);
+    const attempts = await supabaseSelect('exam_attempts', {
+      eq: { id: attempt_id, user_id: req.user.userId },
+      select: 'exam_id'
+    });
+    if (attempts.length === 0) return res.status(404).json({ error: 'Attempt not found' });
+    const exam_id = attempts[0].exam_id;
+    const questions = await supabaseSelect('questions', {
+      eq: { exam_id: exam_id },
+      select: 'question_number, correct_answer'
+    });
     let correct = 0;
-    const total = questionsResult.rows.length;
+    const total = questions.length;
     const results = [];
-    questionsResult.rows.forEach(q => {
+    questions.forEach(q => {
       const userAnswer = answers[q.question_number];
       const isCorrect = userAnswer === q.correct_answer;
       if (isCorrect) correct++;
       results.push({ question: q.question_number, user_answer: userAnswer, correct_answer: q.correct_answer, is_correct: isCorrect });
     });
     const percentage = Math.round((correct / total) * 100);
-    await pool.query(
-      'UPDATE exam_attempts SET status = $1, score = $2, percentage = $3, answers = $4, submitted_at = NOW() WHERE id = $5',
-      ['submitted', correct, percentage, JSON.stringify(answers), attempt_id]
-    );
+    await supabaseUpdate('exam_attempts', {
+      status: 'submitted',
+      score: correct,
+      percentage: percentage,
+      answers: JSON.stringify(answers),
+      submitted_at: new Date().toISOString()
+    }, { id: attempt_id });
     res.json({ success: true, score: correct, total: total, percentage: percentage, results: results });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -356,11 +448,14 @@ app.post('/api/exams/submit', isAuthenticated, async (req, res) => {
 app.post('/api/payment/request', isAuthenticated, async (req, res) => {
   const { exam_id, payment_method, reference_number } = req.body;
   try {
-    const result = await pool.query(
-      'INSERT INTO payments (user_id, exam_id, payment_method, reference_number, status) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-      [req.user.userId, exam_id, payment_method, reference_number, 'pending']
-    );
-    res.json({ success: true, payment_id: result.rows[0].id, message: 'Payment request submitted. Awaiting approval.' });
+    const result = await supabaseInsert('payments', {
+      user_id: req.user.userId,
+      exam_id: exam_id,
+      payment_method: payment_method,
+      reference_number: reference_number,
+      status: 'pending'
+    });
+    res.json({ success: true, payment_id: result[0]?.id, message: 'Payment request submitted. Awaiting approval.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -369,11 +464,16 @@ app.post('/api/payment/request', isAuthenticated, async (req, res) => {
 app.post('/api/payment/upload', isAuthenticated, upload.single('receipt'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
   try {
-    const result = await pool.query(
-      'UPDATE payments SET receipt_url = $1, receipt_filename = $2 WHERE user_id = $3 AND status = $4 ORDER BY created_at DESC LIMIT 1 RETURNING id',
-      [req.file.path, req.file.originalname, req.user.userId, 'pending']
-    );
-    if (result.rows.length === 0) return res.status(404).json({ error: 'No pending payment found' });
+    const payments = await supabaseSelect('payments', {
+      eq: { user_id: req.user.userId, status: 'pending' },
+      order: { column: 'created_at', direction: 'desc' },
+      limit: 1
+    });
+    if (payments.length === 0) return res.status(404).json({ error: 'No pending payment found' });
+    await supabaseUpdate('payments', {
+      receipt_url: req.file.path,
+      receipt_filename: req.file.originalname
+    }, { id: payments[0].id });
     res.json({ success: true, receipt_url: req.file.path, message: 'Receipt uploaded successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -382,9 +482,15 @@ app.post('/api/payment/upload', isAuthenticated, upload.single('receipt'), async
 
 app.get('/api/payment/status', isAuthenticated, async (req, res) => {
   try {
-    const payments = await pool.query('SELECT * FROM payments WHERE user_id = $1 ORDER BY created_at DESC', [req.user.userId]);
-    const user = await pool.query('SELECT is_premium, premium_expires_at FROM users WHERE id = $1', [req.user.userId]);
-    res.json({ payments: payments.rows, is_premium: user.rows[0]?.is_premium || false, premium_expires_at: user.rows[0]?.premium_expires_at });
+    const payments = await supabaseSelect('payments', {
+      eq: { user_id: req.user.userId },
+      order: { column: 'created_at', direction: 'desc' }
+    });
+    res.json({
+      payments: payments,
+      is_premium: req.userData?.is_premium || false,
+      premium_expires_at: req.userData?.premium_expires_at
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -393,10 +499,17 @@ app.get('/api/payment/status', isAuthenticated, async (req, res) => {
 // --- ADMIN ROUTES ---
 app.get('/api/admin/payments', isAuthenticated, isAdmin, async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT p.*, u.name, u.email FROM payments p JOIN users u ON p.user_id = u.id ORDER BY p.created_at DESC'
-    );
-    res.json(result.rows);
+    const payments = await supabaseSelect('payments', {
+      order: { column: 'created_at', direction: 'desc' }
+    });
+    const paymentsWithUsers = await Promise.all(payments.map(async (p) => {
+      const users = await supabaseSelect('users', {
+        eq: { id: p.user_id },
+        select: 'name, email'
+      });
+      return { ...p, name: users[0]?.name, email: users[0]?.email };
+    }));
+    res.json(paymentsWithUsers);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -405,11 +518,20 @@ app.get('/api/admin/payments', isAuthenticated, isAdmin, async (req, res) => {
 app.put('/api/admin/payments/:id/approve', isAuthenticated, isAdmin, async (req, res) => {
   const { id } = req.params;
   try {
-    const paymentResult = await pool.query('SELECT user_id FROM payments WHERE id = $1 AND status = $2', [id, 'pending']);
-    if (paymentResult.rows.length === 0) return res.status(404).json({ error: 'Payment not found or already processed' });
-    const userId = paymentResult.rows[0].user_id;
-    await pool.query('UPDATE payments SET status = $1, updated_at = NOW() WHERE id = $2', ['approved', id]);
-    await pool.query('UPDATE users SET is_premium = TRUE, premium_expires_at = NOW() + INTERVAL $1 WHERE id = $2', ['1 year', userId]);
+    const payments = await supabaseSelect('payments', {
+      eq: { id: id, status: 'pending' },
+      select: 'user_id'
+    });
+    if (payments.length === 0) return res.status(404).json({ error: 'Payment not found or already processed' });
+    const userId = payments[0].user_id;
+    await supabaseUpdate('payments', {
+      status: 'approved',
+      updated_at: new Date().toISOString()
+    }, { id: id });
+    await supabaseUpdate('users', {
+      is_premium: true,
+      premium_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+    }, { id: userId });
     res.json({ success: true, message: 'Payment approved and premium access granted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -420,7 +542,11 @@ app.put('/api/admin/payments/:id/reject', isAuthenticated, isAdmin, async (req, 
   const { id } = req.params;
   const { reason } = req.body;
   try {
-    await pool.query('UPDATE payments SET status = $1, admin_notes = $2, updated_at = NOW() WHERE id = $3', ['rejected', reason || 'Payment rejected by admin', id]);
+    await supabaseUpdate('payments', {
+      status: 'rejected',
+      admin_notes: reason || 'Payment rejected by admin',
+      updated_at: new Date().toISOString()
+    }, { id: id });
     res.json({ success: true, message: 'Payment rejected' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -429,11 +555,14 @@ app.put('/api/admin/payments/:id/reject', isAuthenticated, isAdmin, async (req, 
 
 app.get('/api/admin/payments/:id/receipt', isAuthenticated, isAdmin, async (req, res) => {
   try {
-    const result = await pool.query('SELECT receipt_url FROM payments WHERE id = $1', [req.params.id]);
-    if (result.rows.length === 0 || !result.rows[0].receipt_url) {
+    const payments = await supabaseSelect('payments', {
+      eq: { id: req.params.id },
+      select: 'receipt_url'
+    });
+    if (payments.length === 0 || !payments[0].receipt_url) {
       return res.status(404).json({ error: 'Receipt not found' });
     }
-    res.json({ receipt_url: result.rows[0].receipt_url });
+    res.json({ receipt_url: payments[0].receipt_url });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -442,11 +571,19 @@ app.get('/api/admin/payments/:id/receipt', isAuthenticated, isAdmin, async (req,
 // --- TEACHER ROUTES ---
 app.get('/api/teacher/exams', isAuthenticated, isTeacher, async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT e.* FROM exams e JOIN teacher_exams te ON e.id = te.exam_id WHERE te.teacher_id = $1',
-      [req.user.userId]
-    );
-    res.json(result.rows);
+    const teacherExams = await supabaseSelect('teacher_exams', {
+      eq: { teacher_id: req.user.userId },
+      select: 'exam_id'
+    });
+    const examIds = teacherExams.map(te => te.exam_id);
+    if (examIds.length === 0) {
+      return res.json([]);
+    }
+    const exams = await supabaseSelect('exams', {
+      select: '*'
+    });
+    const filtered = exams.filter(e => examIds.includes(e.id));
+    res.json(filtered);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -456,12 +593,14 @@ app.put('/api/teacher/exams/:id', isAuthenticated, isTeacher, async (req, res) =
   const { id } = req.params;
   const { title, subject, year, type, category, is_premium_only, time_limit, total_questions } = req.body;
   try {
-    const check = await pool.query('SELECT * FROM teacher_exams WHERE teacher_id = $1 AND exam_id = $2', [req.user.userId, id]);
-    if (check.rows.length === 0) return res.status(403).json({ error: 'You are not assigned to this exam' });
-    await pool.query(
-      'UPDATE exams SET title = $1, subject = $2, year = $3, type = $4, category = $5, is_premium_only = $6, time_limit = $7, total_questions = $8 WHERE id = $9',
-      [title, subject, year, type, category, is_premium_only, time_limit, total_questions, id]
-    );
+    const teacherExams = await supabaseSelect('teacher_exams', {
+      eq: { teacher_id: req.user.userId, exam_id: id },
+      select: '*'
+    });
+    if (teacherExams.length === 0) return res.status(403).json({ error: 'You are not assigned to this exam' });
+    await supabaseUpdate('exams', {
+      title, subject, year, type, category, is_premium_only, time_limit, total_questions
+    }, { id: id });
     res.json({ success: true, message: 'Exam updated successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -472,12 +611,17 @@ app.put('/api/teacher/exams/:id/questions/:num', isAuthenticated, isTeacher, asy
   const { id, num } = req.params;
   const { text, option_a, option_b, option_c, option_d, correct_answer, explanation } = req.body;
   try {
-    const check = await pool.query('SELECT * FROM teacher_exams WHERE teacher_id = $1 AND exam_id = $2', [req.user.userId, id]);
-    if (check.rows.length === 0) return res.status(403).json({ error: 'You are not assigned to this exam' });
-    await pool.query(
-      'UPDATE questions SET text = $1, options = $2, correct_answer = $3, explanation = $4 WHERE exam_id = $5 AND question_number = $6',
-      [text, JSON.stringify([option_a, option_b, option_c, option_d]), correct_answer, explanation, id, num]
-    );
+    const teacherExams = await supabaseSelect('teacher_exams', {
+      eq: { teacher_id: req.user.userId, exam_id: id },
+      select: '*'
+    });
+    if (teacherExams.length === 0) return res.status(403).json({ error: 'You are not assigned to this exam' });
+    await supabaseUpdate('questions', {
+      text: text,
+      options: JSON.stringify([option_a, option_b, option_c, option_d]),
+      correct_answer: correct_answer,
+      explanation: explanation
+    }, { exam_id: id, question_number: num });
     res.json({ success: true, message: 'Question updated successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -485,11 +629,11 @@ app.put('/api/teacher/exams/:id/questions/:num', isAuthenticated, isTeacher, asy
 });
 
 // ============================================
-// 9. HEALTH CHECK
+// HEALTH CHECK
 // ============================================
 app.get('/health', async (req, res) => {
   try {
-    await pool.query('SELECT 1');
+    await supabaseSelect('users', { limit: 1 });
     res.json({ status: 'ok', timestamp: new Date().toISOString(), database: 'connected' });
   } catch (error) {
     console.error('Health check error:', error.message);
@@ -498,11 +642,11 @@ app.get('/health', async (req, res) => {
 });
 
 // ============================================
-// 10. KEEP-ALIVE (For Supabase)
+// KEEP-ALIVE
 // ============================================
 app.get('/api/keep-alive', async (req, res) => {
   try {
-    await pool.query('SELECT 1');
+    await supabaseSelect('users', { limit: 1 });
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -510,7 +654,7 @@ app.get('/api/keep-alive', async (req, res) => {
 });
 
 // ============================================
-// 11. ERROR HANDLING
+// ERROR HANDLING
 // ============================================
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);
@@ -518,10 +662,10 @@ app.use((err, req, res, next) => {
 });
 
 // ============================================
-// 12. START SERVER
+// START SERVER
 // ============================================
 app.listen(PORT, () => {
   console.log(`🚀 Hayyo Academy backend running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`💾 Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
+  console.log(`🔗 Supabase API: ${SUPABASE_URL}`);
 });
