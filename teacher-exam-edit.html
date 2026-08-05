@@ -1,386 +1,866 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-    <title>Hayyo Academy - Edit Exam</title>
-    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@100..900&family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create/Edit Exam - HAYYO</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Raleway', 'Inter', sans-serif; background: #f8fafc; min-height: 100vh; }
-
-        .app-header {
-            background: #ffffff;
-            border-bottom: 1px solid #e2e8f0;
+        .exam-edit-header {
+            background: linear-gradient(135deg, #2d3436 0%, #636e72 100%);
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .form-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+        .form-card .card-title {
+            font-weight: 600;
+            color: #2d3436;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .form-control, .form-select {
+            border-radius: 10px;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #0984e3;
+            box-shadow: 0 0 0 3px rgba(9, 132, 227, 0.2);
+        }
+        .form-label {
+            font-weight: 500;
+            color: #2d3436;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #0984e3 0%, #6c5ce7 100%);
+            border: none;
+            border-radius: 50px;
+            padding: 12px 30px;
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(9, 132, 227, 0.3);
+        }
+        .btn-secondary {
+            border-radius: 50px;
+            padding: 12px 30px;
+        }
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+        }
+        .status-badge.active {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-badge.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status-badge.draft {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .feedback-msg {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        }
+        .preview-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .question-preview {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #0984e3;
+        }
+        .delete-btn {
+            color: #dc3545;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .delete-btn:hover {
+            transform: scale(1.2);
+        }
+        .inline-edit {
             display: flex;
+            gap: 10px;
             align-items: center;
-            height: 48px;
-            padding: 0 1rem;
-            gap: 0.5rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
         }
-        .app-header .logo { font-size: 1.25rem; font-weight: 700; color: #2563eb; margin-right: 1rem; }
-        .app-header nav { display: flex; align-items: stretch; height: 100%; }
-        .app-header nav a {
-            display: flex; align-items: center; padding: 0 0.75rem; font-size: 0.875rem;
-            border-bottom: 2px solid transparent; text-decoration: none; color: #64748b; cursor: pointer;
+        .inline-edit .form-control {
+            flex: 1;
         }
-        .app-header nav a:hover { color: #0f172a; }
-        .app-header nav a.active { border-bottom-color: #2563eb; color: #2563eb; font-weight: 500; }
-        .app-header .user-menu { margin-left: auto; display: flex; align-items: center; }
-        .app-header .user-menu .avatar {
-            width: 28px; height: 28px; border-radius: 50%; background: #2563eb; color: white;
-            font-size: 0.65rem; font-weight: 600; display: flex; align-items: center; justify-content: center;
-            text-transform: uppercase;
+        .option-group {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
         }
-        .red-line { height: 2px; background: #dc2626; }
-
-        .main-content { max-width: 700px; margin: 0 auto; padding: 1.5rem; }
-
-        .card {
-            background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 1rem;
+        .option-group .form-check-input {
+            margin-top: 10px;
         }
-        .card h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; }
-
-        .form-group { margin-bottom: 1rem; }
-        .form-group label { display: block; font-weight: 600; font-size: 0.875rem; color: #0f172a; margin-bottom: 0.25rem; }
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 4px;
-            font-size: 0.875rem; font-family: 'Inter', sans-serif; background: #f9fafb; color: #1f2937;
+        .question-number {
+            font-weight: 600;
+            color: #0984e3;
+            margin-right: 10px;
         }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-            outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); background: white;
+        .drag-handle {
+            cursor: move;
+            color: #6c757d;
+            margin-right: 10px;
         }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        .checkbox-group { display: flex; align-items: center; gap: 0.5rem; }
-        .checkbox-group input { width: auto; }
-
-        .btn-save {
-            background: #2563eb; color: white; border: none; padding: 10px 32px; border-radius: 6px;
-            font-weight: 600; font-size: 0.875rem; cursor: pointer; font-family: 'Raleway', sans-serif;
-            transition: background 0.15s;
+        .question-type-badge {
+            padding: 2px 10px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            background: #e9ecef;
+            color: #2d3436;
         }
-        .btn-save:hover { background: #1d4ed8; }
-        .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        .btn-back {
-            background: #e2e8f0; color: #0f172a; border: none; padding: 10px 24px; border-radius: 6px;
-            font-weight: 600; font-size: 0.875rem; cursor: pointer; font-family: 'Raleway', sans-serif;
-            transition: background 0.15s;
-        }
-        .btn-back:hover { background: #cbd5e1; }
-
-        .actions { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem; }
-
-        .toast {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: #1f2937; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px;
-            font-family: 'Inter', sans-serif; z-index: 99999; opacity: 0; transition: opacity 0.3s ease;
-            pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); max-width: 90%;
-        }
-        .toast.show { opacity: 1; }
-        .toast.error { background: #dc2626; }
-        .toast.success { background: #16a34a; }
-
-        @media (max-width: 640px) {
-            .form-row { grid-template-columns: 1fr; }
-            .main-content { padding: 1rem; }
-            .card { padding: 1rem; }
-        }
+        .question-type-badge.mcq { background: #dbeafe; color: #1e40af; }
+        .question-type-badge.truefalse { background: #d1fae5; color: #065f46; }
+        .question-type-badge.fill { background: #fef3c7; color: #92400e; }
     </style>
 </head>
 <body>
+    <!-- Feedback Messages -->
+    <div class="feedback-msg" id="feedbackMsg"></div>
 
-    <div class="toast" id="toast"></div>
-
-    <!-- HEADER -->
-    <header class="app-header">
-        <div class="logo">🏫 Hayyo</div>
-        <nav>
-            <a href="dashboard.html">Home</a>
-            <a href="exams.html">My exam</a>
-            <a href="teacher-dashboard.html" class="active">Teacher</a>
-        </nav>
-        <div class="user-menu">
-            <div class="avatar" id="userAvatar">TC</div>
+    <!-- Header -->
+    <div class="exam-edit-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="display-6 fw-bold mb-2">
+                        <i class="bi bi-file-earmark-text me-2"></i>
+                        <span id="pageTitle">Create New Exam</span>
+                    </h1>
+                    <p class="mb-0 opacity-75" id="examStatus">Status: <span class="status-badge draft">Draft</span></p>
+                </div>
+                <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                    <button class="btn btn-light me-2" onclick="previewExam()">
+                        <i class="bi bi-eye"></i> Preview
+                    </button>
+                    <button class="btn btn-success" onclick="saveExam()">
+                        <i class="bi bi-check-circle"></i> Save Exam
+                    </button>
+                    <a href="teacher-dashboard.html" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </a>
+                </div>
+            </div>
         </div>
-    </header>
+    </div>
 
-    <div class="red-line"></div>
-
-    <!-- MAIN CONTENT -->
-    <main class="main-content">
-
-        <div class="card">
-            <h2 id="pageTitle">✏️ Edit Exam Settings</h2>
-            <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 1rem;" id="examIdDisplay">Exam ID: --</p>
-
-            <form id="examForm">
-                <div class="form-group">
-                    <label for="title">Exam Title</label>
-                    <input type="text" id="title" placeholder="e.g., UEE 2018 R2" required />
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="subject">Subject</label>
-                        <select id="subject">
-                            <option value="Mathematics">Mathematics</option>
-                            <option value="English">English</option>
-                            <option value="SAT">SAT</option>
-                            <option value="Physics">Physics</option>
-                            <option value="Chemistry">Chemistry</option>
-                            <option value="Biology">Biology</option>
-                            <option value="History">History</option>
-                            <option value="Geography">Geography</option>
-                            <option value="Civics">Civics</option>
+    <!-- Main Content -->
+    <div class="container mb-5">
+        <form id="examForm">
+            <!-- Basic Information -->
+            <div class="form-card">
+                <h5 class="card-title"><i class="bi bi-info-circle me-2"></i>Basic Information</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Exam Title *</label>
+                        <input type="text" class="form-control" id="examTitle" placeholder="Enter exam title" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Subject *</label>
+                        <input type="text" class="form-control" id="examSubject" placeholder="e.g., Mathematics" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Time Limit (minutes) *</label>
+                        <input type="number" class="form-control" id="examTimeLimit" placeholder="180" value="180" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Passing Score (%) *</label>
+                        <input type="number" class="form-control" id="examPassingScore" placeholder="40" value="40" required>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="examDescription" rows="3" placeholder="Enter exam description"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" id="examStatusSelect">
+                            <option value="draft">Draft</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="year">Year</label>
-                        <input type="number" id="year" placeholder="e.g., 2018" min="2000" max="2030" required />
+                    <div class="col-md-6">
+                        <label class="form-label">Price (₦)</label>
+                        <input type="number" class="form-control" id="examPrice" placeholder="0" value="0">
                     </div>
                 </div>
+            </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="type">Exam Type</label>
-                        <select id="type">
-                            <option value="uee">UEE</option>
-                            <option value="pilot">Pilot</option>
-                            <option value="regional">Regional</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="category">Category</label>
-                        <select id="category">
-                            <option value="natural">Natural Science</option>
-                            <option value="social">Social Science</option>
-                        </select>
-                    </div>
+            <!-- Questions Section -->
+            <div class="form-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0"><i class="bi bi-question-circle me-2"></i>Questions</h5>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="addQuestion()">
+                        <i class="bi bi-plus-circle"></i> Add Question
+                    </button>
                 </div>
+                <div id="questionsContainer" class="mt-3">
+                    <!-- Questions will be rendered here -->
+                </div>
+            </div>
+        </form>
+    </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="time_limit">Time Limit (minutes)</label>
-                        <input type="number" id="time_limit" placeholder="150" min="30" max="300" required />
-                    </div>
-                    <div class="form-group">
-                        <label for="total_questions">Total Questions</label>
-                        <input type="number" id="total_questions" placeholder="100" min="1" max="200" required />
-                    </div>
+    <!-- Question Modal -->
+    <div class="modal fade" id="questionModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-question-circle me-2"></i><span id="questionModalTitle">Add Question</span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-
-                <div class="form-group checkbox-group">
-                    <input type="checkbox" id="is_premium_only" />
-                    <label for="is_premium_only" style="font-weight: 400; margin-bottom: 0;">🔒 Premium Only (requires payment)</label>
+                <div class="modal-body">
+                    <form id="questionForm">
+                        <input type="hidden" id="questionEditIndex" value="-1">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Question Text *</label>
+                            <textarea class="form-control" id="questionText" rows="2" placeholder="Enter question text" required></textarea>
+                        </div>
+                        
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Question Type</label>
+                                <select class="form-select" id="questionType">
+                                    <option value="mcq">Multiple Choice</option>
+                                    <option value="truefalse">True/False</option>
+                                    <option value="fill">Fill in the Blank</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Marks *</label>
+                                <input type="number" class="form-control" id="questionMarks" placeholder="1" value="1" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Image URL (optional)</label>
+                            <input type="url" class="form-control" id="questionImage" placeholder="https://example.com/image.jpg">
+                        </div>
+                        
+                        <div id="optionsContainer" class="mb-3">
+                            <label class="form-label">Options *</label>
+                            <div id="optionsList">
+                                <!-- Options will be rendered here -->
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="addOption()">
+                                <i class="bi bi-plus-circle"></i> Add Option
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3" id="fillAnswerContainer" style="display: none;">
+                            <label class="form-label">Correct Answer</label>
+                            <input type="text" class="form-control" id="fillAnswer" placeholder="Enter the correct answer">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Explanation (optional)</label>
+                            <textarea class="form-control" id="questionExplanation" rows="2" placeholder="Explain the answer"></textarea>
+                        </div>
+                    </form>
                 </div>
-
-                <div class="actions">
-                    <button type="submit" class="btn-save" id="saveBtn">💾 Save Changes</button>
-                    <button type="button" class="btn-back" onclick="window.location.href='teacher-dashboard.html'">← Back</button>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveQuestion()">
+                        <i class="bi bi-check-circle"></i> Save Question
+                    </button>
                 </div>
-            </form>
+            </div>
         </div>
+    </div>
 
-    </main>
+    <!-- Preview Modal -->
+    <div class="modal fade" id="previewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-eye me-2"></i>Exam Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="previewContent">
+                    <!-- Preview will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ============================================
-        // JWT API HELPER
-        // ============================================
+        // ============================================================
+        // 1. API Base URL - UPDATED
+        // ============================================================
+        const API_BASE = 'https://hayyo-exam.onrender.com';
 
-        const API_BASE = '';
+        // ============================================================
+        // 2. Global State
+        // ============================================================
+        let questions = [];
+        let editingExamId = null;
+        let questionModalInstance = null;
+        let previewModalInstance = null;
 
-        function getToken() {
-            return localStorage.getItem('token');
+        // DOM elements
+        const feedbackMsg = document.getElementById('feedbackMsg');
+        const questionsContainer = document.getElementById('questionsContainer');
+        const pageTitle = document.getElementById('pageTitle');
+        const examStatus = document.getElementById('examStatus');
+
+        // ============================================================
+        // 3. Helper Functions
+        // ============================================================
+        function showFeedback(message, type = 'success') {
+            const bgColor = type === 'success' ? '#d4edda' : type === 'error' ? '#f8d7da' : '#fff3cd';
+            const textColor = type === 'success' ? '#155724' : type === 'error' ? '#721c24' : '#856404';
+            feedbackMsg.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert" style="background: ${bgColor}; color: ${textColor}; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            setTimeout(() => {
+                const alert = feedbackMsg.querySelector('.alert');
+                if (alert) alert.classList.remove('show');
+            }, 5000);
         }
 
-        function apiCall(endpoint, options = {}) {
-            const token = getToken();
-            return fetch(`${API_BASE}${endpoint}`, {
-                ...options,
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                    ...options.headers
-                }
-            });
+        function getQuestionTypeBadge(type) {
+            const map = {
+                'mcq': 'mcq',
+                'truefalse': 'truefalse',
+                'fill': 'fill'
+            };
+            return map[type] || 'mcq';
         }
 
-        // ============================================
-        // AUTH CHECK
-        // ============================================
-
-        function checkAuth() {
-            const token = getToken();
-            if (!token) {
-                window.location.href = 'index.html';
-                return;
-            }
-
-            apiCall('/api/me')
-                .then(res => {
-                    if (res.status === 401) {
-                        localStorage.removeItem('token');
-                        window.location.href = 'index.html';
-                        return null;
-                    }
-                    return res.json();
-                })
-                .then(data => {
-                    if (!data || !data.authenticated) {
-                        window.location.href = 'index.html';
-                        return;
-                    }
-
-                    const userName = data.user.name || 'Teacher';
-                    const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-                    document.getElementById('userAvatar').textContent = initials;
-
-                    // Check teacher access
-                    const teacherEmails = ['shimelis@hayyo.com', 'teacher1@hayyo.com', 'teacher2@hayyo.com'];
-                    if (!teacherEmails.includes(data.user.email) && data.user.email !== 'admin@hayyo.com') {
-                        document.querySelector('.card').innerHTML = `
-                            <h2>⛔ Access Denied</h2>
-                            <p style="color: #64748b;">You do not have permission to edit exams.</p>
-                            <button class="btn-back" onclick="window.location.href='dashboard.html'">Go to Dashboard</button>
-                        `;
-                        return;
-                    }
-
-                    loadExam();
-                })
-                .catch(() => {
-                    window.location.href = 'index.html';
-                });
+        function getOptionLabel(index) {
+            return String.fromCharCode(65 + index);
         }
 
-        // ============================================
-        // LOAD EXAM
-        // ============================================
-
-        let examId = null;
-
-        function getExamIdFromURL() {
-            const params = new URLSearchParams(window.location.search);
-            return params.get('id');
-        }
-
-        function loadExam() {
-            examId = getExamIdFromURL();
-            if (!examId) {
-                document.querySelector('.card').innerHTML = `
-                    <h2>⚠️ No Exam Selected</h2>
-                    <p style="color: #64748b;">Please go back and select an exam to edit.</p>
-                    <button class="btn-back" onclick="window.location.href='teacher-dashboard.html'">← Back</button>
+        // ============================================================
+        // 4. Render Questions
+        // ============================================================
+        function renderQuestions() {
+            if (questions.length === 0) {
+                questionsContainer.innerHTML = `
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-question-circle display-4 d-block mb-3"></i>
+                        <p>No questions added yet.</p>
+                        <button class="btn btn-primary btn-sm" onclick="addQuestion()">
+                            <i class="bi bi-plus-circle"></i> Add Your First Question
+                        </button>
+                    </div>
                 `;
                 return;
             }
 
-            document.getElementById('examIdDisplay').textContent = `Exam ID: ${examId}`;
+            questionsContainer.innerHTML = questions.map((q, index) => `
+                <div class="question-preview">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="question-number">Q${index + 1}</span>
+                            <span class="question-type-badge ${getQuestionTypeBadge(q.type)}">${q.type || 'mcq'}</span>
+                            <span class="badge bg-secondary">${q.marks || 1} mark${q.marks > 1 ? 's' : ''}</span>
+                            <span class="ms-2">${q.question_text || 'Question text'}</span>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="editQuestion(${index})">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteQuestion(${index})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    ${q.options && q.options.length > 0 ? `
+                        <div class="mt-2">
+                            ${q.options.map((opt, optIndex) => `
+                                <div class="small">
+                                    ${getOptionLabel(optIndex)}. ${opt.option_text || opt}
+                                    ${opt.is_correct ? ' <span class="badge bg-success">✓</span>' : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    ${q.correct_answer ? `<div class="mt-2 small text-success">Answer: ${q.correct_answer}</div>` : ''}
+                </div>
+            `).join('');
+        }
 
-            apiCall(`/api/exams/${examId}`)
-                .then(res => {
-                    if (res.status === 401) {
-                        localStorage.removeItem('token');
-                        window.location.href = 'index.html';
-                        return null;
-                    }
-                    if (res.status === 404) {
-                        throw new Error('Exam not found');
-                    }
-                    return res.json();
-                })
-                .then(exam => {
-                    if (!exam) return;
+        // ============================================================
+        // 5. Question CRUD
+        // ============================================================
+        function addQuestion() {
+            document.getElementById('questionModalTitle').textContent = 'Add Question';
+            document.getElementById('questionEditIndex').value = '-1';
+            document.getElementById('questionText').value = '';
+            document.getElementById('questionType').value = 'mcq';
+            document.getElementById('questionMarks').value = '1';
+            document.getElementById('questionImage').value = '';
+            document.getElementById('questionExplanation').value = '';
+            document.getElementById('fillAnswer').value = '';
+            document.getElementById('fillAnswerContainer').style.display = 'none';
+            
+            // Reset options
+            document.getElementById('optionsList').innerHTML = `
+                <div class="option-group">
+                    <div class="d-flex gap-2">
+                        <div class="flex-grow-1">
+                            <input type="text" class="form-control" placeholder="Option A" data-opt-index="0">
+                        </div>
+                        <div class="form-check d-flex align-items-center">
+                            <input class="form-check-input" type="radio" name="correctOption" value="0">
+                            <label class="form-check-label ms-1">Correct</label>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeOption(this)">✕</button>
+                    </div>
+                </div>
+                <div class="option-group">
+                    <div class="d-flex gap-2">
+                        <div class="flex-grow-1">
+                            <input type="text" class="form-control" placeholder="Option B" data-opt-index="1">
+                        </div>
+                        <div class="form-check d-flex align-items-center">
+                            <input class="form-check-input" type="radio" name="correctOption" value="1">
+                            <label class="form-check-label ms-1">Correct</label>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeOption(this)">✕</button>
+                    </div>
+                </div>
+            `;
+            
+            // Show modal
+            if (!questionModalInstance) {
+                questionModalInstance = new bootstrap.Modal(document.getElementById('questionModal'));
+            }
+            questionModalInstance.show();
+        }
 
-                    document.getElementById('title').value = exam.title || '';
-                    document.getElementById('subject').value = exam.subject || 'Mathematics';
-                    document.getElementById('year').value = exam.year || '';
-                    document.getElementById('type').value = exam.type || 'uee';
-                    document.getElementById('category').value = exam.category || 'natural';
-                    document.getElementById('time_limit').value = exam.time_limit || 150;
-                    document.getElementById('total_questions').value = exam.total_questions || 100;
-                    document.getElementById('is_premium_only').checked = exam.is_premium_only || false;
-                    document.getElementById('pageTitle').textContent = `✏️ ${exam.title || 'Edit Exam'}`;
-                })
-                .catch(err => {
-                    console.error('Error loading exam:', err);
-                    document.querySelector('.card').innerHTML = `
-                        <h2>⚠️ Error Loading Exam</h2>
-                        <p style="color: #64748b;">${err.message || 'Please try again.'}</p>
-                        <button class="btn-back" onclick="window.location.href='teacher-dashboard.html'">← Back</button>
+        function editQuestion(index) {
+            const q = questions[index];
+            if (!q) return;
+
+            document.getElementById('questionModalTitle').textContent = 'Edit Question';
+            document.getElementById('questionEditIndex').value = index;
+            document.getElementById('questionText').value = q.question_text || '';
+            document.getElementById('questionType').value = q.type || 'mcq';
+            document.getElementById('questionMarks').value = q.marks || 1;
+            document.getElementById('questionImage').value = q.image_url || '';
+            document.getElementById('questionExplanation').value = q.explanation || '';
+            document.getElementById('fillAnswer').value = q.correct_answer || '';
+
+            // Handle fill in the blank
+            if (q.type === 'fill') {
+                document.getElementById('fillAnswerContainer').style.display = 'block';
+            } else {
+                document.getElementById('fillAnswerContainer').style.display = 'none';
+            }
+
+            // Render options
+            let optionsHtml = '';
+            if (q.options && q.options.length > 0) {
+                q.options.forEach((opt, optIndex) => {
+                    optionsHtml += `
+                        <div class="option-group">
+                            <div class="d-flex gap-2">
+                                <div class="flex-grow-1">
+                                    <input type="text" class="form-control" placeholder="Option ${getOptionLabel(optIndex)}" 
+                                           data-opt-index="${optIndex}" value="${opt.option_text || opt}">
+                                </div>
+                                <div class="form-check d-flex align-items-center">
+                                    <input class="form-check-input" type="radio" name="correctOption" value="${optIndex}" 
+                                           ${opt.is_correct ? 'checked' : ''}>
+                                    <label class="form-check-label ms-1">Correct</label>
+                                </div>
+                                <button class="btn btn-sm btn-outline-danger" onclick="removeOption(this)">✕</button>
+                            </div>
+                        </div>
                     `;
                 });
+            } else {
+                optionsHtml = `
+                    <div class="option-group">
+                        <div class="d-flex gap-2">
+                            <div class="flex-grow-1">
+                                <input type="text" class="form-control" placeholder="Option A" data-opt-index="0">
+                            </div>
+                            <div class="form-check d-flex align-items-center">
+                                <input class="form-check-input" type="radio" name="correctOption" value="0">
+                                <label class="form-check-label ms-1">Correct</label>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeOption(this)">✕</button>
+                        </div>
+                    </div>
+                `;
+            }
+            document.getElementById('optionsList').innerHTML = optionsHtml;
+
+            if (!questionModalInstance) {
+                questionModalInstance = new bootstrap.Modal(document.getElementById('questionModal'));
+            }
+            questionModalInstance.show();
         }
 
-        // ============================================
-        // SAVE EXAM
-        // ============================================
+        function saveQuestion() {
+            const index = parseInt(document.getElementById('questionEditIndex').value);
+            const questionText = document.getElementById('questionText').value.trim();
+            const type = document.getElementById('questionType').value;
+            const marks = parseInt(document.getElementById('questionMarks').value) || 1;
+            const imageUrl = document.getElementById('questionImage').value.trim();
+            const explanation = document.getElementById('questionExplanation').value.trim();
+            const fillAnswer = document.getElementById('fillAnswer').value.trim();
 
-        document.getElementById('examForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+            if (!questionText) {
+                showFeedback('Please enter question text.', 'error');
+                return;
+            }
 
-            const saveBtn = document.getElementById('saveBtn');
-            saveBtn.textContent = 'Saving...';
-            saveBtn.disabled = true;
+            let options = [];
+            let correctAnswer = null;
 
-            const data = {
-                title: document.getElementById('title').value.trim(),
-                subject: document.getElementById('subject').value,
-                year: parseInt(document.getElementById('year').value),
-                type: document.getElementById('type').value,
-                category: document.getElementById('category').value,
-                time_limit: parseInt(document.getElementById('time_limit').value),
-                total_questions: parseInt(document.getElementById('total_questions').value),
-                is_premium_only: document.getElementById('is_premium_only').checked
+            if (type === 'fill') {
+                if (!fillAnswer) {
+                    showFeedback('Please enter the correct answer.', 'error');
+                    return;
+                }
+                correctAnswer = fillAnswer;
+            } else {
+                // Collect options
+                const optionInputs = document.querySelectorAll('#optionsList .option-group');
+                if (optionInputs.length < 2) {
+                    showFeedback('Please add at least 2 options.', 'error');
+                    return;
+                }
+
+                let hasCorrect = false;
+                optionInputs.forEach((group) => {
+                    const input = group.querySelector('input[type="text"]');
+                    const radio = group.querySelector('input[type="radio"]');
+                    const optText = input ? input.value.trim() : '';
+                    if (optText) {
+                        const isCorrect = radio ? radio.checked : false;
+                        if (isCorrect) hasCorrect = true;
+                        options.push({
+                            option_text: optText,
+                            is_correct: isCorrect
+                        });
+                    }
+                });
+
+                if (options.length < 2) {
+                    showFeedback('Please add at least 2 options with text.', 'error');
+                    return;
+                }
+
+                if (!hasCorrect) {
+                    showFeedback('Please select a correct answer.', 'error');
+                    return;
+                }
+            }
+
+            const questionData = {
+                question_text: questionText,
+                type: type,
+                marks: marks,
+                image_url: imageUrl || null,
+                explanation: explanation || null,
+                options: options.length > 0 ? options : null,
+                correct_answer: correctAnswer
             };
 
-            apiCall(`/api/teacher/exams/${examId}`, {
-                method: 'PUT',
-                body: JSON.stringify(data)
-            })
-            .then(res => res.json())
-            .then(result => {
-                if (result.success) {
-                    showToast('✅ Exam updated successfully!', 'success');
-                } else {
-                    showToast('❌ Update failed: ' + (result.error || 'Unknown error'), 'error');
-                }
-            })
-            .catch(err => {
-                console.error('Error saving exam:', err);
-                showToast('❌ Error saving exam.', 'error');
-            })
-            .finally(() => {
-                saveBtn.textContent = '💾 Save Changes';
-                saveBtn.disabled = false;
-            });
-        });
+            if (index === -1) {
+                questions.push(questionData);
+                showFeedback('Question added successfully!', 'success');
+            } else {
+                questions[index] = questionData;
+                showFeedback('Question updated successfully!', 'success');
+            }
 
-        // ============================================
-        // TOAST
-        // ============================================
-
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = 'toast ' + type + ' show';
-            setTimeout(() => { toast.className = 'toast'; }, 3000);
+            renderQuestions();
+            questionModalInstance.hide();
         }
 
-        // ============================================
-        // RUN
-        // ============================================
+        function deleteQuestion(index) {
+            if (confirm('Are you sure you want to delete this question?')) {
+                questions.splice(index, 1);
+                renderQuestions();
+                showFeedback('Question deleted.', 'info');
+            }
+        }
 
-        document.addEventListener('DOMContentLoaded', checkAuth);
+        function addOption() {
+            const optionsList = document.getElementById('optionsList');
+            const count = optionsList.querySelectorAll('.option-group').length;
+            const newGroup = document.createElement('div');
+            newGroup.className = 'option-group';
+            newGroup.innerHTML = `
+                <div class="d-flex gap-2">
+                    <div class="flex-grow-1">
+                        <input type="text" class="form-control" placeholder="Option ${getOptionLabel(count)}" data-opt-index="${count}">
+                    </div>
+                    <div class="form-check d-flex align-items-center">
+                        <input class="form-check-input" type="radio" name="correctOption" value="${count}">
+                        <label class="form-check-label ms-1">Correct</label>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" onclick="removeOption(this)">✕</button>
+                </div>
+            `;
+            optionsList.appendChild(newGroup);
+        }
 
-        console.log('✅ Teacher Exam Edit page loaded with JWT');
+        function removeOption(btn) {
+            const group = btn.closest('.option-group');
+            const optionsList = document.getElementById('optionsList');
+            if (optionsList.querySelectorAll('.option-group').length <= 2) {
+                showFeedback('You need at least 2 options.', 'error');
+                return;
+            }
+            group.remove();
+            // Re-index radio buttons
+            document.querySelectorAll('#optionsList .option-group input[type="radio"]').forEach((radio, idx) => {
+                radio.value = idx;
+            });
+        }
+
+        // ============================================================
+        // 6. Save Exam
+        // ============================================================
+        function saveExam() {
+            const title = document.getElementById('examTitle').value.trim();
+            const subject = document.getElementById('examSubject').value.trim();
+            const timeLimit = parseInt(document.getElementById('examTimeLimit').value) || 180;
+            const passingScore = parseInt(document.getElementById('examPassingScore').value) || 40;
+            const description = document.getElementById('examDescription').value.trim();
+            const status = document.getElementById('examStatusSelect').value;
+            const price = parseFloat(document.getElementById('examPrice').value) || 0;
+
+            if (!title) {
+                showFeedback('Please enter exam title.', 'error');
+                return;
+            }
+            if (!subject) {
+                showFeedback('Please enter subject.', 'error');
+                return;
+            }
+            if (questions.length === 0) {
+                showFeedback('Please add at least one question.', 'error');
+                return;
+            }
+
+            const examData = {
+                title: title,
+                subject: subject,
+                time_limit: timeLimit,
+                passing_score: passingScore,
+                description: description,
+                status: status,
+                price: price,
+                questions: questions
+            };
+
+            const url = editingExamId 
+                ? `${API_BASE}/api/teacher/exams/${editingExamId}` 
+                : `${API_BASE}/api/teacher/exams`;
+            const method = editingExamId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(examData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showFeedback(editingExamId ? 'Exam updated successfully!' : 'Exam created successfully!', 'success');
+                    if (!editingExamId) {
+                        editingExamId = data.exam_id;
+                        pageTitle.textContent = `Edit Exam: ${title}`;
+                        window.history.replaceState({}, '', `?id=${data.exam_id}`);
+                    }
+                    // Update status display
+                    updateStatusDisplay(status);
+                } else {
+                    showFeedback('Failed to save exam: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Save exam error:', error);
+                showFeedback('Network error saving exam.', 'error');
+            });
+        }
+
+        function updateStatusDisplay(status) {
+            const statusMap = {
+                'active': 'Active',
+                'inactive': 'Inactive',
+                'draft': 'Draft'
+            };
+            const statusClassMap = {
+                'active': 'active',
+                'inactive': 'inactive',
+                'draft': 'draft'
+            };
+            examStatus.innerHTML = `Status: <span class="status-badge ${statusClassMap[status] || 'draft'}">${statusMap[status] || 'Draft'}</span>`;
+        }
+
+        // ============================================================
+        // 7. Preview Exam
+        // ============================================================
+        function previewExam() {
+            const title = document.getElementById('examTitle').value.trim() || 'Untitled Exam';
+            const subject = document.getElementById('examSubject').value.trim() || 'Unknown Subject';
+            const timeLimit = document.getElementById('examTimeLimit').value || 180;
+
+            let previewHtml = `
+                <h5>${title}</h5>
+                <p class="text-muted">${subject} • ${timeLimit} minutes</p>
+                <hr>
+                <p><strong>Total Questions:</strong> ${questions.length}</p>
+            `;
+
+            if (questions.length === 0) {
+                previewHtml += `<p class="text-muted">No questions added yet.</p>`;
+            } else {
+                questions.forEach((q, index) => {
+                    previewHtml += `
+                        <div class="question-preview">
+                            <strong>Q${index + 1}.</strong> ${q.question_text || 'Question text'}
+                            <span class="badge bg-secondary ms-2">${q.marks || 1} mark${q.marks > 1 ? 's' : ''}</span>
+                    `;
+                    if (q.options && q.options.length > 0) {
+                        previewHtml += `<div class="mt-2">`;
+                        q.options.forEach((opt, optIndex) => {
+                            previewHtml += `
+                                <div class="small">
+                                    <input type="radio" disabled> ${getOptionLabel(optIndex)}. ${opt.option_text || opt}
+                                    ${opt.is_correct ? ' ✓' : ''}
+                                </div>
+                            `;
+                        });
+                        previewHtml += `</div>`;
+                    }
+                    if (q.correct_answer) {
+                        previewHtml += `<div class="mt-2 text-success"><strong>Answer:</strong> ${q.correct_answer}</div>`;
+                    }
+                    previewHtml += `</div>`;
+                });
+            }
+
+            document.getElementById('previewContent').innerHTML = previewHtml;
+            if (!previewModalInstance) {
+                previewModalInstance = new bootstrap.Modal(document.getElementById('previewModal'));
+            }
+            previewModalInstance.show();
+        }
+
+        // ============================================================
+        // 8. Load Existing Exam
+        // ============================================================
+        function loadExam() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const examId = urlParams.get('id');
+
+            if (!examId) return;
+
+            editingExamId = examId;
+
+            fetch(`${API_BASE}/api/teacher/exams/${examId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const exam = data.exam;
+                    document.getElementById('examTitle').value = exam.title || '';
+                    document.getElementById('examSubject').value = exam.subject || '';
+                    document.getElementById('examTimeLimit').value = exam.time_limit || 180;
+                    document.getElementById('examPassingScore').value = exam.passing_score || 40;
+                    document.getElementById('examDescription').value = exam.description || '';
+                    document.getElementById('examStatusSelect').value = exam.status || 'draft';
+                    document.getElementById('examPrice').value = exam.price || 0;
+                    questions = exam.questions || [];
+                    pageTitle.textContent = `Edit Exam: ${exam.title}`;
+                    updateStatusDisplay(exam.status || 'draft');
+                    renderQuestions();
+                    showFeedback('Exam loaded successfully.', 'success');
+                } else {
+                    showFeedback('Failed to load exam: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Load exam error:', error);
+                showFeedback('Network error loading exam.', 'error');
+            });
+        }
+
+        // ============================================================
+        // 9. Event Listeners
+        // ============================================================
+        document.getElementById('questionType').addEventListener('change', function() {
+            const fillContainer = document.getElementById('fillAnswerContainer');
+            if (this.value === 'fill') {
+                fillContainer.style.display = 'block';
+                document.getElementById('optionsContainer').style.display = 'none';
+            } else {
+                fillContainer.style.display = 'none';
+                document.getElementById('optionsContainer').style.display = 'block';
+            }
+        });
+
+        // ============================================================
+        // 10. Initialize
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize question modal
+            questionModalInstance = new bootstrap.Modal(document.getElementById('questionModal'));
+            previewModalInstance = new bootstrap.Modal(document.getElementById('previewModal'));
+            
+            // Check if editing existing exam
+            loadExam();
+            
+            // If no questions, render empty state
+            renderQuestions();
+        });
+
+        // Make functions globally accessible
+        window.addQuestion = addQuestion;
+        window.editQuestion = editQuestion;
+        window.saveQuestion = saveQuestion;
+        window.deleteQuestion = deleteQuestion;
+        window.addOption = addOption;
+        window.removeOption = removeOption;
+        window.saveExam = saveExam;
+        window.previewExam = previewExam;
     </script>
-
 </body>
 </html>
