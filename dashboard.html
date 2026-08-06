@@ -297,35 +297,10 @@
 
     <script>
         // ============================================
-        // SIMPLIFIED DASHBOARD - NO API CALL
+        // WORKING DASHBOARD WITH REAL USER DATA
         // ============================================
 
-        // Get token from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const tokenFromUrl = urlParams.get('token');
-
-        if (tokenFromUrl) {
-            localStorage.setItem('token', tokenFromUrl);
-            // Clean URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-            showToast('✅ Login successful!', 'success');
-        }
-
-        const token = localStorage.getItem('token');
-
-        if (!token) {
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 500);
-        }
-
-        // Show dashboard with placeholder
-        document.getElementById('userName').textContent = 'STUDENT';
-        document.getElementById('userEmail').textContent = 'student@hayyo.com';
-        document.getElementById('welcomeName').textContent = 'Student';
-        document.getElementById('userAvatar').textContent = 'ST';
-
-        console.log('✅ Dashboard loaded with token:', token);
+        const API_BASE = 'https://hayyo-exam.onrender.com';
 
         function showToast(message, type = 'info') {
             const toast = document.getElementById('toast');
@@ -334,7 +309,119 @@
             setTimeout(() => { toast.className = 'toast'; }, 3000);
         }
 
-        // Logout
+        // Step 1: Get token from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenFromUrl = urlParams.get('token');
+
+        if (tokenFromUrl) {
+            localStorage.setItem('token', tokenFromUrl);
+            window.history.replaceState({}, document.title, window.location.pathname);
+            showToast('✅ Login successful!', 'success');
+        }
+
+        // Step 2: Check if token exists
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            console.log('❌ No token found, redirecting to login');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 500);
+            document.getElementById('userName').textContent = 'REDIRECTING...';
+            document.getElementById('userEmail').textContent = 'Please login';
+            document.getElementById('welcomeName').textContent = 'Guest';
+            document.getElementById('userAvatar').textContent = '??';
+        } else {
+            console.log('✅ Token found:', token.substring(0, 20) + '...');
+
+            // Step 3: Show loading state
+            document.getElementById('userName').textContent = 'LOADING...';
+            document.getElementById('userEmail').textContent = 'Loading...';
+            document.getElementById('welcomeName').textContent = 'Loading...';
+            document.getElementById('userAvatar').textContent = '..';
+
+            // Step 4: Fetch user data
+            console.log('🔍 Fetching user data from /api/me...');
+            
+            fetch(`${API_BASE}/api/me`, {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(async res => {
+                console.log('📡 Response status:', res.status);
+                
+                // Get raw response text first
+                const text = await res.text();
+                console.log('📝 Raw response:', text);
+                
+                // Try to parse as JSON
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    console.error('❌ Failed to parse JSON:', e.message);
+                    throw new Error('Invalid JSON response');
+                }
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}: ${data.error || 'Unknown error'}`);
+                }
+                
+                return data;
+            })
+            .then(data => {
+                console.log('✅ User data received:', data);
+                
+                // Check if user data exists
+                if (data && data.user) {
+                    const user = data.user;
+                    const name = user.name || 'Student';
+                    const email = user.email || 'No email';
+                    
+                    console.log('👤 User name:', name);
+                    console.log('📧 User email:', email);
+                    
+                    // Update UI
+                    document.getElementById('userName').textContent = name.toUpperCase();
+                    document.getElementById('userEmail').textContent = email;
+                    document.getElementById('welcomeName').textContent = name;
+                    
+                    const initials = name
+                        .split(' ')
+                        .map(n => n[0])
+                        .join('')
+                        .toUpperCase()
+                        .slice(0, 2);
+                    document.getElementById('userAvatar').textContent = initials || 'ST';
+                    
+                    showToast('Welcome, ' + name + '!', 'success');
+                    console.log('✅ Dashboard updated with real user data');
+                } else {
+                    console.warn('⚠️ No user data in response:', data);
+                    // Show fallback data
+                    document.getElementById('userName').textContent = 'STUDENT';
+                    document.getElementById('userEmail').textContent = 'student@hayyo.com';
+                    document.getElementById('welcomeName').textContent = 'Student';
+                    document.getElementById('userAvatar').textContent = 'ST';
+                    showToast('Could not load user data', 'error');
+                }
+            })
+            .catch(err => {
+                console.error('❌ Error loading user data:', err.message);
+                console.error('Stack:', err.stack);
+                
+                // Show fallback data
+                document.getElementById('userName').textContent = 'STUDENT';
+                document.getElementById('userEmail').textContent = 'student@hayyo.com';
+                document.getElementById('welcomeName').textContent = 'Student';
+                document.getElementById('userAvatar').textContent = 'ST';
+                showToast('Could not load user data', 'error');
+            });
+        }
+
+        // Step 5: Logout
         document.getElementById('logoutBtn').addEventListener('click', function(e) {
             e.preventDefault();
             localStorage.removeItem('token');
@@ -343,6 +430,8 @@
                 window.location.href = 'index.html';
             }, 500);
         });
+
+        console.log('🔐 Dashboard initialized');
     </script>
 
 </body>
