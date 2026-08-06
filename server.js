@@ -112,7 +112,7 @@ async function supabaseDelete(table, eq) {
 }
 
 // ============================================
-// DIRECT SUPABASE HELPERS FOR OAUTH (AVOIDS EMPTY FILTER ISSUE)
+// DIRECT SUPABASE HELPERS FOR OAUTH
 // ============================================
 async function findUserByEmail(email) {
   const url = SUPABASE_URL + '/rest/v1/users?select=*&email=eq.' + encodeURIComponent(email);
@@ -314,7 +314,6 @@ passport.use(new GoogleStrategy({
       
       user = await createUser(newUser);
       
-      // If creation failed, try one more lookup (race condition)
       if (!user) {
         user = await findUserById(profile.id);
       }
@@ -413,10 +412,15 @@ async function isTeacher(req, res, next) {
 // --- AUTH ROUTES ---
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
+// ============================================
+// FIXED: OAuth Callback with Hardcoded Redirect
+// ============================================
 app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => {
   const token = generateToken(req.user);
-  const frontendUrl = process.env.FRONTEND_URL || 'https://hayyo-exam.onrender.com';
-  res.redirect(frontendUrl + '/dashboard.html?token=' + token);
+  // HARDCODED URL - ensures redirect works every time
+  const redirectUrl = 'https://Shime1000me.github.io/hayyo-exam/dashboard.html?token=' + token;
+  console.log('🔍 OAuth Success - Redirecting to:', redirectUrl);
+  res.redirect(redirectUrl);
 });
 
 app.get('/auth/logout', (req, res) => {
