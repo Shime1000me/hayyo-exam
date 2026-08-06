@@ -2,31 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <title>Hayyo Academy - Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@100..900&family=Inter:opsz@14..32&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Raleway', 'Inter', sans-serif;
-            background: #f8fafc;
-        }
-        .bg-background { background: #ffffff; }
-        .border-border { border-color: #e2e8f0; }
-        .text-muted-foreground { color: #64748b; }
-        .text-foreground { color: #0f172a; }
-        .bg-muted { background: #f1f5f9; }
-        .bg-card { background: #ffffff; }
-        .hover\:shadow-md:hover { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .transition-shadow { transition: box-shadow 0.2s; }
-        .hover\:underline:hover { text-decoration: underline; }
-        .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Raleway', 'Inter', sans-serif; background: #f8fafc; }
         .app-header {
             background: #ffffff;
             border-bottom: 1px solid #e2e8f0;
@@ -39,17 +20,8 @@
             top: 0;
             z-index: 100;
         }
-        .app-header .logo {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #2563eb;
-            margin-right: 1rem;
-        }
-        .app-header nav {
-            display: flex;
-            align-items: stretch;
-            height: 100%;
-        }
+        .app-header .logo { font-size: 1.25rem; font-weight: 700; color: #2563eb; margin-right: 1rem; }
+        .app-header nav { display: flex; align-items: stretch; height: 100%; }
         .app-header nav a {
             display: flex;
             align-items: center;
@@ -60,26 +32,10 @@
             color: #64748b;
             cursor: pointer;
         }
-        .app-header nav a:hover {
-            color: #0f172a;
-        }
-        .app-header nav a.active {
-            border-bottom-color: #2563eb;
-            color: #2563eb;
-            font-weight: 500;
-        }
-        .app-header nav a.logout-btn {
-            color: #dc2626;
-            border-bottom-color: transparent;
-        }
-        .app-header nav a.logout-btn:hover {
-            color: #b91c1c;
-        }
-        .app-header .user-menu {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-        }
+        .app-header nav a:hover { color: #0f172a; }
+        .app-header nav a.active { border-bottom-color: #2563eb; color: #2563eb; font-weight: 500; }
+        .app-header nav a.logout-btn { color: #dc2626; border-bottom-color: transparent; }
+        .app-header .user-menu { margin-left: auto; display: flex; align-items: center; }
         .app-header .user-menu .avatar {
             width: 28px;
             height: 28px;
@@ -93,11 +49,7 @@
             justify-content: center;
             text-transform: uppercase;
         }
-        .red-line {
-            height: 2px;
-            background: #dc2626;
-        }
-
+        .red-line { height: 2px; background: #dc2626; }
         .main-content {
             flex: 1;
             min-width: 0;
@@ -106,7 +58,6 @@
             margin: 0 auto;
             width: 100%;
         }
-
         .info-box {
             border: 1px solid #e2e8f0;
             font-size: 0.875rem;
@@ -127,35 +78,12 @@
             align-items: center;
             border-bottom: 1px solid #f1f5f9;
         }
-        .info-box .info-row:last-child {
-            border-bottom: none;
-        }
-        .info-box .info-row .label {
-            font-weight: 600;
-            color: #0f172a;
-            white-space: nowrap;
-        }
-        .info-box .info-row .value {
-            font-weight: 600;
-            color: #0f172a;
-        }
-
-        .welcome-section {
-            margin-top: 2.5rem;
-        }
-        .welcome-section h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.125rem;
-            color: #0f172a;
-        }
-        .welcome-section h2 {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #0f172a;
-            margin-bottom: 1rem;
-        }
-
+        .info-box .info-row:last-child { border-bottom: none; }
+        .info-box .info-row .label { font-weight: 600; color: #0f172a; white-space: nowrap; }
+        .info-box .info-row .value { font-weight: 600; color: #0f172a; }
+        .welcome-section { margin-top: 2.5rem; }
+        .welcome-section h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.125rem; color: #0f172a; }
+        .welcome-section h2 { font-size: 1rem; font-weight: 600; color: #0f172a; margin-bottom: 1rem; }
         .search-bar {
             position: relative;
             width: 12rem;
@@ -173,10 +101,7 @@
             font-family: 'Inter', sans-serif;
             color: #0f172a;
         }
-        .search-bar input:focus {
-            outline: none;
-            border-bottom-color: #2563eb;
-        }
+        .search-bar input:focus { outline: none; border-bottom-color: #2563eb; }
         .search-bar .icon {
             position: absolute;
             left: 0.5rem;
@@ -184,23 +109,13 @@
             transform: translateY(-50%);
             color: #9ca3af;
         }
-
         .exam-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 1rem;
         }
-        @media (min-width: 640px) {
-            .exam-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-        @media (min-width: 768px) {
-            .exam-grid {
-                grid-template-columns: repeat(4, 1fr);
-            }
-        }
-
+        @media (min-width: 640px) { .exam-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 768px) { .exam-grid { grid-template-columns: repeat(4, 1fr); } }
         .exam-card {
             border: 1px solid #e2e8f0;
             border-radius: 0.125rem;
@@ -209,9 +124,7 @@
             background: #ffffff;
             transition: box-shadow 0.2s;
         }
-        .exam-card:hover {
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-        }
+        .exam-card:hover { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .exam-card .card-image {
             height: 7rem;
             background: linear-gradient(135deg, #6366f1, #8b5cf6, #7c3aed);
@@ -223,36 +136,11 @@
             border-radius: 50%;
             background: rgba(255,255,255,0.1);
         }
-        .exam-card .card-image .circle-1 {
-            top: -1rem;
-            left: -1rem;
-            width: 5rem;
-            height: 5rem;
-        }
-        .exam-card .card-image .circle-2 {
-            top: 1.5rem;
-            left: 2rem;
-            width: 2.5rem;
-            height: 2.5rem;
-        }
-        .exam-card .card-image .circle-3 {
-            bottom: -1rem;
-            right: 1rem;
-            width: 4rem;
-            height: 4rem;
-        }
-        .exam-card .card-image .circle-4 {
-            bottom: 1rem;
-            right: 3rem;
-            width: 2rem;
-            height: 2rem;
-        }
-        .exam-card .card-image .circle-5 {
-            top: 0.5rem;
-            right: 0.5rem;
-            width: 1.5rem;
-            height: 1.5rem;
-        }
+        .exam-card .card-image .circle-1 { top: -1rem; left: -1rem; width: 5rem; height: 5rem; }
+        .exam-card .card-image .circle-2 { top: 1.5rem; left: 2rem; width: 2.5rem; height: 2.5rem; }
+        .exam-card .card-image .circle-3 { bottom: -1rem; right: 1rem; width: 4rem; height: 4rem; }
+        .exam-card .card-image .circle-4 { bottom: 1rem; right: 3rem; width: 2rem; height: 2rem; }
+        .exam-card .card-image .circle-5 { top: 0.5rem; right: 0.5rem; width: 1.5rem; height: 1.5rem; }
         .exam-card .card-footer {
             padding: 0.5rem 0.75rem;
             display: flex;
@@ -267,9 +155,7 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-        .exam-card .card-footer span:hover {
-            text-decoration: underline;
-        }
+        .exam-card .card-footer span:hover { text-decoration: underline; }
         .exam-card .card-footer button {
             background: none;
             border: none;
@@ -278,32 +164,13 @@
             flex-shrink: 0;
             margin-left: 0.5rem;
         }
-        .exam-card .card-footer button:hover {
-            color: #0f172a;
-        }
-
+        .exam-card .card-footer button:hover { color: #0f172a; }
         .social-card .card-image {
             background: linear-gradient(135deg, #34d399, #2dd4bf, #06b6d4);
         }
-        .social-card .card-image .circle-1 {
-            top: -1rem;
-            left: -1rem;
-            width: 5rem;
-            height: 5rem;
-        }
-        .social-card .card-image .circle-2 {
-            top: 1.5rem;
-            left: 2rem;
-            width: 2.5rem;
-            height: 2.5rem;
-        }
-        .social-card .card-image .circle-3 {
-            bottom: -1rem;
-            right: 1rem;
-            width: 4rem;
-            height: 4rem;
-        }
-
+        .social-card .card-image .circle-1 { top: -1rem; left: -1rem; width: 5rem; height: 5rem; }
+        .social-card .card-image .circle-2 { top: 1.5rem; left: 2rem; width: 2.5rem; height: 2.5rem; }
+        .social-card .card-image .circle-3 { bottom: -1rem; right: 1rem; width: 4rem; height: 4rem; }
         .toast {
             position: fixed;
             top: 20px;
@@ -324,21 +191,11 @@
         .toast.show { opacity: 1; }
         .toast.error { background: #dc2626; }
         .toast.success { background: #16a34a; }
-
         @media (max-width: 480px) {
-            .info-box .info-row {
-                grid-template-columns: 1fr 1fr;
-                gap: 0.25rem 0.5rem;
-            }
-            .main-content {
-                padding: 1rem;
-            }
-            .search-bar {
-                width: 100%;
-            }
-            .exam-grid {
-                gap: 0.75rem;
-            }
+            .info-box .info-row { grid-template-columns: 1fr 1fr; gap: 0.25rem 0.5rem; }
+            .main-content { padding: 1rem; }
+            .search-bar { width: 100%; }
+            .exam-grid { gap: 0.75rem; }
         }
     </style>
 </head>
@@ -349,7 +206,6 @@
     <div id="root">
         <div class="min-h-screen" style="min-height:100vh;background:#ffffff;display:flex;flex-direction:column;">
 
-            <!-- ===== HEADER ===== -->
             <header class="app-header">
                 <div class="logo">🏫 Hayyo</div>
                 <nav>
@@ -362,13 +218,10 @@
                 </div>
             </header>
 
-            <!-- ===== RED LINE ===== -->
             <div class="red-line"></div>
 
-            <!-- ===== MAIN CONTENT ===== -->
             <main class="main-content">
 
-                <!-- Basic Information -->
                 <div class="info-box">
                     <div class="info-header">Basic Information</div>
                     <div class="info-row">
@@ -391,12 +244,10 @@
                     </div>
                 </div>
 
-                <!-- Welcome Section -->
                 <div class="welcome-section">
                     <h1>Welcome, <span id="welcomeName">Student</span>! 👋</h1>
                     <h2>Select Exam Category</h2>
 
-                    <!-- Search Bar -->
                     <div class="search-bar">
                         <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"></path>
@@ -405,10 +256,8 @@
                         <input placeholder="Search" value="" />
                     </div>
 
-                    <!-- Exam Categories Grid -->
                     <div class="exam-grid">
 
-                        <!-- Natural Science Card -->
                         <div class="exam-card" onclick="window.location.href='exams.html'">
                             <div class="card-image">
                                 <div class="circle circle-1"></div>
@@ -425,7 +274,6 @@
                             </div>
                         </div>
 
-                        <!-- Social Science Card -->
                         <div class="exam-card social-card" onclick="window.location.href='exams.html'">
                             <div class="card-image">
                                 <div class="circle circle-1"></div>
@@ -449,13 +297,36 @@
 
     <script>
         // ============================================
-        // API CONFIGURATION
+        // SIMPLIFIED DASHBOARD - NO API CALL
         // ============================================
-        const API_BASE = 'https://hayyo-exam.onrender.com';
 
-        // ============================================
-        // TOAST NOTIFICATION
-        // ============================================
+        // Get token from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenFromUrl = urlParams.get('token');
+
+        if (tokenFromUrl) {
+            localStorage.setItem('token', tokenFromUrl);
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+            showToast('✅ Login successful!', 'success');
+        }
+
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 500);
+        }
+
+        // Show dashboard with placeholder
+        document.getElementById('userName').textContent = 'STUDENT';
+        document.getElementById('userEmail').textContent = 'student@hayyo.com';
+        document.getElementById('welcomeName').textContent = 'Student';
+        document.getElementById('userAvatar').textContent = 'ST';
+
+        console.log('✅ Dashboard loaded with token:', token);
+
         function showToast(message, type = 'info') {
             const toast = document.getElementById('toast');
             toast.textContent = message;
@@ -463,190 +334,16 @@
             setTimeout(() => { toast.className = 'toast'; }, 3000);
         }
 
-        // ============================================
-        // TOKEN HELPERS
-        // ============================================
-        function getToken() {
-            return localStorage.getItem('token');
-        }
-
-        function setToken(token) {
-            if (token) {
-                localStorage.setItem('token', token);
-                return true;
-            }
-            return false;
-        }
-
-        function clearToken() {
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', function(e) {
+            e.preventDefault();
             localStorage.removeItem('token');
-        }
-
-        // ============================================
-        // API CALL
-        // ============================================
-        function apiCall(endpoint, options = {}) {
-            const token = getToken();
-            return fetch(`${API_BASE}${endpoint}`, {
-                ...options,
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                    ...options.headers
-                }
-            });
-        }
-
-        // ============================================
-        // MAIN AUTH CHECK
-        // ============================================
-        function checkAuth() {
-            console.log('🔍 === DASHBOARD LOADED ===');
-            console.log('🔍 Current URL:', window.location.href);
-            
-            // STEP 1: Check for token in URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const tokenFromUrl = urlParams.get('token');
-            
-            if (tokenFromUrl) {
-                console.log('✅ Token found in URL, saving to localStorage');
-                setToken(tokenFromUrl);
-                // Clean URL - remove token parameter
-                window.history.replaceState({}, document.title, window.location.pathname);
-                showToast('✅ Login successful!', 'success');
-            }
-            
-            // STEP 2: Check localStorage for token
-            const token = getToken();
-            console.log('🔍 Token in localStorage:', token ? '✅ exists' : '❌ missing');
-            
-            // STEP 3: If no token, redirect to login
-            if (!token) {
-                console.log('❌ No token found, redirecting to login');
-                showToast('Please login first', 'error');
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 500);
-                return;
-            }
-            
-            // STEP 4: Show dashboard IMMEDIATELY (don't wait for API)
-            console.log('✅ Showing dashboard');
-            showToast('✅ Dashboard loaded', 'success');
-            
-            // STEP 5: Try to get user data in background
-            fetchUserData(token);
-        }
-
-        // ============================================
-        // FETCH USER DATA - FIXED
-        // ============================================
-        function fetchUserData(token) {
-            console.log('🔍 Fetching user data from /api/me');
-            
-            apiCall('/api/me')
-                .then(async res => {
-                    console.log('🔍 /api/me response status:', res.status);
-                    
-                    // Get the response text first to debug
-                    const responseText = await res.text();
-                    console.log('🔍 Raw response:', responseText);
-                    
-                    let data;
-                    try {
-                        data = JSON.parse(responseText);
-                        console.log('🔍 Parsed data:', data);
-                    } catch (e) {
-                        console.log('❌ Failed to parse response as JSON');
-                        showToast('Error loading user data', 'error');
-                        // Show placeholder data
-                        updateDashboardUI({ name: 'Student', email: 'student@hayyo.com' });
-                        return;
-                    }
-                    
-                    if (res.status === 401) {
-                        console.log('❌ Token invalid (401)');
-                        clearToken();
-                        showToast('Session expired. Please login again.', 'error');
-                        setTimeout(() => {
-                            window.location.href = 'index.html';
-                        }, 1500);
-                        return;
-                    }
-                    
-                    // Check if we have user data
-                    if (data && data.user) {
-                        console.log('✅ User data loaded successfully!');
-                        updateDashboardUI(data.user);
-                    } else if (data && data.authenticated && data.user) {
-                        console.log('✅ User data loaded successfully!');
-                        updateDashboardUI(data.user);
-                    } else {
-                        console.log('❌ No user data found in response:', data);
-                        showToast('Could not load user data', 'error');
-                        // Still show the dashboard with placeholder data
-                        updateDashboardUI({ name: 'Student', email: 'student@hayyo.com' });
-                    }
-                })
-                .catch(error => {
-                    console.log('❌ API call error:', error.message);
-                    showToast('Could not load user data, but you are logged in', 'error');
-                    // Keep dashboard open with placeholder
-                    updateDashboardUI({ name: 'Student', email: 'student@hayyo.com' });
-                });
-        }
-
-        // ============================================
-        // UPDATE UI WITH USER DATA
-        // ============================================
-        function updateDashboardUI(user) {
-            const userName = user.name || 'Student';
-            const userEmail = user.email || 'No email provided';
-            
-            document.getElementById('userName').textContent = userName.toUpperCase();
-            document.getElementById('userEmail').textContent = userEmail;
-            document.getElementById('welcomeName').textContent = userName;
-            
-            const initials = userName
-                .split(' ')
-                .map(n => n[0])
-                .join('')
-                .toUpperCase()
-                .slice(0, 2);
-            document.getElementById('userAvatar').textContent = initials;
-            
-            showToast('Welcome, ' + userName + '!', 'success');
-            console.log('✅ Dashboard fully rendered with user data');
-        }
-
-        // ============================================
-        // LOGOUT
-        // ============================================
-        function logout() {
-            console.log('🔍 Logging out...');
-            clearToken();
             showToast('Logged out successfully', 'success');
             setTimeout(() => {
                 window.location.href = 'index.html';
             }, 500);
-        }
-
-        // ============================================
-        // INITIALIZE
-        // ============================================
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔐 HAYYO Dashboard - JWT Authentication');
-            checkAuth();
-            
-            const logoutBtn = document.getElementById('logoutBtn');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    logout();
-                });
-            }
         });
     </script>
 
 </body>
-                                        </html>
+</html>
