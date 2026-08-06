@@ -61,7 +61,6 @@ async function supabaseSelect(table, params = {}) {
 
   if (params.select) queryParams.append('select', params.select);
   if (params.eq) {
-    // Validate eq has keys and values
     const eqKeys = Object.keys(params.eq);
     if (eqKeys.length === 0) {
       throw new Error('Empty eq filter provided');
@@ -111,6 +110,54 @@ async function supabaseDelete(table, eq) {
   return supabaseFetch('/' + table + '?' + key + '=eq.' + value, {
     method: 'DELETE'
   });
+}
+
+// ============================================
+// DIRECT SUPABASE HELPERS FOR OAUTH (AVOIDS EMPTY FILTER ISSUE)
+// ============================================
+async function findUserByEmail(email) {
+  const url = SUPABASE_URL + '/rest/v1/users?select=*&email=eq.' + encodeURIComponent(email);
+  const response = await fetch(url, {
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json'
+    }
+  });
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data && data[0] ? data[0] : null;
+}
+
+async function findUserById(id) {
+  const url = SUPABASE_URL + '/rest/v1/users?select=*&id=eq.' + encodeURIComponent(id);
+  const response = await fetch(url, {
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json'
+    }
+  });
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data && data[0] ? data[0] : null;
+}
+
+async function createUser(userData) {
+  const url = SUPABASE_URL + '/rest/v1/users';
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(userData)
+  });
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data && data[0] ? data[0] : null;
 }
 
 const app = express();
@@ -234,7 +281,7 @@ app.use(session({
 }));
 
 // ============================================
-// PASSPORT (Google OAuth) - FIXED
+// PASSPORT (Google OAuth) - COMPLETELY REWRITTEN
 // ============================================
 app.use(passport.initialize());
 app.use(passport.session());
@@ -247,37 +294,24 @@ passport.use(new GoogleStrategy({
   try {
     console.log('Google profile received:', profile.id, profile.displayName);
     
-    // Validate profile data
     if (!profile || !profile.id) {
-      throw new Error('Invalid profile data from Google');
+      throw new Error('Invalid profile data from Google - no ID');
     }
 
-    // First, try to find the user
-    let users = [];
-    try {
-      users = await supabaseSelect('users', {
-        eq: { id: profile.id },
-        select: '*'
-      });
-    } catch (queryError) {
-      console.error('Supabase query error:', queryError.message);
-      // If query fails, try a different approach - search by email
-      if (profile.emails && profile.emails[0]) {
-        const email = profile.emails[0].value;
-        console.log('Trying to find user by email:', email);
-        users = await supabaseSelect('users', {
-          eq: { email: email },
-          select: '*'
-        });
-      } else {
-        throw queryError;
+    // Step 1: Try to find user by Google ID
+    let user = await findUserById(profile.id);
+    
+    // Step 2: If not found, try by email
+    if (!user) {
+      const email = (profile.emails && profile.emails[0]) ? profile.emails[0].value : null;
+      if (email) {
+        console.log('Looking for user by email:', email);
+        user = await findUserByEmail(email);
       }
     }
 
-    let user = users[0];
-
+    // Step 3: If still not found, create a new user
     if (!user) {
-      // Create new user
       console.log('Creating new user...');
       const newUser = {
         id: profile.id,
@@ -288,32 +322,17 @@ passport.use(new GoogleStrategy({
         is_premium: false,
         created_at: new Date().toISOString()
       };
-
-      try {
-        const result = await supabaseInsert('users', newUser);
-        if (result && result[0]) {
-          user = result[0];
-        } else {
-          // If insertion returns empty, try to find the user again
-          const foundUsers = await supabaseSelect('users', {
-            eq: { id: profile.id },
-            select: '*'
-          });
-          user = foundUsers[0];
-        }
-      } catch (insertError) {
-        console.error('Failed to create user:', insertError.message);
-        // Try to find user one more time (maybe created in the meantime)
-        const foundUsers = await supabaseSelect('users', {
-          eq: { id: profile.id },
-          select: '*'
-        });
-        user = foundUsers[0];
-        
-        if (!user) {
-          throw new Error('Failed to create user: ' + insertError.message);
-        }
+      
+      user = await createUser(newUser);
+      
+      // If creation failed, try one more lookup (race condition)
+      if (!user) {
+        user = await findUserById(profile.id);
       }
+    }
+
+    if (!user) {
+      throw new Error('Could not find or create user');
     }
 
     console.log('User authenticated:', user.email, user.id);
