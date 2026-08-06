@@ -191,6 +191,22 @@
         .toast.show { opacity: 1; }
         .toast.error { background: #dc2626; }
         .toast.success { background: #16a34a; }
+        .debug-box {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 16px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .debug-box .label { font-weight: 700; color: #0f172a; }
+        .debug-box .success { color: #16a34a; }
+        .debug-box .error { color: #dc2626; }
         @media (max-width: 480px) {
             .info-box .info-row { grid-template-columns: 1fr 1fr; gap: 0.25rem 0.5rem; }
             .main-content { padding: 1rem; }
@@ -291,16 +307,31 @@
                     </div>
                 </div>
 
+                <!-- Debug Box -->
+                <div class="debug-box" id="debugBox">
+                    <div class="label">🔍 Debug Log:</div>
+                    <div id="debugContent">Waiting for login...</div>
+                </div>
+
             </main>
         </div>
     </div>
 
     <script>
         // ============================================
-        // SIMPLIFIED WORKING DASHBOARD
+        // DIAGNOSTIC DASHBOARD - SHOWS EXACTLY WHAT'S HAPPENING
         // ============================================
 
         const API_BASE = 'https://hayyo-exam.onrender.com';
+        const debugContent = document.getElementById('debugContent');
+
+        function logDebug(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'success' ? '✅' : type === 'error' ? '❌' : '🔍';
+            const color = type === 'success' ? '#16a34a' : type === 'error' ? '#dc2626' : '#0f172a';
+            debugContent.innerHTML += `<div style="color:${color}">${prefix} [${timestamp}] ${message}</div>`;
+            console.log(`${prefix} ${message}`);
+        }
 
         function showToast(message, type = 'info') {
             const toast = document.getElementById('toast');
@@ -309,23 +340,32 @@
             setTimeout(() => { toast.className = 'toast'; }, 3000);
         }
 
-        // Get token from URL
+        logDebug('📄 Dashboard loaded');
+
+        // Step 1: Get token from URL
         const urlParams = new URLSearchParams(window.location.search);
         const tokenFromUrl = urlParams.get('token');
 
         if (tokenFromUrl) {
+            logDebug('🔑 Token found in URL', 'success');
             localStorage.setItem('token', tokenFromUrl);
             window.history.replaceState({}, document.title, window.location.pathname);
             showToast('✅ Login successful!', 'success');
+        } else {
+            logDebug('ℹ️ No token in URL');
         }
 
+        // Step 2: Check localStorage
         const token = localStorage.getItem('token');
 
         if (!token) {
+            logDebug('❌ No token found in localStorage', 'error');
             showToast('Please login first', 'error');
             setTimeout(() => {
                 window.location.href = 'index.html';
-            }, 500);
+            }, 1500);
+        } else {
+            logDebug('🔑 Token found in localStorage: ' + token.substring(0, 20) + '...', 'success');
         }
 
         // Show loading state
@@ -334,8 +374,8 @@
         document.getElementById('welcomeName').textContent = 'Loading...';
         document.getElementById('userAvatar').textContent = '..';
 
-        // Fetch user data
-        console.log('🔍 Fetching user data from /api/me...');
+        // Step 3: Fetch user data
+        logDebug('📡 Fetching user data from /api/me...');
 
         fetch(`${API_BASE}/api/me`, {
             headers: {
@@ -343,24 +383,35 @@
                 'Content-Type': 'application/json'
             }
         })
-        .then(res => {
-            console.log('📡 Response status:', res.status);
+        .then(async res => {
+            logDebug(`📡 Response status: ${res.status}`);
+            
+            const text = await res.text();
+            logDebug(`📝 Raw response: ${text.substring(0, 200)}${text.length > 200 ? '...' : ''}`);
+            
             if (!res.ok) {
-                throw new Error(`HTTP ${res.status}`);
+                throw new Error(`HTTP ${res.status}: ${text}`);
             }
-            return res.json();
+            
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                throw new Error('Invalid JSON response');
+            }
+            
+            return data;
         })
         .then(data => {
-            console.log('✅ User data received:', data);
+            logDebug('✅ User data received!', 'success');
             
-            // The backend returns { authenticated: true, user: {...} }
             if (data && data.user) {
                 const user = data.user;
                 const name = user.name || 'Student';
                 const email = user.email || 'No email';
                 
-                console.log('👤 Name:', name);
-                console.log('📧 Email:', email);
+                logDebug(`👤 Name: ${name}`, 'success');
+                logDebug(`📧 Email: ${email}`, 'success');
                 
                 // Update UI
                 document.getElementById('userName').textContent = name.toUpperCase();
@@ -376,13 +427,13 @@
                 document.getElementById('userAvatar').textContent = initials || 'ST';
                 
                 showToast('Welcome, ' + name + '!', 'success');
-                console.log('✅ Dashboard updated with real user data');
+                logDebug('✅ Dashboard updated with real user data', 'success');
             } else {
                 throw new Error('No user data in response');
             }
         })
         .catch(err => {
-            console.error('❌ Error:', err.message);
+            logDebug(`❌ Error: ${err.message}`, 'error');
             showToast('Could not load user data', 'error');
             
             // Show fallback
