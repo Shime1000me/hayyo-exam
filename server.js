@@ -479,12 +479,12 @@ async function isTeacher(req, res, next) {
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 // ============================================
-// FIXED: OAuth Callback with Test Dashboard Redirect
+// FIXED: OAuth Callback - Redirects to REAL Dashboard
 // ============================================
 app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => {
   const token = generateToken(req.user);
-  // Redirect to test-dashboard.html first to verify token works
-  const redirectUrl = 'https://Shime1000me.github.io/hayyo-exam/test-dashboard.html?token=' + token;
+  // Redirect to the REAL dashboard (not test-dashboard)
+  const redirectUrl = 'https://Shime1000me.github.io/hayyo-exam/dashboard.html?token=' + token;
   console.log('🔍 OAuth Success - Redirecting to:', redirectUrl);
   res.redirect(redirectUrl);
 });
