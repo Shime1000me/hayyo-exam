@@ -254,27 +254,10 @@ app.use(helmet({
 }));
 
 // ============================================
-// CORS - Allow multiple origins (FIXED)
+// CORS - Allow all origins (FIXED)
 // ============================================
-const allowedOrigins = [
-  'https://Shime1000me.github.io',
-  'https://Shime1000me.github.io/hayyo-exam',
-  'https://hayyo-exam.onrender.com',
-  'http://localhost:8000',
-  'http://localhost:5500'
-];
-
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log('❌ CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: true, // Allow any origin
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
