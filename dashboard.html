@@ -68,6 +68,13 @@
             color: #2563eb;
             font-weight: 500;
         }
+        .app-header nav a.logout-btn {
+            color: #dc2626;
+            border-bottom-color: transparent;
+        }
+        .app-header nav a.logout-btn:hover {
+            color: #b91c1c;
+        }
         .app-header .user-menu {
             margin-left: auto;
             display: flex;
@@ -297,7 +304,6 @@
             height: 4rem;
         }
 
-        /* Toast notification */
         .toast {
             position: fixed;
             top: 20px;
@@ -338,7 +344,6 @@
 </head>
 <body>
 
-    <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
 
     <div id="root">
@@ -350,10 +355,10 @@
                 <nav>
                     <a href="#" class="active">Home</a>
                     <a href="exams.html">My exam</a>
-                    <a href="#" id="logoutBtn" style="color:#dc2626;border-bottom-color:transparent;">Logout</a>
+                    <a href="#" class="logout-btn" id="logoutBtn">Logout</a>
                 </nav>
                 <div class="user-menu">
-                    <div class="avatar" id="userAvatar">SH</div>
+                    <div class="avatar" id="userAvatar">ST</div>
                 </div>
             </header>
 
@@ -446,14 +451,12 @@
         // ============================================
         // API CONFIGURATION
         // ============================================
-
         const API_BASE = 'https://hayyo-exam.onrender.com';
 
         // ============================================
         // TOAST NOTIFICATION
         // ============================================
-
-        function showToast(message, type = 'error') {
+        function showToast(message, type = 'info') {
             const toast = document.getElementById('toast');
             toast.textContent = message;
             toast.className = 'toast ' + type + ' show';
@@ -461,17 +464,29 @@
         }
 
         // ============================================
-        // JWT API HELPER
+        // TOKEN HELPERS
         // ============================================
-
         function getToken() {
             return localStorage.getItem('token');
         }
 
+        function setToken(token) {
+            if (token) {
+                localStorage.setItem('token', token);
+                return true;
+            }
+            return false;
+        }
+
+        function clearToken() {
+            localStorage.removeItem('token');
+        }
+
+        // ============================================
+        // API CALL
+        // ============================================
         function apiCall(endpoint, options = {}) {
             const token = getToken();
-            console.log('🔍 apiCall to:', endpoint, 'Token exists:', !!token);
-            
             return fetch(`${API_BASE}${endpoint}`, {
                 ...options,
                 headers: {
@@ -483,119 +498,123 @@
         }
 
         // ============================================
-        // AUTH CHECK WITH JWT - UPDATED WITH DEBUG
+        // MAIN AUTH CHECK - FIXED
         // ============================================
-
         function checkAuth() {
             console.log('🔍 === DASHBOARD LOADED ===');
             console.log('🔍 Current URL:', window.location.href);
             
-            // FIRST: Check for token in URL
+            // STEP 1: Check for token in URL
             const urlParams = new URLSearchParams(window.location.search);
             const tokenFromUrl = urlParams.get('token');
-            console.log('🔍 Token in URL:', tokenFromUrl ? '✅ Yes' : '❌ No');
             
             if (tokenFromUrl) {
-                console.log('✅ Saving token from URL to localStorage');
-                localStorage.setItem('token', tokenFromUrl);
-                // Remove token from URL to keep it clean
+                console.log('✅ Token found in URL, saving to localStorage');
+                setToken(tokenFromUrl);
+                // Clean URL - remove token parameter
                 window.history.replaceState({}, document.title, window.location.pathname);
-                console.log('✅ Token saved, URL cleaned');
                 showToast('✅ Login successful!', 'success');
             }
             
+            // STEP 2: Check localStorage for token
             const token = getToken();
-            console.log('🔍 Token in localStorage:', token ? token.substring(0, 20) + '...' : '❌ Not found');
+            console.log('🔍 Token in localStorage:', token ? '✅ exists' : '❌ missing');
             
+            // STEP 3: If no token, redirect to login
             if (!token) {
-                console.log('❌ No token found, redirecting to login in 1 second');
-                showToast('❌ No authentication token found', 'error');
+                console.log('❌ No token found, redirecting to login');
+                showToast('Please login first', 'error');
                 setTimeout(() => {
                     window.location.href = 'index.html';
-                }, 1000);
+                }, 500);
                 return;
             }
-
-            console.log('🔍 Calling /api/me with token...');
-            showToast('🔍 Verifying authentication...', '');
             
-            // Verify token with backend
+            // STEP 4: Show dashboard IMMEDIATELY (don't wait for API)
+            console.log('✅ Showing dashboard');
+            showToast('✅ Dashboard loaded', 'success');
+            
+            // STEP 5: Try to get user data in background
+            fetchUserData(token);
+        }
+
+        // ============================================
+        // FETCH USER DATA (Non-blocking)
+        // ============================================
+        function fetchUserData(token) {
+            console.log('🔍 Fetching user data from /api/me');
+            
             apiCall('/api/me')
                 .then(async res => {
                     console.log('🔍 /api/me response status:', res.status);
                     
-                    // Try to get response body even if it's an error
+                    // Try to get response data
                     let data;
                     try {
                         data = await res.json();
-                        console.log('🔍 /api/me response data:', data);
+                        console.log('🔍 Response data:', data);
                     } catch (e) {
-                        console.log('❌ Failed to parse response as JSON');
-                        data = null;
+                        console.log('❌ Failed to parse response');
+                        return;
                     }
                     
+                    // Check if token is invalid
                     if (res.status === 401) {
-                        console.log('❌ Token invalid (401), redirecting to login');
-                        localStorage.removeItem('token');
-                        showToast('❌ Session expired. Please login again.', 'error');
+                        console.log('❌ Token invalid (401)');
+                        clearToken();
+                        showToast('Session expired. Please login again.', 'error');
                         setTimeout(() => {
                             window.location.href = 'index.html';
                         }, 1500);
-                        return null;
+                        return;
                     }
                     
-                    if (!res.ok) {
-                        console.log('❌ API error:', res.status, data);
-                        showToast('❌ Authentication failed: ' + (data?.error || 'Unknown error'), 'error');
-                        setTimeout(() => {
-                            window.location.href = 'index.html';
-                        }, 1500);
-                        return null;
-                    }
-                    
-                    return data;
-                })
-                .then(data => {
+                    // Check if API call succeeded
                     if (data && data.authenticated) {
-                        console.log('✅ Dashboard loaded! Welcome:', data.user);
-                        showToast('✅ Welcome, ' + (data.user.name || 'Student') + '!', 'success');
-                        
-                        const userName = data.user.name || 'Student';
-                        const userEmail = data.user.email || 'No email provided';
-                        
-                        document.getElementById('userName').textContent = userName.toUpperCase();
-                        document.getElementById('userEmail').textContent = userEmail;
-                        document.getElementById('welcomeName').textContent = userName;
-                        
-                        const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-                        document.getElementById('userAvatar').textContent = initials;
-                        console.log('✅ Dashboard fully rendered');
+                        console.log('✅ User data loaded successfully!');
+                        updateDashboardUI(data.user);
                     } else {
-                        console.log('❌ Authentication failed - no user data');
-                        showToast('❌ Authentication failed', 'error');
-                        setTimeout(() => {
-                            window.location.href = 'index.html';
-                        }, 1500);
+                        console.log('❌ Authentication failed');
+                        showToast('Could not load user data', 'error');
                     }
                 })
                 .catch(error => {
-                    console.log('❌ API call failed:', error.message);
-                    console.log('❌ Stack trace:', error.stack);
-                    showToast('❌ Network error: ' + error.message, 'error');
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 1500);
+                    console.log('❌ API call error:', error.message);
+                    // Don't redirect - dashboard stays open
+                    showToast('Could not load user data, but you are logged in', 'error');
                 });
+        }
+
+        // ============================================
+        // UPDATE UI WITH USER DATA
+        // ============================================
+        function updateDashboardUI(user) {
+            const userName = user.name || 'Student';
+            const userEmail = user.email || 'No email provided';
+            
+            document.getElementById('userName').textContent = userName.toUpperCase();
+            document.getElementById('userEmail').textContent = userEmail;
+            document.getElementById('welcomeName').textContent = userName;
+            
+            const initials = userName
+                .split(' ')
+                .map(n => n[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2);
+            document.getElementById('userAvatar').textContent = initials;
+            
+            showToast('Welcome, ' + userName + '!', 'success');
+            console.log('✅ Dashboard fully rendered with user data');
         }
 
         // ============================================
         // LOGOUT
         // ============================================
-
         function logout() {
             console.log('🔍 Logging out...');
-            localStorage.removeItem('token');
-            showToast('✅ Logged out successfully', 'success');
+            clearToken();
+            showToast('Logged out successfully', 'success');
             setTimeout(() => {
                 window.location.href = 'index.html';
             }, 500);
@@ -604,11 +623,10 @@
         // ============================================
         // INITIALIZE
         // ============================================
-
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔐 JWT Authentication Enabled on Dashboard');
+            console.log('🔐 HAYYO Dashboard - JWT Authentication');
             
-            // Check authentication
+            // Check authentication (shows dashboard immediately)
             checkAuth();
             
             // Setup logout button
