@@ -297,6 +297,28 @@
             height: 4rem;
         }
 
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1f2937;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            max-width: 90%;
+        }
+        .toast.show { opacity: 1; }
+        .toast.error { background: #dc2626; }
+        .toast.success { background: #16a34a; }
+
         @media (max-width: 480px) {
             .info-box .info-row {
                 grid-template-columns: 1fr 1fr;
@@ -316,6 +338,9 @@
 </head>
 <body>
 
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
     <div id="root">
         <div class="min-h-screen" style="min-height:100vh;background:#ffffff;display:flex;flex-direction:column;">
 
@@ -325,6 +350,7 @@
                 <nav>
                     <a href="#" class="active">Home</a>
                     <a href="exams.html">My exam</a>
+                    <a href="#" id="logoutBtn" style="color:#dc2626;border-bottom-color:transparent;">Logout</a>
                 </nav>
                 <div class="user-menu">
                     <div class="avatar" id="userAvatar">SH</div>
@@ -342,13 +368,13 @@
                     <div class="info-header">Basic Information</div>
                     <div class="info-row">
                         <span class="label">Full Name:</span>
-                        <span class="value" id="userName">SHIMELIS HATISO</span>
+                        <span class="value" id="userName">Loading...</span>
                         <span class="label">School:</span>
                         <span class="value">Hayyo Academy</span>
                     </div>
                     <div class="info-row">
-                        <span class="label">Is Blind / Is Deaf:</span>
-                        <span class="value">No / No</span>
+                        <span class="label">Email:</span>
+                        <span class="value" id="userEmail">Loading...</span>
                         <span class="label">Admission Number:</span>
                         <span class="value">HAY001</span>
                     </div>
@@ -362,7 +388,7 @@
 
                 <!-- Welcome Section -->
                 <div class="welcome-section">
-                    <h1>Welcome, <span id="welcomeName">Shimelis</span>! 👋</h1>
+                    <h1>Welcome, <span id="welcomeName">Student</span>! 👋</h1>
                     <h2>Select Exam Category</h2>
 
                     <!-- Search Bar -->
@@ -424,6 +450,17 @@
         const API_BASE = 'https://hayyo-exam.onrender.com';
 
         // ============================================
+        // TOAST NOTIFICATION
+        // ============================================
+
+        function showToast(message, type = 'error') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => { toast.className = 'toast'; }, 3000);
+        }
+
+        // ============================================
         // JWT API HELPER
         // ============================================
 
@@ -433,6 +470,8 @@
 
         function apiCall(endpoint, options = {}) {
             const token = getToken();
+            console.log('🔍 apiCall to:', endpoint, 'Token exists:', !!token);
+            
             return fetch(`${API_BASE}${endpoint}`, {
                 ...options,
                 headers: {
@@ -444,46 +483,144 @@
         }
 
         // ============================================
-        // AUTH CHECK WITH JWT
+        // AUTH CHECK WITH JWT - UPDATED WITH DEBUG
         // ============================================
 
         function checkAuth() {
+            console.log('🔍 === DASHBOARD LOADED ===');
+            console.log('🔍 Current URL:', window.location.href);
+            
+            // FIRST: Check for token in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const tokenFromUrl = urlParams.get('token');
+            console.log('🔍 Token in URL:', tokenFromUrl ? '✅ Yes' : '❌ No');
+            
+            if (tokenFromUrl) {
+                console.log('✅ Saving token from URL to localStorage');
+                localStorage.setItem('token', tokenFromUrl);
+                // Remove token from URL to keep it clean
+                window.history.replaceState({}, document.title, window.location.pathname);
+                console.log('✅ Token saved, URL cleaned');
+                showToast('✅ Login successful!', 'success');
+            }
+            
             const token = getToken();
+            console.log('🔍 Token in localStorage:', token ? token.substring(0, 20) + '...' : '❌ Not found');
+            
             if (!token) {
-                window.location.href = 'index.html';
+                console.log('❌ No token found, redirecting to login in 1 second');
+                showToast('❌ No authentication token found', 'error');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
                 return;
             }
 
+            console.log('🔍 Calling /api/me with token...');
+            showToast('🔍 Verifying authentication...', '');
+            
+            // Verify token with backend
             apiCall('/api/me')
-                .then(res => {
+                .then(async res => {
+                    console.log('🔍 /api/me response status:', res.status);
+                    
+                    // Try to get response body even if it's an error
+                    let data;
+                    try {
+                        data = await res.json();
+                        console.log('🔍 /api/me response data:', data);
+                    } catch (e) {
+                        console.log('❌ Failed to parse response as JSON');
+                        data = null;
+                    }
+                    
                     if (res.status === 401) {
+                        console.log('❌ Token invalid (401), redirecting to login');
                         localStorage.removeItem('token');
-                        window.location.href = 'index.html';
+                        showToast('❌ Session expired. Please login again.', 'error');
+                        setTimeout(() => {
+                            window.location.href = 'index.html';
+                        }, 1500);
                         return null;
                     }
-                    return res.json();
+                    
+                    if (!res.ok) {
+                        console.log('❌ API error:', res.status, data);
+                        showToast('❌ Authentication failed: ' + (data?.error || 'Unknown error'), 'error');
+                        setTimeout(() => {
+                            window.location.href = 'index.html';
+                        }, 1500);
+                        return null;
+                    }
+                    
+                    return data;
                 })
                 .then(data => {
                     if (data && data.authenticated) {
                         console.log('✅ Dashboard loaded! Welcome:', data.user);
+                        showToast('✅ Welcome, ' + (data.user.name || 'Student') + '!', 'success');
                         
                         const userName = data.user.name || 'Student';
+                        const userEmail = data.user.email || 'No email provided';
+                        
                         document.getElementById('userName').textContent = userName.toUpperCase();
+                        document.getElementById('userEmail').textContent = userEmail;
                         document.getElementById('welcomeName').textContent = userName;
                         
                         const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                         document.getElementById('userAvatar').textContent = initials;
+                        console.log('✅ Dashboard fully rendered');
+                    } else {
+                        console.log('❌ Authentication failed - no user data');
+                        showToast('❌ Authentication failed', 'error');
+                        setTimeout(() => {
+                            window.location.href = 'index.html';
+                        }, 1500);
                     }
                 })
-                .catch(() => {
-                    window.location.href = 'index.html';
+                .catch(error => {
+                    console.log('❌ API call failed:', error.message);
+                    console.log('❌ Stack trace:', error.stack);
+                    showToast('❌ Network error: ' + error.message, 'error');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
                 });
         }
 
-        document.addEventListener('DOMContentLoaded', checkAuth);
+        // ============================================
+        // LOGOUT
+        // ============================================
 
-        console.log('🔐 JWT Authentication Enabled on Dashboard');
+        function logout() {
+            console.log('🔍 Logging out...');
+            localStorage.removeItem('token');
+            showToast('✅ Logged out successfully', 'success');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 500);
+        }
+
+        // ============================================
+        // INITIALIZE
+        // ============================================
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔐 JWT Authentication Enabled on Dashboard');
+            
+            // Check authentication
+            checkAuth();
+            
+            // Setup logout button
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    logout();
+                });
+            }
+        });
     </script>
 
 </body>
-</html>
+    </html>
