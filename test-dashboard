@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Dashboard</title>
+</head>
+<body>
+    <h1>🎉 You are logged in!</h1>
+    <p id="tokenDisplay">Loading...</p>
+    <a href="index.html">Logout</a>
+
+    <script>
+        // Get token from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        
+        if (token) {
+            localStorage.setItem('token', token);
+            document.getElementById('tokenDisplay').textContent = 'Token: ' + token;
+            console.log('✅ Token saved:', token);
+        } else {
+            document.getElementById('tokenDisplay').textContent = '❌ No token found!';
+            console.log('❌ No token in URL');
+        }
+    </script>
+</body>
+</html>
