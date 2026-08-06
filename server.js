@@ -54,16 +54,25 @@ async function supabaseFetch(endpoint, options = {}) {
   return response.json();
 }
 
-// Helper for SELECT queries
+// Helper for SELECT queries with better error handling
 async function supabaseSelect(table, params = {}) {
   let url = `/${table}`;
   const queryParams = new URLSearchParams();
 
   if (params.select) queryParams.append('select', params.select);
   if (params.eq) {
-    Object.entries(params.eq).forEach(([key, value]) => {
-      queryParams.append(`${key}=eq.${value}`, '');
-    });
+    // Validate eq has keys and values
+    const eqKeys = Object.keys(params.eq);
+    if (eqKeys.length === 0) {
+      throw new Error('Empty eq filter provided');
+    }
+    
+    for (const [key, value] of Object.entries(params.eq)) {
+      if (value === undefined || value === null || value === '') {
+        throw new Error(`Empty value for filter key: ${key}`);
+      }
+      queryParams.append(`${key}=eq.${encodeURIComponent(value)}`, '');
+    }
   }
   if (params.order) queryParams.append('order', `${params.order.column}.${params.order.direction || 'asc'}`);
   if (params.limit) queryParams.append('limit', params.limit);
@@ -136,10 +145,8 @@ const upload = multer({
 // ============================================
 // MIDDLEWARE
 // ============================================
-// FIX: Set trust proxy to 1 (Render's load balancer) instead of true
 app.set('trust proxy', 1);
 
-// Helmet with relaxed CSP for better compatibility
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -166,28 +173,24 @@ app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // ============================================
-// RATE LIMITING - FIXED with proper configuration
+// RATE LIMITING
 // ============================================
-// General API rate limiter
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per window
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
-    // Use the actual client IP from the proxy
     return req.ip || req.connection.remoteAddress;
   },
   skip: (req) => {
-    // Skip rate limiting for health checks and keep-alive
     return req.path === '/health' || req.path === '/api/keep-alive';
   }
 });
 
-// Strict rate limiter for sensitive endpoints
 const strictLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 10, // 10 requests per minute
+  windowMs: 60 * 1000,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
@@ -200,7 +203,7 @@ app.use('/api/payment/', strictLimiter);
 app.use('/api/admin/', strictLimiter);
 
 // ============================================
-// SESSION STORE (PostgreSQL - only for sessions)
+// SESSION STORE
 // ============================================
 const { Pool } = require('pg');
 const pool = new Pool({
@@ -220,13 +223,13 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: 'lax', // Changed from 'none' for better security
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000
   }
 }));
 
 // ============================================
-// PASSPORT (Google OAuth)
+// PASSPORT (Google OAuth) - FIXED
 // ============================================
 app.use(passport.initialize());
 app.use(passport.session());
@@ -234,25 +237,92 @@ app.use(passport.session());
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: `${process.env.BACKEND_URL || 'https://hayyo-exam.onrender.com'}/auth/google/callback`
+  callbackURL: `${process.env.BACKEND_URL || 'https://hayyo-exam.onrender.com'}/auth/google/callback'
 }, async (accessToken, refreshToken, profile, done) => {
   try {
-    const users = await supabaseSelect('users', {
-      eq: { id: profile.id },
-      select: '*'
-    });
-
-    if (users.length === 0) {
-      await supabaseInsert('users', {
-        id: profile.id,
-        email: profile.emails[0].value,
-        name: profile.displayName,
-        avatar_url: profile.photos?.[0]?.value,
-        created_at: new Date().toISOString()
-      });
+    console.log('🔍 Google profile received:', profile.id, profile.displayName);
+    
+    // Validate profile data
+    if (!profile || !profile.id) {
+      throw new Error('Invalid profile data from Google');
     }
-    return done(null, { id: profile.id, email: profile.emails[0].value, name: profile.displayName });
+
+    // First, try to find the user
+    let users = [];
+    try {
+      users = await supabaseSelect('users', {
+        eq: { id: profile.id },
+        select: '*'
+      });
+    } catch (queryError) {
+      console.error('❌ Supabase query error:', queryError.message);
+      // If query fails, try a different approach - search by email
+      if (profile.emails && profile.emails[0]) {
+        const email = profile.emails[0].value;
+        console.log(`📧 Trying to find user by email: ${email}`);
+        users = await supabaseSelect('users', {
+          eq: { email: email },
+          select: '*'
+        });
+      } else {
+        throw queryError;
+      }
+    }
+
+    let user = users[0];
+
+    if (!user) {
+      // Create new user
+      console.log('👤 Creating new user...');
+      const newUser = {
+        id: profile.id,
+        email: profile.emails?.[0]?.value || 'unknown@email.com',
+        name: profile.displayName || 'Unknown User',
+        avatar_url: profile.photos?.[0]?.value || null,
+        is_teacher: false,
+        is_premium: false,
+        created_at: new Date().toISOString()
+      };
+
+      try {
+        const result = await supabaseInsert('users', newUser);
+        if (result && result[0]) {
+          user = result[0];
+        } else {
+          // If insertion returns empty, try to find the user again
+          const foundUsers = await supabaseSelect('users', {
+            eq: { id: profile.id },
+            select: '*'
+          });
+          user = foundUsers[0];
+        }
+      } catch (insertError) {
+        console.error('❌ Failed to create user:', insertError.message);
+        // Try to find user one more time (maybe created in the meantime)
+        const foundUsers = await supabaseSelect('users', {
+          eq: { id: profile.id },
+          select: '*'
+        });
+        user = foundUsers[0];
+        
+        if (!user) {
+          throw new Error(`Failed to create user: ${insertError.message}`);
+        }
+      }
+    }
+
+    console.log(`✅ User authenticated: ${user.email} (${user.id})`);
+    return done(null, { 
+      id: user.id, 
+      email: user.email, 
+      name: user.name,
+      is_teacher: user.is_teacher || false,
+      is_premium: user.is_premium || false
+    });
+    
   } catch (error) {
+    console.error('❌ Google Strategy Error:', error.message);
+    console.error('Stack trace:', error.stack);
     return done(error);
   }
 }));
@@ -267,7 +337,7 @@ function generateToken(user) {
   return jwt.sign(
     { userId: user.id, email: user.email },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } // Extended to 7 days for better UX
+    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
 }
 
@@ -359,7 +429,7 @@ app.get('/api/me', verifyToken, async (req, res) => {
   }
 });
 
-// --- ROOT ROUTE - Serve a simple API info page ---
+// --- ROOT ROUTE ---
 app.get('/', (req, res) => {
   res.json({
     name: 'Hayyo Exam API',
@@ -847,7 +917,7 @@ app.get('/health', async (req, res) => {
 });
 
 // ============================================
-// KEEP-ALIVE (Prevents Render from spinning down)
+// KEEP-ALIVE
 // ============================================
 app.get('/api/keep-alive', async (req, res) => {
   try {
