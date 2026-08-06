@@ -297,7 +297,7 @@
 
     <script>
         // ============================================
-        // DASHBOARD WITH REAL USER DATA LOADING
+        // SIMPLIFIED WORKING DASHBOARD
         // ============================================
 
         const API_BASE = 'https://hayyo-exam.onrender.com';
@@ -336,43 +336,31 @@
 
         // Fetch user data
         console.log('🔍 Fetching user data from /api/me...');
-        
+
         fetch(`${API_BASE}/api/me`, {
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json'
             }
         })
-        .then(async res => {
+        .then(res => {
             console.log('📡 Response status:', res.status);
-            
-            const text = await res.text();
-            console.log('📝 Raw response:', text);
-            
-            let data;
-            try {
-                data = JSON.parse(text);
-            } catch (e) {
-                console.error('❌ Failed to parse JSON');
-                throw new Error('Invalid response from server');
-            }
-            
             if (!res.ok) {
-                throw new Error(data.error || `HTTP ${res.status}`);
+                throw new Error(`HTTP ${res.status}`);
             }
-            
-            return data;
+            return res.json();
         })
         .then(data => {
             console.log('✅ User data received:', data);
             
+            // The backend returns { authenticated: true, user: {...} }
             if (data && data.user) {
                 const user = data.user;
                 const name = user.name || 'Student';
                 const email = user.email || 'No email';
                 
-                console.log('👤 User name:', name);
-                console.log('📧 User email:', email);
+                console.log('👤 Name:', name);
+                console.log('📧 Email:', email);
                 
                 // Update UI
                 document.getElementById('userName').textContent = name.toUpperCase();
@@ -390,8 +378,7 @@
                 showToast('Welcome, ' + name + '!', 'success');
                 console.log('✅ Dashboard updated with real user data');
             } else {
-                console.warn('⚠️ No user data in response');
-                throw new Error('No user data found');
+                throw new Error('No user data in response');
             }
         })
         .catch(err => {
