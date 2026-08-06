@@ -539,7 +539,7 @@
         }
 
         // ============================================
-        // FETCH USER DATA
+        // FETCH USER DATA - FIXED
         // ============================================
         function fetchUserData(token) {
             console.log('🔍 Fetching user data from /api/me');
@@ -548,12 +548,19 @@
                 .then(async res => {
                     console.log('🔍 /api/me response status:', res.status);
                     
+                    // Get the response text first to debug
+                    const responseText = await res.text();
+                    console.log('🔍 Raw response:', responseText);
+                    
                     let data;
                     try {
-                        data = await res.json();
-                        console.log('🔍 Response data:', data);
+                        data = JSON.parse(responseText);
+                        console.log('🔍 Parsed data:', data);
                     } catch (e) {
-                        console.log('❌ Failed to parse response');
+                        console.log('❌ Failed to parse response as JSON');
+                        showToast('Error loading user data', 'error');
+                        // Show placeholder data
+                        updateDashboardUI({ name: 'Student', email: 'student@hayyo.com' });
                         return;
                     }
                     
@@ -567,17 +574,25 @@
                         return;
                     }
                     
-                    if (data && data.authenticated) {
+                    // Check if we have user data
+                    if (data && data.user) {
+                        console.log('✅ User data loaded successfully!');
+                        updateDashboardUI(data.user);
+                    } else if (data && data.authenticated && data.user) {
                         console.log('✅ User data loaded successfully!');
                         updateDashboardUI(data.user);
                     } else {
-                        console.log('❌ Authentication failed');
+                        console.log('❌ No user data found in response:', data);
                         showToast('Could not load user data', 'error');
+                        // Still show the dashboard with placeholder data
+                        updateDashboardUI({ name: 'Student', email: 'student@hayyo.com' });
                     }
                 })
                 .catch(error => {
                     console.log('❌ API call error:', error.message);
                     showToast('Could not load user data, but you are logged in', 'error');
+                    // Keep dashboard open with placeholder
+                    updateDashboardUI({ name: 'Student', email: 'student@hayyo.com' });
                 });
         }
 
@@ -634,4 +649,4 @@
     </script>
 
 </body>
-</html>
+                                        </html>
