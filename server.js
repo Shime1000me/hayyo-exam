@@ -497,19 +497,44 @@ app.get('/auth/logout', (req, res) => {
   });
 });
 
+// ============================================
+// FIXED: /api/me - Uses DIRECT fetch to Supabase
+// ============================================
 app.get('/api/me', verifyToken, async (req, res) => {
   try {
     console.log('🔍 /api/me called for user:', req.user.userId);
-    const users = await supabaseSelect('users', {
-      eq: { id: req.user.userId },
-      select: 'id, email, name, is_premium, premium_expires_at, is_teacher, created_at'
+    
+    // DIRECT fetch to Supabase - bypasses supabaseSelect helper
+    const url = SUPABASE_URL + '/rest/v1/users?select=*&id=eq.' + encodeURIComponent(req.user.userId);
+    console.log('🔍 /api/me: Fetching from:', url);
+    
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
     });
-    if (users.length === 0) {
+    
+    console.log('🔍 /api/me: Response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('❌ /api/me: Supabase error:', response.status, errorText);
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const users = await response.json();
+    console.log('🔍 /api/me: Supabase response:', users);
+    
+    if (!users || users.length === 0) {
       console.log('❌ /api/me: User not found in database');
       return res.status(404).json({ error: 'User not found' });
     }
+    
     console.log('✅ /api/me: User found:', users[0].email);
     res.json({ authenticated: true, user: users[0] });
+    
   } catch (error) {
     console.error('❌ /api/me error:', error.message);
     res.status(500).json({ error: error.message });
