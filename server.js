@@ -26,16 +26,16 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 // Helper function for Supabase REST API calls
 async function supabaseFetch(endpoint, options = {}) {
-  const url = `${SUPABASE_URL}/rest/v1${endpoint}`;
+  const url = SUPABASE_URL + '/rest/v1' + endpoint;
   const headers = {
     'apikey': SUPABASE_ANON_KEY,
-    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
     'Content-Type': 'application/json',
     'Prefer': 'return=representation'
   };
 
   if (options.admin) {
-    headers['Authorization'] = `Bearer ${SUPABASE_SERVICE_KEY}`;
+    headers['Authorization'] = 'Bearer ' + SUPABASE_SERVICE_KEY;
   }
 
   const response = await fetch(url, {
@@ -48,7 +48,7 @@ async function supabaseFetch(endpoint, options = {}) {
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`Supabase API error: ${response.status} - ${error}`);
+    throw new Error('Supabase API error: ' + response.status + ' - ' + error);
   }
 
   return response.json();
@@ -56,7 +56,7 @@ async function supabaseFetch(endpoint, options = {}) {
 
 // Helper for SELECT queries with better error handling
 async function supabaseSelect(table, params = {}) {
-  let url = `/${table}`;
+  let url = '/' + table;
   const queryParams = new URLSearchParams();
 
   if (params.select) queryParams.append('select', params.select);
@@ -67,25 +67,26 @@ async function supabaseSelect(table, params = {}) {
       throw new Error('Empty eq filter provided');
     }
     
-    for (const [key, value] of Object.entries(params.eq)) {
+    for (const key of eqKeys) {
+      const value = params.eq[key];
       if (value === undefined || value === null || value === '') {
-        throw new Error(`Empty value for filter key: ${key}`);
+        throw new Error('Empty value for filter key: ' + key);
       }
-      queryParams.append(`${key}=eq.${encodeURIComponent(value)}`, '');
+      queryParams.append(key + '=eq.' + encodeURIComponent(value), '');
     }
   }
-  if (params.order) queryParams.append('order', `${params.order.column}.${params.order.direction || 'asc'}`);
+  if (params.order) queryParams.append('order', params.order.column + '.' + (params.order.direction || 'asc'));
   if (params.limit) queryParams.append('limit', params.limit);
 
   const queryString = queryParams.toString();
-  if (queryString) url += `?${queryString}`;
+  if (queryString) url += '?' + queryString;
 
   return supabaseFetch(url);
 }
 
 // Helper for INSERT
 async function supabaseInsert(table, data) {
-  return supabaseFetch(`/${table}`, {
+  return supabaseFetch('/' + table, {
     method: 'POST',
     body: JSON.stringify(data)
   });
@@ -93,8 +94,10 @@ async function supabaseInsert(table, data) {
 
 // Helper for UPDATE
 async function supabaseUpdate(table, data, eq) {
-  const [key, value] = Object.entries(eq)[0];
-  return supabaseFetch(`/${table}?${key}=eq.${value}`, {
+  const keys = Object.keys(eq);
+  const key = keys[0];
+  const value = eq[key];
+  return supabaseFetch('/' + table + '?' + key + '=eq.' + value, {
     method: 'PATCH',
     body: JSON.stringify(data)
   });
@@ -102,8 +105,10 @@ async function supabaseUpdate(table, data, eq) {
 
 // Helper for DELETE
 async function supabaseDelete(table, eq) {
-  const [key, value] = Object.entries(eq)[0];
-  return supabaseFetch(`/${table}?${key}=eq.${value}`, {
+  const keys = Object.keys(eq);
+  const key = keys[0];
+  const value = eq[key];
+  return supabaseFetch('/' + table + '?' + key + '=eq.' + value, {
     method: 'DELETE'
   });
 }
@@ -237,10 +242,10 @@ app.use(passport.session());
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: `${process.env.BACKEND_URL || 'https://hayyo-exam.onrender.com'}/auth/google/callback'
+  callbackURL: (process.env.BACKEND_URL || 'https://hayyo-exam.onrender.com') + '/auth/google/callback'
 }, async (accessToken, refreshToken, profile, done) => {
   try {
-    console.log('🔍 Google profile received:', profile.id, profile.displayName);
+    console.log('Google profile received:', profile.id, profile.displayName);
     
     // Validate profile data
     if (!profile || !profile.id) {
@@ -255,11 +260,11 @@ passport.use(new GoogleStrategy({
         select: '*'
       });
     } catch (queryError) {
-      console.error('❌ Supabase query error:', queryError.message);
+      console.error('Supabase query error:', queryError.message);
       // If query fails, try a different approach - search by email
       if (profile.emails && profile.emails[0]) {
         const email = profile.emails[0].value;
-        console.log(`📧 Trying to find user by email: ${email}`);
+        console.log('Trying to find user by email:', email);
         users = await supabaseSelect('users', {
           eq: { email: email },
           select: '*'
@@ -273,12 +278,12 @@ passport.use(new GoogleStrategy({
 
     if (!user) {
       // Create new user
-      console.log('👤 Creating new user...');
+      console.log('Creating new user...');
       const newUser = {
         id: profile.id,
-        email: profile.emails?.[0]?.value || 'unknown@email.com',
+        email: (profile.emails && profile.emails[0]) ? profile.emails[0].value : 'unknown@email.com',
         name: profile.displayName || 'Unknown User',
-        avatar_url: profile.photos?.[0]?.value || null,
+        avatar_url: (profile.photos && profile.photos[0]) ? profile.photos[0].value : null,
         is_teacher: false,
         is_premium: false,
         created_at: new Date().toISOString()
@@ -297,7 +302,7 @@ passport.use(new GoogleStrategy({
           user = foundUsers[0];
         }
       } catch (insertError) {
-        console.error('❌ Failed to create user:', insertError.message);
+        console.error('Failed to create user:', insertError.message);
         // Try to find user one more time (maybe created in the meantime)
         const foundUsers = await supabaseSelect('users', {
           eq: { id: profile.id },
@@ -306,12 +311,12 @@ passport.use(new GoogleStrategy({
         user = foundUsers[0];
         
         if (!user) {
-          throw new Error(`Failed to create user: ${insertError.message}`);
+          throw new Error('Failed to create user: ' + insertError.message);
         }
       }
     }
 
-    console.log(`✅ User authenticated: ${user.email} (${user.id})`);
+    console.log('User authenticated:', user.email, user.id);
     return done(null, { 
       id: user.id, 
       email: user.email, 
@@ -321,7 +326,7 @@ passport.use(new GoogleStrategy({
     });
     
   } catch (error) {
-    console.error('❌ Google Strategy Error:', error.message);
+    console.error('Google Strategy Error:', error.message);
     console.error('Stack trace:', error.stack);
     return done(error);
   }
@@ -379,7 +384,7 @@ async function isAuthenticated(req, res, next) {
 }
 
 async function isAdmin(req, res, next) {
-  const adminEmails = process.env.ADMIN_EMAILS?.split(',') || [];
+  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',');
   if (!adminEmails.includes(req.userData.email)) {
     return res.status(403).json({ error: 'Admin access required' });
   }
@@ -403,7 +408,7 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => {
   const token = generateToken(req.user);
   const frontendUrl = process.env.FRONTEND_URL || 'https://hayyo-exam.onrender.com';
-  res.redirect(`${frontendUrl}/dashboard.html?token=${token}`);
+  res.redirect(frontendUrl + '/dashboard.html?token=' + token);
 });
 
 app.get('/auth/logout', (req, res) => {
@@ -887,7 +892,7 @@ app.post('/api/teacher/exams/:id/questions/bulk', isAuthenticated, isTeacher, as
       });
       inserted.push(result[0]);
     }
-    res.json({ success: true, message: `${inserted.length} questions imported successfully` });
+    res.json({ success: true, message: inserted.length + ' questions imported successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -959,10 +964,10 @@ app.use((err, req, res, next) => {
 // START SERVER
 // ============================================
 app.listen(PORT, () => {
-  console.log(`🚀 Hayyo Academy backend running on port ${PORT}`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 Supabase API: ${SUPABASE_URL}`);
-  console.log(`🌐 Trust proxy: ${app.get('trust proxy')}`);
+  console.log('🚀 Hayyo Academy backend running on port ' + PORT);
+  console.log('📊 Environment: ' + (process.env.NODE_ENV || 'development'));
+  console.log('🔗 Supabase API: ' + SUPABASE_URL);
+  console.log('🌐 Trust proxy: ' + app.get('trust proxy'));
 });
 
 // Handle graceful shutdown
