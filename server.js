@@ -112,51 +112,92 @@ async function supabaseDelete(table, eq) {
 }
 
 // ============================================
-// DIRECT SUPABASE HELPERS FOR OAUTH
+// DIRECT SUPABASE HELPERS FOR OAUTH (WITH DEBUG LOGGING)
 // ============================================
 async function findUserByEmail(email) {
+  console.log('🔍 findUserByEmail called with:', email);
   const url = SUPABASE_URL + '/rest/v1/users?select=*&email=eq.' + encodeURIComponent(email);
-  const response = await fetch(url, {
-    headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-      'Content-Type': 'application/json'
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    console.log('🔍 findUserByEmail response status:', response.status);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('❌ findUserByEmail error:', errorText);
+      return null;
     }
-  });
-  if (!response.ok) return null;
-  const data = await response.json();
-  return data && data[0] ? data[0] : null;
+    const data = await response.json();
+    console.log('🔍 findUserByEmail data:', data);
+    return data && data[0] ? data[0] : null;
+  } catch (error) {
+    console.error('❌ findUserByEmail exception:', error.message);
+    return null;
+  }
 }
 
 async function findUserById(id) {
+  console.log('🔍 findUserById called with:', id);
   const url = SUPABASE_URL + '/rest/v1/users?select=*&id=eq.' + encodeURIComponent(id);
-  const response = await fetch(url, {
-    headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-      'Content-Type': 'application/json'
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    console.log('🔍 findUserById response status:', response.status);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('❌ findUserById error:', errorText);
+      return null;
     }
-  });
-  if (!response.ok) return null;
-  const data = await response.json();
-  return data && data[0] ? data[0] : null;
+    const data = await response.json();
+    console.log('🔍 findUserById data:', data);
+    return data && data[0] ? data[0] : null;
+  } catch (error) {
+    console.error('❌ findUserById exception:', error.message);
+    return null;
+  }
 }
 
 async function createUser(userData) {
+  console.log('🔍 createUser called with email:', userData.email);
+  console.log('📝 Full user data:', JSON.stringify(userData, null, 2));
+  
   const url = SUPABASE_URL + '/rest/v1/users';
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation'
-    },
-    body: JSON.stringify(userData)
-  });
-  if (!response.ok) return null;
-  const data = await response.json();
-  return data && data[0] ? data[0] : null;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(userData)
+    });
+    
+    console.log('🔍 createUser response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('❌ createUser error response:', errorText);
+      return null;
+    }
+    
+    const data = await response.json();
+    console.log('✅ createUser success, data:', data);
+    return data && data[0] ? data[0] : null;
+  } catch (error) {
+    console.error('❌ createUser exception:', error.message);
+    return null;
+  }
 }
 
 const app = express();
@@ -270,7 +311,7 @@ app.use(session({
 }));
 
 // ============================================
-// PASSPORT (Google OAuth)
+// PASSPORT (Google OAuth) - WITH DEBUG LOGGING
 // ============================================
 app.use(passport.initialize());
 app.use(passport.session());
@@ -281,27 +322,36 @@ passport.use(new GoogleStrategy({
   callbackURL: (process.env.BACKEND_URL || 'https://hayyo-exam.onrender.com') + '/auth/google/callback'
 }, async (accessToken, refreshToken, profile, done) => {
   try {
-    console.log('Google profile received:', profile.id, profile.displayName);
+    console.log('========================================');
+    console.log('📱 Google profile received:');
+    console.log('🆔 ID:', profile.id);
+    console.log('👤 Name:', profile.displayName);
+    console.log('📧 Email:', profile.emails && profile.emails[0] ? profile.emails[0].value : 'No email');
+    console.log('========================================');
     
     if (!profile || !profile.id) {
       throw new Error('Invalid profile data from Google - no ID');
     }
 
     // Step 1: Try to find user by Google ID
+    console.log('🔍 Step 1: Searching for user by ID...');
     let user = await findUserById(profile.id);
     
     // Step 2: If not found, try by email
     if (!user) {
+      console.log('🔍 Step 2: User not found by ID, searching by email...');
       const email = (profile.emails && profile.emails[0]) ? profile.emails[0].value : null;
       if (email) {
-        console.log('Looking for user by email:', email);
+        console.log('📧 Looking for user by email:', email);
         user = await findUserByEmail(email);
+      } else {
+        console.log('⚠️ No email found in profile');
       }
     }
 
     // Step 3: If still not found, create a new user
     if (!user) {
-      console.log('Creating new user...');
+      console.log('🔍 Step 3: User not found, creating new user...');
       const newUser = {
         id: profile.id,
         email: (profile.emails && profile.emails[0]) ? profile.emails[0].value : 'unknown@email.com',
@@ -312,18 +362,34 @@ passport.use(new GoogleStrategy({
         created_at: new Date().toISOString()
       };
       
+      console.log('📝 New user data:', JSON.stringify(newUser, null, 2));
+      
       user = await createUser(newUser);
       
-      if (!user) {
+      if (user) {
+        console.log('✅ User created successfully!');
+      } else {
+        console.log('❌ User creation returned null, trying one more lookup...');
         user = await findUserById(profile.id);
+        if (user) {
+          console.log('✅ Found user after retry!');
+        } else {
+          console.log('❌ Still no user found after retry');
+        }
       }
+    } else {
+      console.log('✅ User found in database:', user.email);
     }
 
     if (!user) {
+      console.log('❌ FATAL: Could not find or create user');
       throw new Error('Could not find or create user');
     }
 
-    console.log('User authenticated:', user.email, user.id);
+    console.log('✅ Authentication successful!');
+    console.log('👤 User:', user.email, user.id);
+    console.log('========================================');
+    
     return done(null, { 
       id: user.id, 
       email: user.email, 
@@ -333,8 +399,8 @@ passport.use(new GoogleStrategy({
     });
     
   } catch (error) {
-    console.error('Google Strategy Error:', error.message);
-    console.error('Stack trace:', error.stack);
+    console.error('❌ Google Strategy Error:', error.message);
+    console.error('❌ Stack trace:', error.stack);
     return done(error);
   }
 }));
@@ -433,15 +499,19 @@ app.get('/auth/logout', (req, res) => {
 
 app.get('/api/me', verifyToken, async (req, res) => {
   try {
+    console.log('🔍 /api/me called for user:', req.user.userId);
     const users = await supabaseSelect('users', {
       eq: { id: req.user.userId },
       select: 'id, email, name, is_premium, premium_expires_at, is_teacher, created_at'
     });
     if (users.length === 0) {
+      console.log('❌ /api/me: User not found in database');
       return res.status(404).json({ error: 'User not found' });
     }
+    console.log('✅ /api/me: User found:', users[0].email);
     res.json({ authenticated: true, user: users[0] });
   } catch (error) {
+    console.error('❌ /api/me error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
