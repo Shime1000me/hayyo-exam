@@ -1,989 +1,630 @@
-// ============================================
-// server.js - Hayyo Exam Backend (Supabase REST API)
-// ============================================
-
-require('dotenv').config();
-const express = require('express');
-const session = require('express-session');
-const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const jwt = require('jsonwebtoken');
-const cors = require('cors');
-const helmet = require('helmet');
-const compression = require('compression');
-const rateLimit = require('express-rate-limit');
-const multer = require('multer');
-const { v2: cloudinary } = require('cloudinary');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-
-// ============================================
-// SUPABASE REST API CLIENT
-// ============================================
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-
-// Helper function for Supabase REST API calls
-async function supabaseFetch(endpoint, options = {}) {
-  const url = SUPABASE_URL + '/rest/v1' + endpoint;
-  const headers = {
-    'apikey': SUPABASE_ANON_KEY,
-    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-    'Content-Type': 'application/json',
-    'Prefer': 'return=representation'
-  };
-
-  if (options.admin) {
-    headers['Authorization'] = 'Bearer ' + SUPABASE_SERVICE_KEY;
-  }
-
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...headers,
-      ...options.headers
-    }
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error('Supabase API error: ' + response.status + ' - ' + error);
-  }
-
-  return response.json();
-}
-
-// Helper for SELECT queries with better error handling
-async function supabaseSelect(table, params = {}) {
-  let url = '/' + table;
-  const queryParams = new URLSearchParams();
-
-  if (params.select) queryParams.append('select', params.select);
-  if (params.eq) {
-    const eqKeys = Object.keys(params.eq);
-    if (eqKeys.length === 0) {
-      throw new Error('Empty eq filter provided');
-    }
-    
-    for (const key of eqKeys) {
-      const value = params.eq[key];
-      if (value === undefined || value === null || value === '') {
-        throw new Error('Empty value for filter key: ' + key);
-      }
-      queryParams.append(key + '=eq.' + encodeURIComponent(value), '');
-    }
-  }
-  if (params.order) queryParams.append('order', params.order.column + '.' + (params.order.direction || 'asc'));
-  if (params.limit) queryParams.append('limit', params.limit);
-
-  const queryString = queryParams.toString();
-  if (queryString) url += '?' + queryString;
-
-  return supabaseFetch(url);
-}
-
-// Helper for INSERT
-async function supabaseInsert(table, data) {
-  return supabaseFetch('/' + table, {
-    method: 'POST',
-    body: JSON.stringify(data)
-  });
-}
-
-// Helper for UPDATE
-async function supabaseUpdate(table, data, eq) {
-  const keys = Object.keys(eq);
-  const key = keys[0];
-  const value = eq[key];
-  return supabaseFetch('/' + table + '?' + key + '=eq.' + value, {
-    method: 'PATCH',
-    body: JSON.stringify(data)
-  });
-}
-
-// Helper for DELETE
-async function supabaseDelete(table, eq) {
-  const keys = Object.keys(eq);
-  const key = keys[0];
-  const value = eq[key];
-  return supabaseFetch('/' + table + '?' + key + '=eq.' + value, {
-    method: 'DELETE'
-  });
-}
-
-// ============================================
-// DIRECT SUPABASE HELPERS FOR OAUTH
-// ============================================
-async function findUserByEmail(email) {
-  const url = SUPABASE_URL + '/rest/v1/users?select=*&email=eq.' + encodeURIComponent(email);
-  const response = await fetch(url, {
-    headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-      'Content-Type': 'application/json'
-    }
-  });
-  if (!response.ok) return null;
-  const data = await response.json();
-  return data && data[0] ? data[0] : null;
-}
-
-async function findUserById(id) {
-  const url = SUPABASE_URL + '/rest/v1/users?select=*&id=eq.' + encodeURIComponent(id);
-  const response = await fetch(url, {
-    headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-      'Content-Type': 'application/json'
-    }
-  });
-  if (!response.ok) return null;
-  const data = await response.json();
-  return data && data[0] ? data[0] : null;
-}
-
-async function createUser(userData) {
-  const url = SUPABASE_URL + '/rest/v1/users';
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation'
-    },
-    body: JSON.stringify(userData)
-  });
-  if (!response.ok) return null;
-  const data = await response.json();
-  return data && data[0] ? data[0] : null;
-}
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// ============================================
-// CLOUDINARY SETUP
-// ============================================
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
-
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'payment_receipts',
-    allowed_formats: ['jpg', 'png', 'jpeg', 'pdf'],
-    transformation: [{ width: 800, height: 800, crop: 'limit' }]
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only JPG, PNG, and PDF allowed.'), false);
-    }
-  }
-});
-
-// ============================================
-// MIDDLEWARE
-// ============================================
-app.set('trust proxy', 1);
-
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:", "blob:"],
-      connectSrc: ["'self'", "https://*.supabase.co"],
-      frameSrc: ["'self'", "https://*.supabase.co"]
-    }
-  },
-  crossOriginEmbedderPolicy: false
-}));
-
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://hayyo-exam.onrender.com',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
-
-app.use(compression());
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
-
-// ============================================
-// RATE LIMITING
-// ============================================
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => {
-    return req.ip || req.connection.remoteAddress;
-  },
-  skip: (req) => {
-    return req.path === '/health' || req.path === '/api/keep-alive';
-  }
-});
-
-const strictLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => {
-    return req.ip || req.connection.remoteAddress;
-  }
-});
-
-app.use('/api/', limiter);
-app.use('/api/payment/', strictLimiter);
-app.use('/api/admin/', strictLimiter);
-
-// ============================================
-// SESSION STORE - Memory Store (No Database)
-// ============================================
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
-  resave: false,
-  saveUninitialized: false,
-  proxy: true,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    sameSite: 'lax',
-    maxAge: 24 * 60 * 60 * 1000
-  }
-}));
-
-// ============================================
-// PASSPORT (Google OAuth)
-// ============================================
-app.use(passport.initialize());
-app.use(passport.session());
-
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: (process.env.BACKEND_URL || 'https://hayyo-exam.onrender.com') + '/auth/google/callback'
-}, async (accessToken, refreshToken, profile, done) => {
-  try {
-    console.log('Google profile received:', profile.id, profile.displayName);
-    
-    if (!profile || !profile.id) {
-      throw new Error('Invalid profile data from Google - no ID');
-    }
-
-    // Step 1: Try to find user by Google ID
-    let user = await findUserById(profile.id);
-    
-    // Step 2: If not found, try by email
-    if (!user) {
-      const email = (profile.emails && profile.emails[0]) ? profile.emails[0].value : null;
-      if (email) {
-        console.log('Looking for user by email:', email);
-        user = await findUserByEmail(email);
-      }
-    }
-
-    // Step 3: If still not found, create a new user
-    if (!user) {
-      console.log('Creating new user...');
-      const newUser = {
-        id: profile.id,
-        email: (profile.emails && profile.emails[0]) ? profile.emails[0].value : 'unknown@email.com',
-        name: profile.displayName || 'Unknown User',
-        avatar_url: (profile.photos && profile.photos[0]) ? profile.photos[0].value : null,
-        is_teacher: false,
-        is_premium: false,
-        created_at: new Date().toISOString()
-      };
-      
-      user = await createUser(newUser);
-      
-      if (!user) {
-        user = await findUserById(profile.id);
-      }
-    }
-
-    if (!user) {
-      throw new Error('Could not find or create user');
-    }
-
-    console.log('User authenticated:', user.email, user.id);
-    return done(null, { 
-      id: user.id, 
-      email: user.email, 
-      name: user.name,
-      is_teacher: user.is_teacher || false,
-      is_premium: user.is_premium || false
-    });
-    
-  } catch (error) {
-    console.error('Google Strategy Error:', error.message);
-    console.error('Stack trace:', error.stack);
-    return done(error);
-  }
-}));
-
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((user, done) => done(null, user));
-
-// ============================================
-// JWT HELPERS
-// ============================================
-function generateToken(user) {
-  return jwt.sign(
-    { userId: user.id, email: user.email },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-  );
-}
-
-function verifyToken(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
-  const token = authHeader.split(' ')[1];
-  try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
-    next();
-  } catch (error) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
-  }
-}
-
-async function isAuthenticated(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    const users = await supabaseSelect('users', {
-      eq: { id: decoded.userId },
-      select: '*'
-    });
-    if (users.length === 0) {
-      return res.status(401).json({ error: 'User not found' });
-    }
-    req.userData = users[0];
-    next();
-  } catch (error) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
-  }
-}
-
-async function isAdmin(req, res, next) {
-  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',');
-  if (!adminEmails.includes(req.userData.email)) {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
-  next();
-}
-
-async function isTeacher(req, res, next) {
-  if (!req.userData.is_teacher) {
-    return res.status(403).json({ error: 'Teacher access required' });
-  }
-  next();
-}
-
-// ============================================
-// ROUTES
-// ============================================
-
-// --- AUTH ROUTES ---
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-// ============================================
-// FIXED: OAuth Callback with Hardcoded Redirect
-// ============================================
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => {
-  const token = generateToken(req.user);
-  // HARDCODED URL - ensures redirect works every time
-  const redirectUrl = 'https://Shime1000me.github.io/hayyo-exam/dashboard.html?token=' + token;
-  console.log('🔍 OAuth Success - Redirecting to:', redirectUrl);
-  res.redirect(redirectUrl);
-});
-
-app.get('/auth/logout', (req, res) => {
-  req.logout(() => {
-    req.session.destroy(() => {
-      res.json({ success: true });
-    });
-  });
-});
-
-app.get('/api/me', verifyToken, async (req, res) => {
-  try {
-    const users = await supabaseSelect('users', {
-      eq: { id: req.user.userId },
-      select: 'id, email, name, is_premium, premium_expires_at, is_teacher, created_at'
-    });
-    if (users.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    res.json({ authenticated: true, user: users[0] });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- ROOT ROUTE ---
-app.get('/', (req, res) => {
-  res.json({
-    name: 'Hayyo Exam API',
-    version: '1.0.0',
-    status: 'running',
-    documentation: 'https://hayyo-exam.onrender.com/api-docs',
-    endpoints: {
-      auth: '/auth/google',
-      exams: '/api/exams',
-      payment: '/api/payment',
-      admin: '/api/admin',
-      teacher: '/api/teacher',
-      health: '/health'
-    }
-  });
-});
-
-// --- EXAM ROUTES ---
-app.get('/api/exams', isAuthenticated, async (req, res) => {
-  try {
-    const exams = await supabaseSelect('exams', {
-      order: { column: 'year', direction: 'desc' }
-    });
-    res.json({ success: true, exams: exams });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/exams/:id', isAuthenticated, async (req, res) => {
-  try {
-    const exams = await supabaseSelect('exams', {
-      eq: { id: req.params.id },
-      select: '*'
-    });
-    if (exams.length === 0) return res.status(404).json({ error: 'Exam not found' });
-    res.json({ success: true, exam: exams[0] });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/exams/:id/access', isAuthenticated, async (req, res) => {
-  try {
-    const exams = await supabaseSelect('exams', {
-      eq: { id: req.params.id },
-      select: 'is_premium_only, title'
-    });
-    if (exams.length === 0) return res.status(404).json({ error: 'Exam not found' });
-    const exam = exams[0];
-    if (!exam.is_premium_only) {
-      return res.json({ can_access: true, is_free: true, message: 'Free exam - access granted' });
-    }
-    const isPremium = req.userData?.is_premium && (!req.userData.premium_expires_at || new Date(req.userData.premium_expires_at) > new Date());
-    res.json({
-      can_access: isPremium,
-      is_premium_only: true,
-      is_premium: isPremium,
-      message: isPremium ? 'Premium access granted' : 'Premium access required'
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/exams/:id/questions', isAuthenticated, async (req, res) => {
-  try {
-    const questions = await supabaseSelect('questions', {
-      eq: { exam_id: req.params.id },
-      order: { column: 'question_number' },
-      select: 'id, question_number, text, options'
-    });
-    res.json({ success: true, questions: questions });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post('/api/exams/start', isAuthenticated, async (req, res) => {
-  const { exam_id, password } = req.body;
-  if (password !== process.env.EXAM_PASSWORD) {
-    return res.status(401).json({ error: 'Invalid password' });
-  }
-  try {
-    const existing = await supabaseSelect('exam_attempts', {
-      eq: { user_id: req.user.userId, exam_id: exam_id },
-      select: '*'
-    });
-    const inProgress = existing.find(a => a.status === 'in-progress');
-    if (inProgress) {
-      return res.json({
-        success: true,
-        attempt_id: inProgress.id,
-        current_question: inProgress.current_question,
-        time_remaining: inProgress.time_remaining,
-        answers: inProgress.answers
-      });
-    }
-    const exams = await supabaseSelect('exams', {
-      eq: { id: exam_id },
-      select: 'time_limit, total_questions'
-    });
-    if (exams.length === 0) return res.status(404).json({ error: 'Exam not found' });
-    const exam = exams[0];
-    const newAttempt = await supabaseInsert('exam_attempts', {
-      user_id: req.user.userId,
-      exam_id: exam_id,
-      time_remaining: exam.time_limit * 60,
-      status: 'in-progress',
-      started_at: new Date().toISOString()
-    });
-    const questions = await supabaseSelect('questions', {
-      eq: { exam_id: exam_id },
-      order: { column: 'question_number' },
-      select: 'id, question_number, text, options'
-    });
-    res.json({
-      success: true,
-      attempt_id: newAttempt[0]?.id,
-      current_question: 1,
-      time_remaining: exam.time_limit * 60,
-      total_questions: exam.total_questions,
-      questions: questions
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post('/api/exams/submit', isAuthenticated, async (req, res) => {
-  const { attempt_id, answers } = req.body;
-  try {
-    const attempts = await supabaseSelect('exam_attempts', {
-      eq: { id: attempt_id, user_id: req.user.userId },
-      select: 'exam_id'
-    });
-    if (attempts.length === 0) return res.status(404).json({ error: 'Attempt not found' });
-    const exam_id = attempts[0].exam_id;
-    const questions = await supabaseSelect('questions', {
-      eq: { exam_id: exam_id },
-      select: 'question_number, correct_answer'
-    });
-    let correct = 0;
-    const total = questions.length;
-    const results = [];
-    questions.forEach(q => {
-      const userAnswer = answers[q.question_number];
-      const isCorrect = userAnswer === q.correct_answer;
-      if (isCorrect) correct++;
-      results.push({ question: q.question_number, user_answer: userAnswer, correct_answer: q.correct_answer, is_correct: isCorrect });
-    });
-    const percentage = Math.round((correct / total) * 100);
-    await supabaseUpdate('exam_attempts', {
-      status: 'submitted',
-      score: correct,
-      percentage: percentage,
-      answers: JSON.stringify(answers),
-      submitted_at: new Date().toISOString()
-    }, { id: attempt_id });
-    res.json({ success: true, score: correct, total: total, percentage: percentage, results: results });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- GET EXAM RESULTS ---
-app.get('/api/exams/:exam_id/results/:user_id', async (req, res) => {
-  try {
-    const { exam_id, user_id } = req.params;
-    const attempts = await supabaseSelect('exam_attempts', {
-      eq: { exam_id: exam_id, user_id: user_id, status: 'submitted' },
-      order: { column: 'submitted_at', direction: 'desc' },
-      limit: 1
-    });
-    if (attempts.length === 0) {
-      return res.status(404).json({ error: 'Results not found' });
-    }
-    const attempt = attempts[0];
-    const user = await supabaseSelect('users', {
-      eq: { id: user_id },
-      select: 'name, email'
-    });
-    const exam = await supabaseSelect('exams', {
-      eq: { id: exam_id },
-      select: 'title, total_questions'
-    });
-    res.json({
-      success: true,
-      results: {
-        ...attempt,
-        user_name: user[0]?.name || 'Unknown',
-        exam_title: exam[0]?.title || 'Unknown Exam',
-        total_questions: exam[0]?.total_questions || 0
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- PAYMENT ROUTES ---
-app.post('/api/payment/request', isAuthenticated, async (req, res) => {
-  const { exam_id, payment_method, reference_number } = req.body;
-  try {
-    const result = await supabaseInsert('payments', {
-      user_id: req.user.userId,
-      exam_id: exam_id,
-      payment_method: payment_method,
-      reference_number: reference_number,
-      status: 'pending',
-      created_at: new Date().toISOString()
-    });
-    res.json({ success: true, payment_id: result[0]?.id, message: 'Payment request submitted. Awaiting approval.' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post('/api/payment/upload', isAuthenticated, upload.single('receipt'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  try {
-    const payments = await supabaseSelect('payments', {
-      eq: { user_id: req.user.userId, status: 'pending' },
-      order: { column: 'created_at', direction: 'desc' },
-      limit: 1
-    });
-    if (payments.length === 0) return res.status(404).json({ error: 'No pending payment found' });
-    await supabaseUpdate('payments', {
-      receipt_url: req.file.path,
-      receipt_filename: req.file.originalname,
-      updated_at: new Date().toISOString()
-    }, { id: payments[0].id });
-    res.json({ success: true, receipt_url: req.file.path, message: 'Receipt uploaded successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/payment/status', isAuthenticated, async (req, res) => {
-  try {
-    const payments = await supabaseSelect('payments', {
-      eq: { user_id: req.user.userId },
-      order: { column: 'created_at', direction: 'desc' }
-    });
-    res.json({
-      success: true,
-      payments: payments,
-      is_premium: req.userData?.is_premium || false,
-      premium_expires_at: req.userData?.premium_expires_at
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- ADMIN ROUTES ---
-app.get('/api/admin/payments', isAuthenticated, isAdmin, async (req, res) => {
-  try {
-    const payments = await supabaseSelect('payments', {
-      order: { column: 'created_at', direction: 'desc' }
-    });
-    const paymentsWithUsers = await Promise.all(payments.map(async (p) => {
-      const users = await supabaseSelect('users', {
-        eq: { id: p.user_id },
-        select: 'name, email'
-      });
-      const exams = await supabaseSelect('exams', {
-        eq: { id: p.exam_id },
-        select: 'title'
-      });
-      return { 
-        ...p, 
-        student_name: users[0]?.name || 'Unknown',
-        student_email: users[0]?.email || 'Unknown',
-        exam_title: exams[0]?.title || 'Unknown Exam'
-      };
-    }));
-    res.json({ success: true, payments: paymentsWithUsers });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.put('/api/admin/payments/:id/approve', isAuthenticated, isAdmin, async (req, res) => {
-  const { id } = req.params;
-  try {
-    const payments = await supabaseSelect('payments', {
-      eq: { id: id, status: 'pending' },
-      select: 'user_id'
-    });
-    if (payments.length === 0) return res.status(404).json({ error: 'Payment not found or already processed' });
-    const userId = payments[0].user_id;
-    await supabaseUpdate('payments', {
-      status: 'approved',
-      updated_at: new Date().toISOString()
-    }, { id: id });
-    await supabaseUpdate('users', {
-      is_premium: true,
-      premium_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date().toISOString()
-    }, { id: userId });
-    res.json({ success: true, message: 'Payment approved and premium access granted' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.put('/api/admin/payments/:id/reject', isAuthenticated, isAdmin, async (req, res) => {
-  const { id } = req.params;
-  const { reason } = req.body;
-  try {
-    await supabaseUpdate('payments', {
-      status: 'rejected',
-      admin_notes: reason || 'Payment rejected by admin',
-      updated_at: new Date().toISOString()
-    }, { id: id });
-    res.json({ success: true, message: 'Payment rejected' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/admin/payments/:id/receipt', isAuthenticated, isAdmin, async (req, res) => {
-  try {
-    const payments = await supabaseSelect('payments', {
-      eq: { id: req.params.id },
-      select: 'receipt_url'
-    });
-    if (payments.length === 0 || !payments[0].receipt_url) {
-      return res.status(404).json({ error: 'Receipt not found' });
-    }
-    res.json({ success: true, receipt_url: payments[0].receipt_url });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- TEACHER ROUTES ---
-app.get('/api/teacher/exams', isAuthenticated, isTeacher, async (req, res) => {
-  try {
-    const teacherExams = await supabaseSelect('teacher_exams', {
-      eq: { teacher_id: req.user.userId },
-      select: 'exam_id'
-    });
-    const examIds = teacherExams.map(te => te.exam_id);
-    if (examIds.length === 0) {
-      return res.json({ success: true, exams: [] });
-    }
-    const exams = await supabaseSelect('exams', {
-      select: '*'
-    });
-    const filtered = exams.filter(e => examIds.includes(e.id));
-    res.json({ success: true, exams: filtered });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/teacher/exams/:id', isAuthenticated, isTeacher, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const teacherExams = await supabaseSelect('teacher_exams', {
-      eq: { teacher_id: req.user.userId, exam_id: id },
-      select: '*'
-    });
-    if (teacherExams.length === 0) {
-      return res.status(403).json({ error: 'You are not assigned to this exam' });
-    }
-    const exams = await supabaseSelect('exams', {
-      eq: { id: id },
-      select: '*'
-    });
-    if (exams.length === 0) return res.status(404).json({ error: 'Exam not found' });
-    const questions = await supabaseSelect('questions', {
-      eq: { exam_id: id },
-      order: { column: 'question_number' },
-      select: '*'
-    });
-    res.json({ 
-      success: true, 
-      exam: exams[0],
-      questions: questions 
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.put('/api/teacher/exams/:id', isAuthenticated, isTeacher, async (req, res) => {
-  const { id } = req.params;
-  const { title, subject, year, type, category, is_premium_only, time_limit, total_questions, description } = req.body;
-  try {
-    const teacherExams = await supabaseSelect('teacher_exams', {
-      eq: { teacher_id: req.user.userId, exam_id: id },
-      select: '*'
-    });
-    if (teacherExams.length === 0) return res.status(403).json({ error: 'You are not assigned to this exam' });
-    await supabaseUpdate('exams', {
-      title, subject, year, type, category, is_premium_only, time_limit, total_questions, description,
-      updated_at: new Date().toISOString()
-    }, { id: id });
-    res.json({ success: true, message: 'Exam updated successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.put('/api/teacher/exams/:id/questions/:num', isAuthenticated, isTeacher, async (req, res) => {
-  const { id, num } = req.params;
-  const { text, option_a, option_b, option_c, option_d, correct_answer, explanation } = req.body;
-  try {
-    const teacherExams = await supabaseSelect('teacher_exams', {
-      eq: { teacher_id: req.user.userId, exam_id: id },
-      select: '*'
-    });
-    if (teacherExams.length === 0) return res.status(403).json({ error: 'You are not assigned to this exam' });
-    await supabaseUpdate('questions', {
-      text: text,
-      options: JSON.stringify([option_a, option_b, option_c, option_d]),
-      correct_answer: correct_answer,
-      explanation: explanation,
-      updated_at: new Date().toISOString()
-    }, { exam_id: id, question_number: num });
-    res.json({ success: true, message: 'Question updated successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- BULK INSERT QUESTIONS ---
-app.post('/api/teacher/exams/:id/questions/bulk', isAuthenticated, isTeacher, async (req, res) => {
-  const { id } = req.params;
-  const { questions } = req.body;
-  try {
-    const teacherExams = await supabaseSelect('teacher_exams', {
-      eq: { teacher_id: req.user.userId, exam_id: id },
-      select: '*'
-    });
-    if (teacherExams.length === 0) return res.status(403).json({ error: 'You are not assigned to this exam' });
-    
-    // Delete existing questions
-    await supabaseDelete('questions', { exam_id: id });
-    
-    // Insert new questions
-    const inserted = [];
-    for (const q of questions) {
-      const result = await supabaseInsert('questions', {
-        exam_id: id,
-        question_number: q.question_number,
-        text: q.text,
-        options: q.options ? JSON.stringify(q.options) : null,
-        correct_answer: q.correct_answer,
-        explanation: q.explanation,
-        marks: q.marks || 1
-      });
-      inserted.push(result[0]);
-    }
-    res.json({ success: true, message: inserted.length + ' questions imported successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ============================================
-// HEALTH CHECK
-// ============================================
-app.get('/health', async (req, res) => {
-  try {
-    await supabaseSelect('users', { limit: 1 });
-    res.json({ 
-      status: 'ok', 
-      timestamp: new Date().toISOString(), 
-      database: 'connected',
-      uptime: process.uptime()
-    });
-  } catch (error) {
-    console.error('Health check error:', error.message);
-    res.status(500).json({ 
-      status: 'error', 
-      timestamp: new Date().toISOString(), 
-      database: 'disconnected', 
-      error: error.message 
-    });
-  }
-});
-
-// ============================================
-// KEEP-ALIVE
-// ============================================
-app.get('/api/keep-alive', async (req, res) => {
-  try {
-    await supabaseSelect('users', { limit: 1 });
-    res.json({ 
-      status: 'ok', 
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime()
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ============================================
-// 404 Handler
-// ============================================
-app.use((req, res) => {
-  res.status(404).json({ 
-    error: 'Endpoint not found',
-    path: req.path,
-    method: req.method
-  });
-});
-
-// ============================================
-// ERROR HANDLING
-// ============================================
-app.use((err, req, res, next) => {
-  console.error('Error:', err.stack);
-  res.status(err.status || 500).json({ 
-    error: err.message || 'Internal Server Error',
-    path: req.path,
-    method: req.method
-  });
-});
-
-// ============================================
-// START SERVER
-// ============================================
-app.listen(PORT, () => {
-  console.log('🚀 Hayyo Academy backend running on port ' + PORT);
-  console.log('📊 Environment: ' + (process.env.NODE_ENV || 'development'));
-  console.log('🔗 Supabase API: ' + SUPABASE_URL);
-  console.log('🌐 Trust proxy: ' + app.get('trust proxy'));
-});
-
-// Handle graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, closing server...');
-  process.exit(0);
-});
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+    <title>Hayyo Academy - Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@100..900&family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Raleway', 'Inter', sans-serif;
+            background: #f8fafc;
+        }
+        .app-header {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            height: 48px;
+            padding: 0 1rem;
+            gap: 0.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .app-header .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #2563eb;
+            margin-right: 1rem;
+        }
+        .app-header nav {
+            display: flex;
+            align-items: stretch;
+            height: 100%;
+        }
+        .app-header nav a {
+            display: flex;
+            align-items: center;
+            padding: 0 0.75rem;
+            font-size: 0.875rem;
+            border-bottom: 2px solid transparent;
+            text-decoration: none;
+            color: #64748b;
+            cursor: pointer;
+        }
+        .app-header nav a:hover {
+            color: #0f172a;
+        }
+        .app-header nav a.active {
+            border-bottom-color: #2563eb;
+            color: #2563eb;
+            font-weight: 500;
+        }
+        .app-header nav a.logout-btn {
+            color: #dc2626;
+            border-bottom-color: transparent;
+        }
+        .app-header nav a.logout-btn:hover {
+            color: #b91c1c;
+        }
+        .app-header .user-menu {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+        }
+        .app-header .user-menu .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #2563eb;
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-transform: uppercase;
+        }
+        .red-line {
+            height: 2px;
+            background: #dc2626;
+        }
+        .main-content {
+            flex: 1;
+            min-width: 0;
+            padding: 1rem 1.5rem;
+            max-width: 80rem;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .info-box {
+            border: 1px solid #e2e8f0;
+            font-size: 0.875rem;
+            width: 100%;
+        }
+        .info-box .info-header {
+            background: #f1f5f9;
+            padding: 0.375rem 1rem;
+            font-weight: 600;
+            color: #0f172a;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .info-box .info-row {
+            display: grid;
+            grid-template-columns: 160px 1fr 160px 1fr;
+            gap: 1.5rem;
+            padding: 0.5rem 1rem;
+            align-items: center;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .info-box .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-box .info-row .label {
+            font-weight: 600;
+            color: #0f172a;
+            white-space: nowrap;
+        }
+        .info-box .info-row .value {
+            font-weight: 600;
+            color: #0f172a;
+        }
+        .welcome-section {
+            margin-top: 2.5rem;
+        }
+        .welcome-section h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.125rem;
+            color: #0f172a;
+        }
+        .welcome-section h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 1rem;
+        }
+        .search-bar {
+            position: relative;
+            width: 12rem;
+            margin-bottom: 1.25rem;
+        }
+        .search-bar input {
+            width: 100%;
+            border: none;
+            border-bottom: 1px solid #e2e8f0;
+            background: transparent;
+            padding: 0.25rem 0 0.25rem 2rem;
+            height: 2.25rem;
+            font-size: 0.875rem;
+            border-radius: 0;
+            font-family: 'Inter', sans-serif;
+            color: #0f172a;
+        }
+        .search-bar input:focus {
+            outline: none;
+            border-bottom-color: #2563eb;
+        }
+        .search-bar .icon {
+            position: absolute;
+            left: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+        }
+        .exam-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        @media (min-width: 640px) {
+            .exam-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        @media (min-width: 768px) {
+            .exam-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        .exam-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.125rem;
+            overflow: hidden;
+            cursor: pointer;
+            background: #ffffff;
+            transition: box-shadow 0.2s;
+        }
+        .exam-card:hover {
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        .exam-card .card-image {
+            height: 7rem;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6, #7c3aed);
+            position: relative;
+            overflow: hidden;
+        }
+        .exam-card .card-image .circle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+        }
+        .exam-card .card-image .circle-1 {
+            top: -1rem;
+            left: -1rem;
+            width: 5rem;
+            height: 5rem;
+        }
+        .exam-card .card-image .circle-2 {
+            top: 1.5rem;
+            left: 2rem;
+            width: 2.5rem;
+            height: 2.5rem;
+        }
+        .exam-card .card-image .circle-3 {
+            bottom: -1rem;
+            right: 1rem;
+            width: 4rem;
+            height: 4rem;
+        }
+        .exam-card .card-image .circle-4 {
+            bottom: 1rem;
+            right: 3rem;
+            width: 2rem;
+            height: 2rem;
+        }
+        .exam-card .card-image .circle-5 {
+            top: 0.5rem;
+            right: 0.5rem;
+            width: 1.5rem;
+            height: 1.5rem;
+        }
+        .exam-card .card-footer {
+            padding: 0.5rem 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .exam-card .card-footer span {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #1d4ed8;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .exam-card .card-footer span:hover {
+            text-decoration: underline;
+        }
+        .exam-card .card-footer button {
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            flex-shrink: 0;
+            margin-left: 0.5rem;
+        }
+        .exam-card .card-footer button:hover {
+            color: #0f172a;
+        }
+        .social-card .card-image {
+            background: linear-gradient(135deg, #34d399, #2dd4bf, #06b6d4);
+        }
+        .social-card .card-image .circle-1 {
+            top: -1rem;
+            left: -1rem;
+            width: 5rem;
+            height: 5rem;
+        }
+        .social-card .card-image .circle-2 {
+            top: 1.5rem;
+            left: 2rem;
+            width: 2.5rem;
+            height: 2.5rem;
+        }
+        .social-card .card-image .circle-3 {
+            bottom: -1rem;
+            right: 1rem;
+            width: 4rem;
+            height: 4rem;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1f2937;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            max-width: 90%;
+        }
+        .toast.show { opacity: 1; }
+        .toast.error { background: #dc2626; }
+        .toast.success { background: #16a34a; }
+        @media (max-width: 480px) {
+            .info-box .info-row {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.25rem 0.5rem;
+            }
+            .main-content {
+                padding: 1rem;
+            }
+            .search-bar {
+                width: 100%;
+            }
+            .exam-grid {
+                gap: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toast" id="toast"></div>
+
+    <div id="root">
+        <div class="min-h-screen" style="min-height:100vh;background:#ffffff;display:flex;flex-direction:column;">
+
+            <!-- ===== HEADER ===== -->
+            <header class="app-header">
+                <div class="logo">🏫 Hayyo</div>
+                <nav>
+                    <a href="#" class="active">Home</a>
+                    <a href="exams.html">My exam</a>
+                    <a href="#" class="logout-btn" id="logoutBtn">Logout</a>
+                </nav>
+                <div class="user-menu">
+                    <div class="avatar" id="userAvatar">ST</div>
+                </div>
+            </header>
+
+            <!-- ===== RED LINE ===== -->
+            <div class="red-line"></div>
+
+            <!-- ===== MAIN CONTENT ===== -->
+            <main class="main-content">
+
+                <!-- Basic Information -->
+                <div class="info-box">
+                    <div class="info-header">Basic Information</div>
+                    <div class="info-row">
+                        <span class="label">Full Name:</span>
+                        <span class="value" id="userName">Loading...</span>
+                        <span class="label">School:</span>
+                        <span class="value">Hayyo Academy</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Email:</span>
+                        <span class="value" id="userEmail">Loading...</span>
+                        <span class="label">Admission Number:</span>
+                        <span class="value">HAY001</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Exam Center:</span>
+                        <span class="value">ADDIS ABABA</span>
+                        <span class="label">Enrollment Type:</span>
+                        <span class="value">Regular</span>
+                    </div>
+                </div>
+
+                <!-- Welcome Section -->
+                <div class="welcome-section">
+                    <h1>Welcome, <span id="welcomeName">Student</span>! 👋</h1>
+                    <h2>Select Exam Category</h2>
+
+                    <!-- Search Bar -->
+                    <div class="search-bar">
+                        <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"></path>
+                            <path d="M21 21l-6 -6"></path>
+                        </svg>
+                        <input placeholder="Search" value="" />
+                    </div>
+
+                    <!-- Exam Categories Grid -->
+                    <div class="exam-grid">
+
+                        <!-- Natural Science Card -->
+                        <div class="exam-card" onclick="window.location.href='exams.html'">
+                            <div class="card-image">
+                                <div class="circle circle-1"></div>
+                                <div class="circle circle-2"></div>
+                                <div class="circle circle-3"></div>
+                                <div class="circle circle-4"></div>
+                                <div class="circle circle-5"></div>
+                            </div>
+                            <div class="card-footer">
+                                <span>🔬 Natural Science</span>
+                                <button>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path><path d="M11 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path><path d="M11 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Social Science Card -->
+                        <div class="exam-card social-card" onclick="window.location.href='exams.html'">
+                            <div class="card-image">
+                                <div class="circle circle-1"></div>
+                                <div class="circle circle-2"></div>
+                                <div class="circle circle-3"></div>
+                            </div>
+                            <div class="card-footer">
+                                <span>🌍 Social Science</span>
+                                <button>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path><path d="M11 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path><path d="M11 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // API CONFIGURATION
+        // ============================================
+        const API_BASE = 'https://hayyo-exam.onrender.com';
+
+        // ============================================
+        // TOAST NOTIFICATION
+        // ============================================
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => { toast.className = 'toast'; }, 3000);
+        }
+
+        // ============================================
+        // TOKEN HELPERS
+        // ============================================
+        function getToken() {
+            return localStorage.getItem('token');
+        }
+
+        function setToken(token) {
+            if (token) {
+                localStorage.setItem('token', token);
+                return true;
+            }
+            return false;
+        }
+
+        function clearToken() {
+            localStorage.removeItem('token');
+        }
+
+        // ============================================
+        // API CALL
+        // ============================================
+        function apiCall(endpoint, options = {}) {
+            const token = getToken();
+            return fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                    ...options.headers
+                }
+            });
+        }
+
+        // ============================================
+        // MAIN AUTH CHECK - FIXED
+        // ============================================
+        function checkAuth() {
+            console.log('🔍 Dashboard loaded, checking auth...');
+            
+            // 1️⃣ Check URL for token
+            const urlParams = new URLSearchParams(window.location.search);
+            let token = urlParams.get('token');
+            
+            if (token) {
+                console.log('✅ Token found in URL');
+                localStorage.setItem('token', token);
+                // Clean URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+                showToast('✅ Login successful!', 'success');
+            }
+            
+            // 2️⃣ Get token from localStorage
+            token = localStorage.getItem('token');
+            
+            if (!token) {
+                console.log('❌ No token found - redirecting to login');
+                showToast('Please login first', 'error');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 500);
+                return;
+            }
+            
+            console.log('✅ Token found in localStorage');
+            
+            // 3️⃣ SHOW DASHBOARD IMMEDIATELY (don't wait for API)
+            document.getElementById('userName').textContent = 'LOADING...';
+            document.getElementById('welcomeName').textContent = 'Student';
+            document.getElementById('userAvatar').textContent = 'ST';
+            document.getElementById('userEmail').textContent = 'Loading...';
+            
+            // 4️⃣ Try to get user data (but DON'T redirect if it fails)
+            console.log('🔍 Fetching user data from /api/me...');
+            
+            apiCall('/api/me')
+                .then(async res => {
+                    console.log('🔍 /api/me response status:', res.status);
+                    
+                    // Try to get response data
+                    let data;
+                    try {
+                        data = await res.json();
+                        console.log('🔍 Response data:', data);
+                    } catch (e) {
+                        console.log('❌ Failed to parse response');
+                        // Stay on dashboard - don't redirect!
+                        updateDashboardWithGuest();
+                        return;
+                    }
+                    
+                    // Check if token is invalid
+                    if (res.status === 401) {
+                        console.log('⚠️ Token invalid (401), but staying on dashboard');
+                        // DON'T redirect - just show guest mode
+                        updateDashboardWithGuest();
+                        showToast('⚠️ Session expired, but you can still browse', 'error');
+                        return;
+                    }
+                    
+                    // Check if API call succeeded
+                    if (data && data.authenticated) {
+                        console.log('✅ User data loaded successfully!');
+                        updateDashboardWithUser(data.user);
+                        showToast('Welcome, ' + (data.user.name || 'Student') + '!', 'success');
+                    } else {
+                        console.log('❌ Authentication failed, but staying on dashboard');
+                        updateDashboardWithGuest();
+                        showToast('Could not load user data', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.log('❌ API call error:', error.message);
+                    // DON'T redirect - stay on dashboard!
+                    updateDashboardWithGuest();
+                    showToast('Network error, but you are logged in', 'error');
+                });
+            
+            console.log('✅ Dashboard will stay open');
+        }
+
+        // ============================================
+        // UPDATE UI WITH USER DATA
+        // ============================================
+        function updateDashboardWithUser(user) {
+            const userName = user.name || 'Student';
+            const userEmail = user.email || 'No email provided';
+            
+            document.getElementById('userName').textContent = userName.toUpperCase();
+            document.getElementById('userEmail').textContent = userEmail;
+            document.getElementById('welcomeName').textContent = userName;
+            
+            const initials = userName
+                .split(' ')
+                .map(n => n[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2);
+            document.getElementById('userAvatar').textContent = initials;
+            
+            console.log('✅ Dashboard fully rendered with user data');
+        }
+
+        function updateDashboardWithGuest() {
+            document.getElementById('userName').textContent = 'GUEST USER';
+            document.getElementById('userEmail').textContent = 'guest@hayyo.com';
+            document.getElementById('welcomeName').textContent = 'Guest';
+            document.getElementById('userAvatar').textContent = 'GU';
+            console.log('✅ Dashboard rendered in guest mode');
+        }
+
+        // ============================================
+        // LOGOUT
+        // ============================================
+        function logout() {
+            console.log('🔍 Logging out...');
+            clearToken();
+            showToast('Logged out successfully', 'success');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 500);
+        }
+
+        // ============================================
+        // INITIALIZE
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔐 HAYYO Dashboard - JWT Authentication');
+            
+            // Check authentication (shows dashboard immediately)
+            checkAuth();
+            
+            // Setup logout button
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    logout();
+                });
+            }
+        });
+    </script>
+
+</body>
+</html>
