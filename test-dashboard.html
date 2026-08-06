@@ -2,11 +2,68 @@
 <html>
 <head>
     <title>Test Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: #f0f4ff;
+        }
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+        }
+        .success { color: #16a34a; font-size: 48px; }
+        .token-box {
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 8px;
+            word-break: break-all;
+            font-size: 12px;
+            margin: 16px 0;
+            font-family: monospace;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 24px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-top: 12px;
+        }
+        .btn:hover { background: #1d4ed8; }
+        .btn-danger {
+            background: #dc2626;
+        }
+        .btn-danger:hover { background: #b91c1c; }
+    </style>
 </head>
 <body>
-    <h1>🎉 You are logged in!</h1>
-    <p id="tokenDisplay">Loading...</p>
-    <a href="index.html">Logout</a>
+    <div class="card">
+        <div class="success">✅</div>
+        <h1>🎉 You Are Logged In!</h1>
+        <p>Your authentication token was successfully received.</p>
+        
+        <div id="tokenDisplay" class="token-box">Loading token...</div>
+        
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <a href="dashboard.html" class="btn">Go to Dashboard</a>
+            <a href="index.html" class="btn btn-danger">Logout</a>
+        </div>
+        
+        <p style="margin-top: 16px; font-size: 14px; color: #6b7280;">
+            If you see this page, OAuth is working correctly!
+        </p>
+    </div>
 
     <script>
         // Get token from URL
@@ -18,7 +75,7 @@
             document.getElementById('tokenDisplay').textContent = 'Token: ' + token;
             console.log('✅ Token saved:', token);
         } else {
-            document.getElementById('tokenDisplay').textContent = '❌ No token found!';
+            document.getElementById('tokenDisplay').textContent = '❌ No token found in URL!';
             console.log('❌ No token in URL');
         }
     </script>
