@@ -8,7 +8,6 @@ const session = require('express-session');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const jwt = require('jsonwebtoken');
-const pgSession = require('connect-pg-simple')(session);
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
@@ -255,19 +254,9 @@ app.use('/api/payment/', strictLimiter);
 app.use('/api/admin/', strictLimiter);
 
 // ============================================
-// SESSION STORE
+// SESSION STORE - Memory Store (No Database)
 // ============================================
-const { Pool } = require('pg');
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-  max: 5,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000
-});
-
 app.use(session({
-  store: new pgSession({ pool, tableName: 'session', createTableIfMissing: true }),
   secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
@@ -281,7 +270,7 @@ app.use(session({
 }));
 
 // ============================================
-// PASSPORT (Google OAuth) - COMPLETELY REWRITTEN
+// PASSPORT (Google OAuth)
 // ============================================
 app.use(passport.initialize());
 app.use(passport.session());
@@ -992,8 +981,5 @@ app.listen(PORT, () => {
 // Handle graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, closing server...');
-  pool.end(() => {
-    console.log('Database pool closed');
-    process.exit(0);
-  });
+  process.exit(0);
 });
