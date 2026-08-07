@@ -1322,20 +1322,39 @@
         }
 
         // ============================================
-        // LOAD EXAM DATA
+        // LOAD EXAM DATA - FIXED WITH localStorage FALLBACK
         // ============================================
 
         function loadExam() {
             logDebug('📄 Loading exam...', 'info');
             
-            const urlParams = new URLSearchParams(window.location.search);
-            const examId = urlParams.get('exam');
+            // First, check URL for exam ID
+            let urlParams = new URLSearchParams(window.location.search);
+            let examId = urlParams.get('exam');
             
+            // If not in URL, check localStorage
+            if (!examId) {
+                examId = localStorage.getItem('currentExamId');
+                if (examId) {
+                    logDebug(`📂 Found exam ID in localStorage: ${examId}`, 'info');
+                    // Update URL without reloading
+                    const newUrl = window.location.pathname + '?exam=' + examId;
+                    window.history.replaceState({}, '', newUrl);
+                }
+            }
+            
+            // If still no exam ID, redirect back to exams page
             if (!examId) {
                 logDebug('❌ No exam ID provided', 'error');
-                showToast('Invalid exam link', 'error');
+                showToast('No exam selected. Redirecting...', 'error');
+                setTimeout(() => {
+                    window.location.href = 'exams.html';
+                }, 1500);
                 return;
             }
+            
+            // Save to localStorage for future use
+            localStorage.setItem('currentExamId', examId);
 
             const token = getToken();
             if (!token) {
@@ -1704,7 +1723,7 @@
         // ============================================
 
         function saveProgress() {
-            const examId = new URLSearchParams(window.location.search).get('exam');
+            const examId = localStorage.getItem('currentExamId') || new URLSearchParams(window.location.search).get('exam');
             if (examId) {
                 try {
                     localStorage.setItem(`exam_${examId}_answers`, JSON.stringify(answers));
@@ -1717,7 +1736,7 @@
         }
 
         function loadProgress() {
-            const examId = new URLSearchParams(window.location.search).get('exam');
+            const examId = localStorage.getItem('currentExamId') || new URLSearchParams(window.location.search).get('exam');
             if (examId) {
                 try {
                     const savedAnswers = localStorage.getItem(`exam_${examId}_answers`);
