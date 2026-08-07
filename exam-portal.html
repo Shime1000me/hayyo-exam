@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Exam Portal</title>
+    <title>Exam Portal - Hayyo Academy</title>
     <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@100..900&family=Inter:opsz@14..32&display=swap" rel="stylesheet">
     <style>
         /* ===== GLOBAL RESET ===== */
@@ -504,6 +507,32 @@
             background: #16a34a;
         }
 
+        /* ===== DEBUG BOX ===== */
+        .debug-box {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #313244;
+        }
+        .debug-box .label {
+            color: #89b4fa;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .debug-box .success { color: #a6e3a1; }
+        .debug-box .error { color: #f38ba8; }
+        .debug-box .info { color: #89b4fa; }
+        .debug-box .warn { color: #f9e2af; }
+
         /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
             .app-sidebar { display: none; }
@@ -551,7 +580,7 @@
                 <div class="info-grid">
                     <div class="info-row">
                         <span class="info-label">Full Name:</span>
-                        <span class="info-value" id="userName">SHIMELIS HATISO</span>
+                        <span class="info-value" id="userName">Loading...</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">School:</span>
@@ -585,16 +614,16 @@
                 <div class="exam-icon-box">📐</div>
                 <div class="exam-meta">
                     <small>EXAM</small>
-                    <span style="font-weight: 700; font-size: 18px;" id="examTitle">Mathematics</span>
+                    <span style="font-weight: 700; font-size: 18px;" id="examTitle">Loading...</span>
                 </div>
             </div>
 
             <div class="exam-date-box" id="examDetails">
-                <span id="examInfo">Opened: Available now</span>
+                <span id="examInfo">Loading...</span>
                 <br>
-                <span id="examTimeInfo">Time limit: 150 min</span>
+                <span id="examTimeInfo">Loading...</span>
                 <br>
-                <span id="examQuestionsInfo">100 Questions</span>
+                <span id="examQuestionsInfo">Loading...</span>
             </div>
 
             <button class="btn-attempt" onclick="openModal()" id="attemptBtn">ATTEMPT EXAM</button>
@@ -602,8 +631,14 @@
             <div class="exam-rules">
                 Attempts allowed: 1<br>
                 To attempt this Exam you need to know the exam password<br>
-                Time limit: <span id="rulesTime">150</span> min<br>
-                <span id="rulesQuestions">100</span> Questions
+                Time limit: <span id="rulesTime">Loading...</span> min<br>
+                <span id="rulesQuestions">Loading...</span> Questions
+            </div>
+
+            <!-- ===== DEBUG BOX ===== -->
+            <div class="debug-box" id="debugBox">
+                <span class="label">🔍 Debug Log:</span>
+                <div id="debugContent">Waiting for page to load...</div>
             </div>
 
             <!-- Mobile Footer -->
@@ -638,7 +673,7 @@
             <div class="modal-section" style="margin-bottom: 16px;">
                 <div class="modal-time-title">Time limit</div>
                 <div class="modal-time-desc">
-                    Your attempt will have a time limit of <strong id="modalTime">150</strong> min. When you start, the timer will begin to count down and cannot be paused. You must finish your attempt before it expires.
+                    Your attempt will have a time limit of <strong id="modalTime">Loading...</strong> min. When you start, the timer will begin to count down and cannot be paused. You must finish your attempt before it expires.
                     <br><br>
                     Are you sure you wish to start now?
                 </div>
@@ -653,10 +688,50 @@
 
     <script>
         // ============================================
-        // API CONFIGURATION
+        // EXAM PORTAL - FIXED
         // ============================================
 
         const API_BASE = 'https://hayyo-exam.onrender.com';
+        const debugContent = document.getElementById('debugContent');
+
+        function logDebug(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warn' ? '⚠️' : '🔍';
+            const color = type === 'success' ? '#a6e3a1' : type === 'error' ? '#f38ba8' : type === 'warn' ? '#f9e2af' : '#89b4fa';
+            debugContent.innerHTML += `<div style="color:${color}">${prefix} [${timestamp}] ${message}</div>`;
+            console.log(`${prefix} ${message}`);
+        }
+
+        function showToast(message, type = 'error') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => {
+                toast.className = 'toast';
+            }, 3000);
+        }
+
+        // ============================================
+        // AUTO-VERSION
+        // ============================================
+        (function autoVersion() {
+            logDebug('📦 Fetching app version...', 'info');
+            fetch('https://hayyo-exam.onrender.com/api/version')
+                .then(res => res.json())
+                .then(data => {
+                    const v = data.version;
+                    logDebug(`📦 App version: ${v}`, 'success');
+                    document.querySelectorAll('a[href]').forEach(link => {
+                        const href = link.getAttribute('href');
+                        if (href && href.includes('.html') && !href.includes('?')) {
+                            link.href = href + '?v=' + v;
+                        }
+                    });
+                })
+                .catch(err => {
+                    logDebug('⚠️ Version fetch failed: ' + err.message, 'warn');
+                });
+        })();
 
         // ============================================
         // JWT API HELPER
@@ -679,43 +754,84 @@
         }
 
         // ============================================
-        // AUTH CHECK
+        // AUTH CHECK - FIXED
         // ============================================
 
         function checkAuth() {
-            const token = getToken();
-            if (!token) {
-                window.location.href = 'index.html';
-                return;
+            logDebug('📄 Checking authentication...', 'info');
+            
+            // Check for token in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const tokenFromUrl = urlParams.get('token');
+
+            if (tokenFromUrl) {
+                logDebug('🔑 Token found in URL', 'success');
+                localStorage.setItem('token', tokenFromUrl);
+                window.history.replaceState({}, document.title, window.location.pathname);
+                showToast('✅ Login successful!', 'success');
             }
 
-            apiCall('/api/me')
-                .then(res => {
-                    if (res.status === 401) {
-                        localStorage.removeItem('token');
-                        window.location.href = 'index.html';
-                        return null;
-                    }
-                    return res.json();
-                })
-                .then(data => {
-                    if (data && data.authenticated) {
-                        console.log('✅ Exam Portal loaded! Welcome:', data.user);
-                        
-                        const userName = data.user.name || 'Student';
-                        document.getElementById('userName').textContent = userName.toUpperCase();
-                        
-                        const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-                        document.getElementById('userAvatar').textContent = initials;
-                    }
-                })
-                .catch(() => {
+            const token = getToken();
+
+            if (!token) {
+                logDebug('❌ No token found in localStorage', 'error');
+                showToast('Please login first', 'error');
+                setTimeout(() => {
                     window.location.href = 'index.html';
-                });
+                }, 1500);
+                return false;
+            }
+
+            logDebug(`🔑 Token found: ${token.substring(0, 20)}...`, 'success');
+
+            // Verify token with /api/me
+            logDebug('📡 Verifying token with /api/me...', 'info');
+            
+            fetch(`${API_BASE}/api/me`, {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => {
+                logDebug(`📡 /api/me response status: ${res.status}`, res.status === 200 ? 'success' : 'warn');
+                
+                if (res.status === 401) {
+                    logDebug('❌ Token expired/invalid', 'error');
+                    localStorage.removeItem('token');
+                    showToast('Session expired. Please login again.', 'error');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
+                    return null;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data && data.authenticated) {
+                    const user = data.user;
+                    const name = user.name || 'Student';
+                    const email = user.email || 'No email';
+
+                    logDebug(`👤 User: ${name} (${email})`, 'success');
+                    
+                    document.getElementById('userName').textContent = name.toUpperCase();
+                    
+                    const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                    document.getElementById('userAvatar').textContent = initials;
+                    localStorage.setItem('userName', name);
+                }
+            })
+            .catch(err => {
+                logDebug(`⚠️ API error: ${err.message}`, 'warn');
+                document.getElementById('userName').textContent = 'STUDENT';
+            });
+
+            return true;
         }
 
         // ============================================
-        // LOAD EXAM DETAILS
+        // GET EXAM ID FROM URL
         // ============================================
 
         function getExamIdFromURL() {
@@ -723,47 +839,74 @@
             return params.get('id') || 'uee2018r1-math';
         }
 
+        // ============================================
+        // LOAD EXAM DETAILS - FIXED
+        // ============================================
+
         function loadExamDetails() {
             const examId = getExamIdFromURL();
+            const token = getToken();
             
-            apiCall(`/api/exams/${examId}`)
-                .then(res => {
-                    if (res.status === 401) {
-                        localStorage.removeItem('token');
+            logDebug(`📡 Loading exam details for ID: ${examId}`, 'info');
+            
+            if (!token) {
+                logDebug('❌ No token found', 'error');
+                return;
+            }
+
+            logDebug('📡 Fetching from /api/exams/' + examId, 'info');
+
+            fetch(`${API_BASE}/api/exams/${examId}`, {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => {
+                logDebug(`📡 Response status: ${res.status}`, res.status === 200 ? 'success' : 'warn');
+                
+                if (res.status === 401) {
+                    logDebug('❌ Token expired', 'error');
+                    localStorage.removeItem('token');
+                    showToast('Session expired. Please login again.', 'error');
+                    setTimeout(() => {
                         window.location.href = 'index.html';
-                        return null;
-                    }
-                    return res.json();
-                })
-                .then(exam => {
-                    if (!exam) return;
-                    
-                    document.getElementById('examBreadcrumb').textContent = exam.title || 'PE1- UEE 2017';
-                    document.getElementById('examSubject').textContent = exam.subject || 'Mathematics';
-                    document.getElementById('examTitle').textContent = exam.subject || 'Mathematics';
-                    document.getElementById('examInfo').textContent = `Opened: Available now`;
-                    document.getElementById('examTimeInfo').textContent = `Time limit: ${exam.time_limit || 150} min`;
-                    document.getElementById('examQuestionsInfo').textContent = `${exam.total_questions || 100} Questions`;
-                    
-                    document.getElementById('rulesTime').textContent = exam.time_limit || 150;
-                    document.getElementById('rulesQuestions').textContent = exam.total_questions || 100;
-                    document.getElementById('modalTime').textContent = exam.time_limit || 150;
-                })
-                .catch(err => console.error('Error loading exam:', err));
+                    }, 1500);
+                    return null;
+                }
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (!data) return;
+                
+                const exam = data.exam || data;
+                logDebug(`✅ Exam found: ${exam.title}`, 'success');
+                
+                document.getElementById('examBreadcrumb').textContent = exam.title || 'PE1- UEE 2017';
+                document.getElementById('examSubject').textContent = exam.subject || 'Mathematics';
+                document.getElementById('examTitle').textContent = exam.subject || 'Mathematics';
+                document.getElementById('examInfo').textContent = 'Opened: Available now';
+                document.getElementById('examTimeInfo').textContent = `Time limit: ${exam.time_limit || 150} min`;
+                document.getElementById('examQuestionsInfo').textContent = `${exam.total_questions || 100} Questions`;
+                
+                document.getElementById('rulesTime').textContent = exam.time_limit || 150;
+                document.getElementById('rulesQuestions').textContent = exam.total_questions || 100;
+                document.getElementById('modalTime').textContent = exam.time_limit || 150;
+                
+                logDebug('✅ Exam details rendered', 'success');
+            })
+            .catch(err => {
+                logDebug(`❌ Error loading exam: ${err.message}`, 'error');
+                showToast('Error loading exam details', 'error');
+            });
         }
 
         // ============================================
         // MODAL FUNCTIONS
         // ============================================
-
-        function showToast(message, type = 'error') {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = 'toast ' + type + ' show';
-            setTimeout(() => {
-                toast.className = 'toast';
-            }, 3000);
-        }
 
         function openModal() {
             document.getElementById('attemptModal').classList.add('active');
@@ -776,7 +919,7 @@
         }
 
         // ============================================
-        // START EXAM (UPDATED WITH JWT)
+        // START EXAM - FIXED
         // ============================================
 
         function startExam() {
@@ -787,7 +930,10 @@
             startBtn.textContent = 'Starting...';
             startBtn.disabled = true;
             
+            logDebug(`📡 Starting exam with password: ${password ? '****' : 'empty'}`, 'info');
+            
             if (password !== 'RLMWS8') {
+                logDebug('❌ Incorrect password', 'error');
                 showToast('❌ Incorrect password. Please try again.', 'error');
                 document.getElementById('passwordInput').value = '';
                 document.getElementById('passwordInput').focus();
@@ -796,19 +942,45 @@
                 return;
             }
 
-            // Start exam with JWT
-            apiCall('/api/exams/start', {
+            const token = getToken();
+            
+            if (!token) {
+                logDebug('❌ No token found', 'error');
+                showToast('Please login first', 'error');
+                startBtn.textContent = 'START ATTEMPT';
+                startBtn.disabled = false;
+                return;
+            }
+
+            logDebug('📡 Calling /api/exams/start...', 'info');
+
+            fetch(`${API_BASE}/api/exams/start`, {
                 method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({ exam_id: examId, password: password })
             })
             .then(res => {
+                logDebug(`📡 Start exam response status: ${res.status}`, res.status === 200 ? 'success' : 'warn');
+                
                 if (res.status === 401) {
+                    logDebug('❌ Token expired', 'error');
                     localStorage.removeItem('token');
-                    window.location.href = 'index.html';
+                    showToast('Session expired. Please login again.', 'error');
+                    startBtn.textContent = 'START ATTEMPT';
+                    startBtn.disabled = false;
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
                     return null;
                 }
                 if (res.status === 403) {
+                    logDebug('🔒 Premium access required', 'warn');
                     showToast('🔒 Premium access required. Please pay 100 Birr.', 'error');
+                    startBtn.textContent = 'START ATTEMPT';
+                    startBtn.disabled = false;
                     return null;
                 }
                 return res.json();
@@ -817,6 +989,7 @@
                 if (!data) return;
                 
                 if (data.success) {
+                    logDebug('✅ Exam started successfully!', 'success');
                     showToast('✅ Starting exam...', 'success');
                     closeModal();
                     // Store attempt data in localStorage for the exam page
@@ -827,15 +1000,17 @@
                     localStorage.setItem('answers', JSON.stringify(data.answers || {}));
                     
                     setTimeout(() => {
-                        window.location.href = 'maths-exam.html';
+                        window.location.href = 'maths-exam.html?exam=' + examId;
                     }, 800);
                 } else {
-                    showToast('❌ Failed to start exam. Please try again.', 'error');
+                    logDebug(`❌ Failed to start exam: ${data.error}`, 'error');
+                    showToast(data.error || '❌ Failed to start exam. Please try again.', 'error');
                 }
             })
             .catch(err => {
-                console.error('Error starting exam:', err);
+                logDebug(`❌ Error starting exam: ${err.message}`, 'error');
                 showToast('❌ Error starting exam. Please try again.', 'error');
+                console.error(err);
             })
             .finally(() => {
                 startBtn.textContent = 'START ATTEMPT';
@@ -862,15 +1037,38 @@
         });
 
         // ============================================
+        // LOGOUT
+        // ============================================
+
+        function logout() {
+            logDebug('🔓 Logging out...', 'info');
+            localStorage.removeItem('token');
+            showToast('Logged out successfully', 'success');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 500);
+        }
+
+        // ============================================
         // RUN ON PAGE LOAD
         // ============================================
 
         document.addEventListener('DOMContentLoaded', function() {
-            checkAuth();
-            loadExamDetails();
+            logDebug('📄 Exam Portal page loaded', 'info');
+            
+            // Setup logout
+            document.querySelector('.app-nav a:not(.active)')?.addEventListener('click', function(e) {
+                // This is for the logout button if added
+            });
+            
+            if (checkAuth()) {
+                loadExamDetails();
+            }
+            
+            logDebug('✅ Page initialization complete', 'success');
         });
 
-        console.log('✅ Exam Portal loaded with JWT');
+        console.log('✅ Exam Portal loaded with debug box');
     </script>
 
 </body>
