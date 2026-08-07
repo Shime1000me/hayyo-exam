@@ -160,6 +160,33 @@
             margin: 0 auto 1rem;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* DEBUG BOX */
+        .debug-box {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #313244;
+        }
+        .debug-box .label {
+            color: #89b4fa;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .debug-box .success { color: #a6e3a1; }
+        .debug-box .error { color: #f38ba8; }
+        .debug-box .info { color: #89b4fa; }
+        .debug-box .warn { color: #f9e2af; }
+
         @media (max-width: 480px) {
             .info-box .info-row { grid-template-columns: 1fr 1fr; gap: 0.25rem 0.5rem; }
             .main-content { padding: 1rem; }
@@ -228,6 +255,12 @@
                     </div>
                 </div>
 
+                <!-- ===== DEBUG BOX ===== -->
+                <div class="debug-box" id="debugBox">
+                    <span class="label">🔍 Debug Log:</span>
+                    <div id="debugContent">Waiting for page to load...</div>
+                </div>
+
             </main>
         </div>
     </div>
@@ -238,6 +271,15 @@
         // ============================================
 
         const API_BASE = 'https://hayyo-exam.onrender.com';
+        const debugContent = document.getElementById('debugContent');
+
+        function logDebug(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warn' ? '⚠️' : '🔍';
+            const color = type === 'success' ? '#a6e3a1' : type === 'error' ? '#f38ba8' : type === 'warn' ? '#f9e2af' : '#89b4fa';
+            debugContent.innerHTML += `<div style="color:${color}">${prefix} [${timestamp}] ${message}</div>`;
+            console.log(`${prefix} ${message}`);
+        }
 
         function showToast(message, type = 'info') {
             const toast = document.getElementById('toast');
@@ -251,14 +293,39 @@
         }
 
         // ============================================
-        // AUTH CHECK - REFRESH TOKEN IF EXPIRED
+        // AUTO-VERSION
+        // ============================================
+        (function autoVersion() {
+            logDebug('📦 Fetching app version...', 'info');
+            fetch('https://hayyo-exam.onrender.com/api/version')
+                .then(res => res.json())
+                .then(data => {
+                    const v = data.version;
+                    logDebug(`📦 App version: ${v}`, 'success');
+                    document.querySelectorAll('a[href]').forEach(link => {
+                        const href = link.getAttribute('href');
+                        if (href && href.includes('.html') && !href.includes('?')) {
+                            link.href = href + '?v=' + v;
+                        }
+                    });
+                })
+                .catch(err => {
+                    logDebug('⚠️ Version fetch failed: ' + err.message, 'warn');
+                });
+        })();
+
+        // ============================================
+        // AUTH CHECK - FIXED
         // ============================================
         function checkAuth() {
+            logDebug('📄 Checking authentication...', 'info');
+            
             // Check for token in URL first
             const urlParams = new URLSearchParams(window.location.search);
             const tokenFromUrl = urlParams.get('token');
             
             if (tokenFromUrl) {
+                logDebug('🔑 Token found in URL', 'success');
                 localStorage.setItem('token', tokenFromUrl);
                 window.history.replaceState({}, document.title, window.location.pathname);
                 showToast('✅ Login successful!', 'success');
@@ -267,6 +334,7 @@
             const token = localStorage.getItem('token');
             
             if (!token) {
+                logDebug('❌ No token found in localStorage', 'error');
                 showToast('Please login first', 'error');
                 setTimeout(() => {
                     window.location.href = 'index.html';
@@ -274,7 +342,11 @@
                 return false;
             }
             
-            // Verify token with /api/me - if it fails, try to refresh
+            logDebug(`🔑 Token found: ${token.substring(0, 20)}...`, 'success');
+            
+            // Verify token with /api/me (FIXED: was /api/team)
+            logDebug('📡 Verifying token with /api/me...', 'info');
+            
             fetch(`${API_BASE}/api/me`, {
                 headers: {
                     'Authorization': 'Bearer ' + token,
@@ -282,9 +354,10 @@
                 }
             })
             .then(res => {
+                logDebug(`📡 /api/me response status: ${res.status}`, res.status === 200 ? 'success' : 'warn');
+                
                 if (res.status === 401) {
-                    // Token expired - try to refresh by redirecting to login
-                    console.log('⚠️ Token expired, redirecting to login');
+                    logDebug('❌ Token expired/invalid', 'error');
                     localStorage.removeItem('token');
                     showToast('Session expired. Please login again.', 'error');
                     setTimeout(() => {
@@ -300,19 +373,19 @@
                     const name = user.name || 'Student';
                     const email = user.email || 'No email';
                     
+                    logDebug(`👤 User: ${name} (${email})`, 'success');
+                    
                     document.getElementById('userName').textContent = name.toUpperCase();
                     document.getElementById('userEmail').textContent = email;
                     
                     const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                     document.getElementById('userAvatar').textContent = initials;
                     
-                    // Store name for other pages
                     localStorage.setItem('userName', name);
                 }
             })
             .catch(err => {
-                console.log('⚠️ API error but staying on page:', err.message);
-                // Show placeholder
+                logDebug(`⚠️ API error: ${err.message}`, 'warn');
                 document.getElementById('userName').textContent = 'STUDENT';
                 document.getElementById('userEmail').textContent = 'student@hayyo.com';
             });
@@ -329,13 +402,16 @@
         }
 
         // ============================================
-        // LOAD EXAM DETAILS
+        // LOAD EXAM DETAILS - FIXED
         // ============================================
         function loadExamDetails() {
             const examId = getExamIdFromURL();
             const token = getToken();
             
+            logDebug(`📡 Loading exam details for ID: ${examId}`, 'info');
+            
             if (!examId) {
+                logDebug('❌ No exam ID provided', 'error');
                 document.getElementById('examInfo').innerHTML = `
                     <div class="exam-card">
                         <p style="color: #dc2626;">No exam ID provided. Please go back and select an exam.</p>
@@ -346,6 +422,7 @@
             }
             
             if (!token) {
+                logDebug('❌ No token found', 'error');
                 document.getElementById('examInfo').innerHTML = `
                     <div class="exam-card">
                         <p style="color: #dc2626;">Please login to view exam details.</p>
@@ -363,6 +440,8 @@
                 </div>
             `;
             
+            logDebug('📡 Fetching from /api/exams/' + examId, 'info');
+            
             fetch(`${API_BASE}/api/exams/${examId}`, {
                 headers: {
                     'Authorization': 'Bearer ' + token,
@@ -370,10 +449,10 @@
                 }
             })
             .then(res => {
-                console.log('📡 Response status:', res.status);
+                logDebug(`📡 Response status: ${res.status}`, res.status === 200 ? 'success' : 'warn');
                 
                 if (res.status === 401) {
-                    // Token expired
+                    logDebug('❌ Token expired', 'error');
                     localStorage.removeItem('token');
                     showToast('Session expired. Please login again.', 'error');
                     setTimeout(() => {
@@ -390,6 +469,8 @@
                 if (!data) return;
                 
                 const exam = data.exam || data;
+                logDebug(`✅ Exam found: ${exam.title}`, 'success');
+                
                 document.getElementById('examTitle').textContent = exam.title || 'Untitled Exam';
                 
                 const isPremium = exam.is_premium_only || false;
@@ -418,9 +499,10 @@
                         </div>
                     </div>
                 `;
+                logDebug('✅ Exam details rendered', 'success');
             })
             .catch(err => {
-                console.error('❌ Error loading exam:', err);
+                logDebug(`❌ Error loading exam: ${err.message}`, 'error');
                 document.getElementById('examInfo').innerHTML = `
                     <div class="exam-card">
                         <p style="color: #dc2626;">Error loading exam: ${err.message}</p>
@@ -459,6 +541,8 @@
                 return;
             }
             
+            logDebug(`📡 Starting exam ${examId}...`, 'info');
+            
             fetch(`${API_BASE}/api/exams/start`, {
                 method: 'POST',
                 headers: {
@@ -470,11 +554,13 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
+                    logDebug('✅ Exam started successfully!', 'success');
                     showToast('✅ Exam started! Redirecting...', 'success');
                     setTimeout(() => {
                         window.location.href = `maths-exam.html?exam=${examId}`;
                     }, 1000);
                 } else {
+                    logDebug(`❌ Failed to start exam: ${data.error}`, 'error');
                     showToast(data.error || 'Failed to start exam', 'error');
                     if (btn) {
                         btn.textContent = '🚀 Start Exam';
@@ -483,6 +569,7 @@
                 }
             })
             .catch(err => {
+                logDebug(`❌ Error starting exam: ${err.message}`, 'error');
                 showToast('Error starting exam', 'error');
                 console.error(err);
                 if (btn) {
@@ -496,6 +583,7 @@
         // LOGOUT
         // ============================================
         function logout() {
+            logDebug('🔓 Logging out...', 'info');
             localStorage.removeItem('token');
             showToast('Logged out successfully', 'success');
             setTimeout(() => {
@@ -507,7 +595,7 @@
         // INITIALIZE
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔐 Exam Detail Page - Loaded');
+            logDebug('📄 Exam Detail page loaded', 'info');
             
             // Setup logout button
             document.getElementById('logoutBtn')?.addEventListener('click', function(e) {
@@ -518,7 +606,11 @@
             if (checkAuth()) {
                 loadExamDetails();
             }
+            
+            logDebug('✅ Page initialization complete', 'success');
         });
+
+        console.log('✅ Exam Detail page loaded with debug box');
     </script>
 
 </body>
