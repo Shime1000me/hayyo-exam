@@ -5,12 +5,32 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
+    <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-    <title>Hayyo Academy - Exam Details</title>
+    <title>Hayyo Academy - PE1- UEE 2017</title>
     <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@100..900&family=Inter:opsz@14..32&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Raleway', 'Inter', sans-serif; background: #f8fafc; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Raleway', 'Inter', sans-serif;
+            background: #f8fafc;
+        }
+        .bg-background { background: #ffffff; }
+        .border-border { border-color: #e2e8f0; }
+        .text-muted-foreground { color: #64748b; }
+        .text-foreground { color: #0f172a; }
+        .bg-muted { background: #f1f5f9; }
+        .bg-card { background: #ffffff; }
+        .hover\:shadow-sm:hover { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); }
+        .transition-shadow { transition: box-shadow 0.2s; }
+        .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cursor-pointer { cursor: pointer; }
+        .hover\:bg-muted:hover { background: #f1f5f9; }
+
         .app-header {
             background: #ffffff;
             border-bottom: 1px solid #e2e8f0;
@@ -23,8 +43,17 @@
             top: 0;
             z-index: 100;
         }
-        .app-header .logo { font-size: 1.25rem; font-weight: 700; color: #2563eb; margin-right: 1rem; }
-        .app-header nav { display: flex; align-items: stretch; height: 100%; }
+        .app-header .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #2563eb;
+            margin-right: 1rem;
+        }
+        .app-header nav {
+            display: flex;
+            align-items: stretch;
+            height: 100%;
+        }
         .app-header nav a {
             display: flex;
             align-items: center;
@@ -35,9 +64,19 @@
             color: #64748b;
             cursor: pointer;
         }
-        .app-header nav a:hover { color: #0f172a; }
-        .app-header nav a.active { border-bottom-color: #2563eb; color: #2563eb; font-weight: 500; }
-        .app-header .user-menu { margin-left: auto; display: flex; align-items: center; }
+        .app-header nav a:hover {
+            color: #0f172a;
+        }
+        .app-header nav a.active {
+            border-bottom-color: #2563eb;
+            color: #2563eb;
+            font-weight: 500;
+        }
+        .app-header .user-menu {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+        }
         .app-header .user-menu .avatar {
             width: 28px;
             height: 28px;
@@ -51,7 +90,10 @@
             justify-content: center;
             text-transform: uppercase;
         }
-        .red-line { height: 2px; background: #dc2626; }
+        .red-line {
+            height: 2px;
+            background: #dc2626;
+        }
 
         .main-layout {
             display: flex;
@@ -80,8 +122,13 @@
             text-overflow: ellipsis;
             color: rgba(15, 23, 42, 0.7);
         }
-        .sidebar .menu-item:hover { background: #f1f5f9; }
-        .sidebar .menu-item.active { background: #2563eb; color: white; }
+        .sidebar .menu-item:hover {
+            background: #f1f5f9;
+        }
+        .sidebar .menu-item.active {
+            background: #2563eb;
+            color: white;
+        }
 
         .main-content {
             flex: 1;
@@ -112,11 +159,22 @@
             align-items: center;
             border-bottom: 1px solid #f1f5f9;
         }
-        .info-box .info-row:last-child { border-bottom: none; }
-        .info-box .info-row .label { font-weight: 600; color: #0f172a; white-space: nowrap; }
-        .info-box .info-row .value { font-weight: 600; color: #0f172a; }
+        .info-box .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-box .info-row .label {
+            font-weight: 600;
+            color: #0f172a;
+            white-space: nowrap;
+        }
+        .info-box .info-row .value {
+            font-weight: 600;
+            color: #0f172a;
+        }
 
-        .exam-section { margin-top: 1.5rem; }
+        .exam-section {
+            margin-top: 1.5rem;
+        }
         .exam-section h1 {
             font-size: 1.5rem;
             font-weight: 700;
@@ -146,8 +204,12 @@
             border-bottom-color: #2563eb;
             color: #2563eb;
         }
-        .tabs button:not(.active) { color: #64748b; }
-        .tabs button:not(.active):hover { color: #0f172a; }
+        .tabs button:not(.active) {
+            color: #64748b;
+        }
+        .tabs button:not(.active):hover {
+            color: #0f172a;
+        }
 
         .exam-list-title {
             display: flex;
@@ -155,8 +217,13 @@
             gap: 0.375rem;
             margin-bottom: 1rem;
         }
-        .exam-list-title svg { color: #64748b; }
-        .exam-list-title span { font-weight: 600; color: #0f172a; }
+        .exam-list-title svg {
+            color: #64748b;
+        }
+        .exam-list-title span {
+            font-weight: 600;
+            color: #0f172a;
+        }
 
         .exam-list {
             display: flex;
@@ -172,7 +239,9 @@
             cursor: pointer;
             transition: box-shadow 0.2s;
         }
-        .exam-item:hover { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); }
+        .exam-item:hover {
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+        }
         .exam-item .item-content {
             display: flex;
             align-items: center;
@@ -213,8 +282,13 @@
             border-top: 1px solid #e2e8f0;
             font-size: 0.75rem;
         }
-        .exam-item .item-footer .label { font-weight: 500; color: #0f172a; }
-        .exam-item .item-footer .value { color: #64748b; }
+        .exam-item .item-footer .label {
+            font-weight: 500;
+            color: #0f172a;
+        }
+        .exam-item .item-footer .value {
+            color: #64748b;
+        }
 
         .mobile-menu-btn {
             display: none;
@@ -232,8 +306,14 @@
             border: none;
             cursor: pointer;
         }
-        .mobile-menu-btn:hover { background: #f1f5f9; }
-        @media (max-width: 767px) { .mobile-menu-btn { display: flex; } }
+        .mobile-menu-btn:hover {
+            background: #f1f5f9;
+        }
+        @media (max-width: 767px) {
+            .mobile-menu-btn {
+                display: flex;
+            }
+        }
 
         .toast {
             position: fixed;
@@ -289,9 +369,14 @@
         .debug-box .warn { color: #f9e2af; }
 
         @media (max-width: 480px) {
-            .info-box .info-row { grid-template-columns: 1fr 1fr; gap: 0.25rem 0.5rem; }
+            .info-box .info-row {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.25rem 0.5rem;
+            }
             .main-content { padding: 1rem; }
-            .exam-item .item-content { padding: 0.5rem 0.75rem; }
+            .exam-item .item-content {
+                padding: 0.5rem 0.75rem;
+            }
         }
     </style>
 </head>
@@ -308,6 +393,7 @@
                 <nav>
                     <a href="dashboard.html">Home</a>
                     <a href="exams.html" class="active">My exam</a>
+                    <a href="#" id="logoutBtn" style="color:#dc2626;border-bottom-color:transparent;">Logout</a>
                 </nav>
                 <div class="user-menu">
                     <div class="avatar" id="userAvatar">ST</div>
@@ -366,6 +452,18 @@
                             <button id="resultsTab">Results</button>
                         </div>
 
+                        <div id="examInfo" style="margin-bottom: 1.5rem; display: none;">
+                            <div style="background: #f9fafb; padding: 1rem; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
+                                <p><strong>Subject:</strong> <span id="examSubject">Mathematics</span></p>
+                                <p><strong>Time Limit:</strong> <span id="examTime">150</span> minutes</p>
+                                <p><strong>Total Questions:</strong> <span id="examQuestions">100</span></p>
+                                <p><strong>Status:</strong> <span id="examStatus" style="color: #10b981;">Available now</span></p>
+                                <p id="premiumBadge" style="display: none; background: #fbbf24; color: #1f2937; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; margin-top: 8px;">🔒 PREMIUM</p>
+                                <button id="attemptBtn" class="btn-attempt" style="margin-top: 12px; background: #1e3a8a; color: white; border: none; padding: 8px 24px; border-radius: 4px; font-size: 13px; font-weight: 700; cursor: pointer; text-transform: uppercase; font-family: 'Raleway', sans-serif;">ATTEMPT EXAM</button>
+                            </div>
+                        </div>
+
+                        <!-- Exam List -->
                         <div id="examListContainer">
                             <div class="loading-spinner">
                                 <div class="spinner"></div>
@@ -485,7 +583,7 @@
         }
 
         // ============================================
-        // GET EXAM CATEGORY FROM URL
+        // GET CATEGORY FROM URL
         // ============================================
         function getCategoryFromURL() {
             const params = new URLSearchParams(window.location.search);
@@ -513,15 +611,15 @@
         }
 
         // ============================================
-        // LOAD EXAM SUBJECTS FROM DATABASE
+        // LOAD EXAM SUBJECTS
         // ============================================
         function loadExamSubjects() {
             const token = getToken();
             if (!token) {
                 document.getElementById('examListContainer').innerHTML = `
-                    <div class="exam-card" style="padding:20px;text-align:center;">
+                    <div style="padding:20px;text-align:center;background:#fff;border-radius:12px;border:1px solid #e2e8f0;">
                         <p style="color:#dc2626;">Please login to view exams.</p>
-                        <a href="index.html" class="btn-start" style="display:inline-block;text-decoration:none;margin-top:10px;">Go to Login</a>
+                        <a href="index.html" style="display:inline-block;margin-top:10px;padding:8px 24px;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none;">Go to Login</a>
                     </div>
                 `;
                 return;
@@ -555,9 +653,9 @@
             .catch(err => {
                 logDebug(`❌ Error loading exams: ${err.message}`, 'error');
                 document.getElementById('examListContainer').innerHTML = `
-                    <div class="exam-card" style="padding:20px;text-align:center;">
+                    <div style="padding:20px;text-align:center;background:#fff;border-radius:12px;border:1px solid #e2e8f0;">
                         <p style="color:#dc2626;">Error loading exams: ${err.message}</p>
-                        <button onclick="loadExamSubjects()" class="btn-start" style="margin-top:10px;">Retry</button>
+                        <button onclick="loadExamSubjects()" style="margin-top:10px;padding:8px 24px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;">Retry</button>
                     </div>
                 `;
             });
@@ -571,7 +669,7 @@
             
             if (!exams || exams.length === 0) {
                 container.innerHTML = `
-                    <div style="text-align:center;padding:40px;color:#64748b;">
+                    <div style="text-align:center;padding:40px;color:#64748b;background:#fff;border-radius:12px;border:1px solid #e2e8f0;">
                         <p style="font-size:3rem;margin-bottom:1rem;">📚</p>
                         <h3>No exams available</h3>
                         <p>Check back later for new exams.</p>
@@ -580,7 +678,7 @@
                 return;
             }
 
-            // Group exams by subject for cleaner display
+            // Group exams by subject
             const subjectMap = {};
             exams.forEach(exam => {
                 const subject = exam.subject || 'General';
@@ -596,6 +694,9 @@
             // Update title
             document.getElementById('examCategoryTitle').textContent = 
                 `${category.toUpperCase()} Exams - ${subjects.length} Subjects`;
+
+            // Update sidebar
+            updateSidebar(subjects, category);
 
             // Build HTML for each subject
             let html = `
@@ -632,9 +733,6 @@
 
             html += `</div>`;
             container.innerHTML = html;
-
-            // Update sidebar
-            updateSidebar(subjects, category);
             
             logDebug(`✅ Rendered ${subjects.length} subjects`, 'success');
         }
@@ -675,25 +773,16 @@
         document.addEventListener('DOMContentLoaded', function() {
             logDebug('📄 Exam Detail page loaded', 'info');
             
+            // Setup logout button
+            document.getElementById('logoutBtn')?.addEventListener('click', function(e) {
+                e.preventDefault();
+                logout();
+            });
+            
             if (checkAuth()) {
                 loadExamSubjects();
             }
-
-            // Logout button (add to header)
-            const nav = document.querySelector('.app-header nav');
-            if (nav) {
-                const logoutLink = document.createElement('a');
-                logoutLink.href = '#';
-                logoutLink.textContent = 'Logout';
-                logoutLink.style.color = '#dc2626';
-                logoutLink.style.borderBottomColor = 'transparent';
-                logoutLink.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    logout();
-                });
-                nav.appendChild(logoutLink);
-            }
-
+            
             logDebug('✅ Page initialization complete', 'success');
         });
 
