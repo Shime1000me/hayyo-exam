@@ -2,13 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <!-- ============================================ -->
-    <!-- PREVENT CACHING - ALWAYS LOAD FRESH          -->
-    <!-- ============================================ -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <!-- ============================================ -->
     <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <title>Hayyo Academy - Exams</title>
@@ -482,20 +478,8 @@
             return localStorage.getItem('token');
         }
 
-        function apiCall(endpoint, options = {}) {
-            const token = getToken();
-            return fetch(`${API_BASE}${endpoint}`, {
-                ...options,
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                    ...options.headers
-                }
-            });
-        }
-
         // ============================================
-        // AUTH CHECK - STAYS ON PAGE
+        // AUTH CHECK - REFRESH TOKEN IF EXPIRED
         // ============================================
 
         function checkAuth() {
@@ -520,7 +504,7 @@
                 return false;
             }
 
-            // Try to get user data (but DON'T redirect on failure)
+            // Verify token - if expired, clear and redirect
             fetch(`${API_BASE}/api/me`, {
                 headers: {
                     'Authorization': 'Bearer ' + token,
@@ -529,8 +513,10 @@
             })
             .then(res => {
                 if (res.status === 401) {
+                    // Token expired - clear and redirect to login
+                    console.log('⚠️ Token expired');
                     localStorage.removeItem('token');
-                    showToast('Session expired', 'error');
+                    showToast('Session expired. Please login again.', 'error');
                     setTimeout(() => {
                         window.location.href = 'index.html';
                     }, 1500);
@@ -557,6 +543,9 @@
             })
             .catch(err => {
                 console.log('⚠️ API error but staying on page:', err.message);
+                // Show placeholder
+                document.getElementById('userName').textContent = 'STUDENT';
+                document.getElementById('userEmail').textContent = 'student@hayyo.com';
             });
 
             return true;
@@ -587,8 +576,9 @@
             })
             .then(res => {
                 if (res.status === 401) {
+                    // Token expired - clear and redirect
                     localStorage.removeItem('token');
-                    showToast('Session expired', 'error');
+                    showToast('Session expired. Please login again.', 'error');
                     setTimeout(() => {
                         window.location.href = 'index.html';
                     }, 1500);
