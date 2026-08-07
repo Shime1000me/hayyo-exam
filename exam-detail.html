@@ -52,14 +52,46 @@
             text-transform: uppercase;
         }
         .red-line { height: 2px; background: #dc2626; }
+
+        .main-layout {
+            display: flex;
+            flex: 1;
+            min-height: calc(100vh - 50px);
+        }
+
+        .sidebar {
+            display: none;
+            width: 208px;
+            flex-shrink: 0;
+            border-right: 1px solid #e2e8f0;
+            background: #ffffff;
+            min-height: 100%;
+        }
+        @media (min-width: 768px) {
+            .sidebar { display: block; }
+        }
+        .sidebar .menu-item {
+            padding: 0.625rem 0.75rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: background 0.15s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: rgba(15, 23, 42, 0.7);
+        }
+        .sidebar .menu-item:hover { background: #f1f5f9; }
+        .sidebar .menu-item.active { background: #2563eb; color: white; }
+
         .main-content {
             flex: 1;
             min-width: 0;
-            padding: 1rem 1.5rem;
-            max-width: 80rem;
-            margin: 0 auto;
-            width: 100%;
+            padding: 1rem;
         }
+        @media (min-width: 768px) {
+            .main-content { padding: 1rem 1.5rem; }
+        }
+
         .info-box {
             border: 1px solid #e2e8f0;
             font-size: 0.875rem;
@@ -83,52 +115,126 @@
         .info-box .info-row:last-child { border-bottom: none; }
         .info-box .info-row .label { font-weight: 600; color: #0f172a; white-space: nowrap; }
         .info-box .info-row .value { font-weight: 600; color: #0f172a; }
+
         .exam-section { margin-top: 1.5rem; }
-        .exam-section h1 { font-size: 1.5rem; font-weight: 700; color: #0f172a; margin-bottom: 0.25rem; }
-        .exam-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
-            border-left: 4px solid #2563eb;
-        }
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        .badge-free { background: #dbeafe; color: #1e40af; }
-        .badge-premium { background: #fef3c7; color: #92400e; }
-        .btn-start {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            padding: 12px 30px;
-            border-radius: 50px;
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-family: 'Raleway', sans-serif;
-        }
-        .btn-start:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-            color: white;
-        }
-        .btn-start:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        .back-btn {
-            display: inline-block;
-            padding: 8px 20px;
-            background: #f1f5f9;
+        .exam-section h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
             color: #0f172a;
-            border-radius: 8px;
-            text-decoration: none;
-            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
         }
-        .back-btn:hover { background: #e2e8f0; }
+
+        .tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 1.5rem;
+        }
+        .tabs button {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: none;
+            background: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            cursor: pointer;
+            font-family: 'Raleway', sans-serif;
+            transition: all 0.15s;
+        }
+        .tabs button.active {
+            border-bottom-color: #2563eb;
+            color: #2563eb;
+        }
+        .tabs button:not(.active) { color: #64748b; }
+        .tabs button:not(.active):hover { color: #0f172a; }
+
+        .exam-list-title {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            margin-bottom: 1rem;
+        }
+        .exam-list-title svg { color: #64748b; }
+        .exam-list-title span { font-weight: 600; color: #0f172a; }
+
+        .exam-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .exam-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.125rem;
+            overflow: hidden;
+            background: #ffffff;
+            cursor: pointer;
+            transition: box-shadow 0.2s;
+        }
+        .exam-item:hover { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); }
+        .exam-item .item-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+        }
+        .exam-item .item-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: white;
+            font-size: 1rem;
+        }
+        .exam-item .item-icon.math { background: #e11d48; }
+        .exam-item .item-icon.english { background: #2563eb; }
+        .exam-item .item-icon.science { background: #16a34a; }
+        .exam-item .item-icon.social { background: #d97706; }
+        .exam-item .item-icon.other { background: #7c3aed; }
+
+        .exam-item .item-label {
+            font-size: 0.6rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        .exam-item .item-name {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #1d4ed8;
+        }
+        .exam-item .item-footer {
+            padding: 0.5rem 1rem;
+            border-top: 1px solid #e2e8f0;
+            font-size: 0.75rem;
+        }
+        .exam-item .item-footer .label { font-weight: 500; color: #0f172a; }
+        .exam-item .item-footer .value { color: #64748b; }
+
+        .mobile-menu-btn {
+            display: none;
+            position: absolute;
+            top: 62px;
+            left: 8px;
+            z-index: 20;
+            width: 28px;
+            height: 28px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.25rem;
+            color: #64748b;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .mobile-menu-btn:hover { background: #f1f5f9; }
+        @media (max-width: 767px) { .mobile-menu-btn { display: flex; } }
+
         .toast {
             position: fixed;
             top: 20px;
@@ -149,10 +255,11 @@
         .toast.show { opacity: 1; }
         .toast.error { background: #dc2626; }
         .toast.success { background: #16a34a; }
+
         .loading-spinner { text-align: center; padding: 40px; }
         .spinner {
             border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
+            border-top: 4px solid #2563eb;
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -160,8 +267,7 @@
             margin: 0 auto 1rem;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        /* DEBUG BOX */
+
         .debug-box {
             background: #1e1e2e;
             color: #cdd6f4;
@@ -172,16 +278,11 @@
             font-size: 12px;
             white-space: pre-wrap;
             word-break: break-all;
-            max-height: 200px;
+            max-height: 150px;
             overflow-y: auto;
             border: 1px solid #313244;
         }
-        .debug-box .label {
-            color: #89b4fa;
-            font-weight: 700;
-            display: block;
-            margin-bottom: 6px;
-        }
+        .debug-box .label { color: #89b4fa; font-weight: 700; display: block; margin-bottom: 6px; }
         .debug-box .success { color: #a6e3a1; }
         .debug-box .error { color: #f38ba8; }
         .debug-box .info { color: #89b4fa; }
@@ -190,6 +291,7 @@
         @media (max-width: 480px) {
             .info-box .info-row { grid-template-columns: 1fr 1fr; gap: 0.25rem 0.5rem; }
             .main-content { padding: 1rem; }
+            .exam-item .item-content { padding: 0.5rem 0.75rem; }
         }
     </style>
 </head>
@@ -198,8 +300,9 @@
     <div class="toast" id="toast"></div>
 
     <div id="root">
-        <div class="min-h-screen" style="min-height:100vh;background:#ffffff;display:flex;flex-direction:column;">
+        <div style="min-height:100vh;background:#ffffff;display:flex;flex-direction:column;">
 
+            <!-- ===== HEADER ===== -->
             <header class="app-header">
                 <div class="logo">🏫 Hayyo</div>
                 <nav>
@@ -211,63 +314,81 @@
                 </div>
             </header>
 
+            <!-- ===== RED LINE ===== -->
             <div class="red-line"></div>
 
-            <main class="main-content">
+            <!-- ===== MAIN LAYOUT ===== -->
+            <div class="main-layout">
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <a href="exams.html" class="back-btn">← Back to Exams</a>
-                    <a href="#" id="logoutBtn" style="color:#dc2626;text-decoration:none;font-size:0.9rem;">Logout</a>
-                </div>
+                <!-- ===== SIDEBAR ===== -->
+                <aside class="sidebar" id="sidebar">
+                    <div class="menu-item" id="sidebarLoading">Loading...</div>
+                </aside>
 
-                <!-- Basic Information -->
-                <div class="info-box">
-                    <div class="info-header">Basic Information</div>
-                    <div class="info-row">
-                        <span class="label">Full Name:</span>
-                        <span class="value" id="userName">Loading...</span>
-                        <span class="label">School:</span>
-                        <span class="value">Hayyo Academy</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="label">Email:</span>
-                        <span class="value" id="userEmail">Loading...</span>
-                        <span class="label">Admission Number:</span>
-                        <span class="value">HAY001</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="label">Exam Center:</span>
-                        <span class="value">ADDIS ABABA</span>
-                        <span class="label">Enrollment Type:</span>
-                        <span class="value">Regular</span>
-                    </div>
-                </div>
+                <!-- ===== MOBILE MENU ===== -->
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l16 0"></path><path d="M4 12l16 0"></path><path d="M4 18l16 0"></path></svg>
+                </button>
 
-                <!-- Exam Details -->
-                <div class="exam-section">
-                    <h1 id="examTitle">Loading Exam...</h1>
-                    
-                    <div id="examInfo">
-                        <div class="loading-spinner">
-                            <div class="spinner"></div>
-                            <p>Loading exam details...</p>
+                <!-- ===== MAIN CONTENT ===== -->
+                <main class="main-content">
+
+                    <!-- Basic Information -->
+                    <div class="info-box">
+                        <div class="info-header">Basic Information</div>
+                        <div class="info-row">
+                            <span class="label">Full Name:</span>
+                            <span class="value" id="userName">Loading...</span>
+                            <span class="label">School:</span>
+                            <span class="value">Hayyo Academy</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">Email:</span>
+                            <span class="value" id="userEmail">Loading...</span>
+                            <span class="label">Admission Number:</span>
+                            <span class="value">HAY001</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">Exam Center:</span>
+                            <span class="value">ADDIS ABABA</span>
+                            <span class="label">Enrollment Type:</span>
+                            <span class="value">Regular</span>
                         </div>
                     </div>
-                </div>
 
-                <!-- ===== DEBUG BOX ===== -->
-                <div class="debug-box" id="debugBox">
-                    <span class="label">🔍 Debug Log:</span>
-                    <div id="debugContent">Waiting for page to load...</div>
-                </div>
+                    <!-- Exam Detail Section -->
+                    <div class="exam-section">
+                        <h1 id="examCategoryTitle">Loading Exams...</h1>
 
-            </main>
+                        <!-- Tabs -->
+                        <div class="tabs">
+                            <button class="active" id="examTab">Exam</button>
+                            <button id="resultsTab">Results</button>
+                        </div>
+
+                        <div id="examListContainer">
+                            <div class="loading-spinner">
+                                <div class="spinner"></div>
+                                <p>Loading exam subjects...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ===== DEBUG BOX ===== -->
+                    <div class="debug-box" id="debugBox">
+                        <span class="label">🔍 Debug Log:</span>
+                        <div id="debugContent">Waiting for page to load...</div>
+                    </div>
+
+                </main>
+            </div>
+
         </div>
     </div>
 
     <script>
         // ============================================
-        // EXAM DETAIL PAGE - FIXED
+        // EXAM DETAIL PAGE - DYNAMIC SUBJECTS
         // ============================================
 
         const API_BASE = 'https://hayyo-exam.onrender.com';
@@ -296,7 +417,6 @@
         // AUTO-VERSION
         // ============================================
         (function autoVersion() {
-            logDebug('📦 Fetching app version...', 'info');
             fetch('https://hayyo-exam.onrender.com/api/version')
                 .then(res => res.json())
                 .then(data => {
@@ -309,60 +429,39 @@
                         }
                     });
                 })
-                .catch(err => {
-                    logDebug('⚠️ Version fetch failed: ' + err.message, 'warn');
-                });
+                .catch(err => logDebug('⚠️ Version fetch failed', 'warn'));
         })();
 
         // ============================================
-        // AUTH CHECK - FIXED
+        // AUTH CHECK
         // ============================================
         function checkAuth() {
             logDebug('📄 Checking authentication...', 'info');
             
-            // Check for token in URL first
             const urlParams = new URLSearchParams(window.location.search);
             const tokenFromUrl = urlParams.get('token');
-            
             if (tokenFromUrl) {
-                logDebug('🔑 Token found in URL', 'success');
                 localStorage.setItem('token', tokenFromUrl);
                 window.history.replaceState({}, document.title, window.location.pathname);
                 showToast('✅ Login successful!', 'success');
             }
             
             const token = localStorage.getItem('token');
-            
             if (!token) {
-                logDebug('❌ No token found in localStorage', 'error');
+                logDebug('❌ No token found', 'error');
                 showToast('Please login first', 'error');
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 1500);
+                setTimeout(() => window.location.href = 'index.html', 1500);
                 return false;
             }
-            
-            logDebug(`🔑 Token found: ${token.substring(0, 20)}...`, 'success');
-            
-            // Verify token with /api/me (FIXED: was /api/team)
-            logDebug('📡 Verifying token with /api/me...', 'info');
-            
+
             fetch(`${API_BASE}/api/me`, {
-                headers: {
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
             })
             .then(res => {
-                logDebug(`📡 /api/me response status: ${res.status}`, res.status === 200 ? 'success' : 'warn');
-                
                 if (res.status === 401) {
-                    logDebug('❌ Token expired/invalid', 'error');
                     localStorage.removeItem('token');
-                    showToast('Session expired. Please login again.', 'error');
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 1500);
+                    showToast('Session expired', 'error');
+                    setTimeout(() => window.location.href = 'index.html', 1500);
                     return null;
                 }
                 return res.json();
@@ -372,242 +471,202 @@
                     const user = data.user;
                     const name = user.name || 'Student';
                     const email = user.email || 'No email';
-                    
                     logDebug(`👤 User: ${name} (${email})`, 'success');
-                    
                     document.getElementById('userName').textContent = name.toUpperCase();
                     document.getElementById('userEmail').textContent = email;
-                    
                     const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                     document.getElementById('userAvatar').textContent = initials;
-                    
                     localStorage.setItem('userName', name);
                 }
             })
-            .catch(err => {
-                logDebug(`⚠️ API error: ${err.message}`, 'warn');
-                document.getElementById('userName').textContent = 'STUDENT';
-                document.getElementById('userEmail').textContent = 'student@hayyo.com';
-            });
-            
+            .catch(err => logDebug(`⚠️ API error: ${err.message}`, 'warn'));
+
             return true;
         }
 
         // ============================================
-        // GET EXAM ID FROM URL
+        // GET EXAM CATEGORY FROM URL
         // ============================================
-        function getExamIdFromURL() {
+        function getCategoryFromURL() {
             const params = new URLSearchParams(window.location.search);
-            let examId = params.get('id');
-            
-            // If not in URL, check localStorage
-            if (!examId) {
-                examId = localStorage.getItem('currentExamId');
-                if (examId) {
-                    logDebug(`📂 Found exam ID in localStorage: ${examId}`, 'info');
-                    // Update URL without reloading
-                    const newUrl = window.location.pathname + '?id=' + examId;
-                    window.history.replaceState({}, '', newUrl);
-                }
-            }
-            
-            return examId;
+            return params.get('category') || 'uee';
         }
 
         // ============================================
-        // LOAD EXAM DETAILS - FIXED
+        // GET SUBJECT ICON CLASS
         // ============================================
-        function loadExamDetails() {
-            const examId = getExamIdFromURL();
+        function getSubjectIcon(subject) {
+            const map = {
+                'mathematics': 'math',
+                'math': 'math',
+                'english': 'english',
+                'physics': 'science',
+                'chemistry': 'science',
+                'biology': 'science',
+                'social': 'social',
+                'history': 'social',
+                'geography': 'social',
+                'civics': 'social',
+                'sat': 'other'
+            };
+            return map[subject.toLowerCase()] || 'other';
+        }
+
+        // ============================================
+        // LOAD EXAM SUBJECTS FROM DATABASE
+        // ============================================
+        function loadExamSubjects() {
             const token = getToken();
-            
-            logDebug(`📡 Loading exam details for ID: ${examId}`, 'info');
-            
-            if (!examId) {
-                logDebug('❌ No exam ID provided', 'error');
-                document.getElementById('examInfo').innerHTML = `
-                    <div class="exam-card">
-                        <p style="color: #dc2626;">No exam ID provided. Please go back and select an exam.</p>
-                        <a href="exams.html" class="btn-start" style="display: inline-block; text-decoration: none; margin-top: 10px;">Go to Exams</a>
-                    </div>
-                `;
-                return;
-            }
-            
-            // Save to localStorage for future use
-            localStorage.setItem('currentExamId', examId);
-            
             if (!token) {
-                logDebug('❌ No token found', 'error');
-                document.getElementById('examInfo').innerHTML = `
-                    <div class="exam-card">
-                        <p style="color: #dc2626;">Please login to view exam details.</p>
-                        <a href="index.html" class="btn-start" style="display: inline-block; text-decoration: none; margin-top: 10px;">Go to Login</a>
+                document.getElementById('examListContainer').innerHTML = `
+                    <div class="exam-card" style="padding:20px;text-align:center;">
+                        <p style="color:#dc2626;">Please login to view exams.</p>
+                        <a href="index.html" class="btn-start" style="display:inline-block;text-decoration:none;margin-top:10px;">Go to Login</a>
                     </div>
                 `;
                 return;
             }
-            
-            // Show loading state
-            document.getElementById('examInfo').innerHTML = `
-                <div class="loading-spinner">
-                    <div class="spinner"></div>
-                    <p>Loading exam details...</p>
-                </div>
-            `;
-            
-            logDebug('📡 Fetching from /api/exams/' + examId, 'info');
-            
-            fetch(`${API_BASE}/api/exams/${examId}`, {
+
+            logDebug('📡 Fetching exam subjects...', 'info');
+
+            fetch(`${API_BASE}/api/exams`, {
                 headers: {
                     'Authorization': 'Bearer ' + token,
                     'Content-Type': 'application/json'
                 }
             })
             .then(res => {
-                logDebug(`📡 Response status: ${res.status}`, res.status === 200 ? 'success' : 'warn');
-                
+                logDebug(`📡 Response status: ${res.status}`, res.ok ? 'success' : 'warn');
                 if (res.status === 401) {
-                    logDebug('❌ Token expired', 'error');
                     localStorage.removeItem('token');
-                    showToast('Session expired. Please login again.', 'error');
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 1500);
+                    showToast('Session expired', 'error');
+                    setTimeout(() => window.location.href = 'index.html', 1500);
                     return null;
                 }
-                if (!res.ok) {
-                    throw new Error(`HTTP ${res.status}`);
-                }
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 return res.json();
             })
             .then(data => {
                 if (!data) return;
-                
-                const exam = data.exam || data;
-                logDebug(`✅ Exam found: ${exam.title}`, 'success');
-                
-                document.getElementById('examTitle').textContent = exam.title || 'Untitled Exam';
-                
-                const isPremium = exam.is_premium_only || false;
-                const badgeClass = isPremium ? 'badge-premium' : 'badge-free';
-                const badgeText = isPremium ? '⭐ Premium' : '🆓 Free';
-                
-                document.getElementById('examInfo').innerHTML = `
-                    <div class="exam-card">
-                        <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 10px;">
-                            <div>
-                                <p><strong>Subject:</strong> ${exam.subject || 'General'}</p>
-                                <p><strong>Time Limit:</strong> ${exam.time_limit || 0} minutes</p>
-                                <p><strong>Total Questions:</strong> ${exam.total_questions || 0}</p>
-                                <p><strong>Passing Score:</strong> ${exam.passing_score || 40}%</p>
-                                <p><strong>Status:</strong> <span style="color: #10b981;">Available now</span></p>
-                            </div>
-                            <div>
-                                <span class="badge ${badgeClass}">${badgeText}</span>
-                            </div>
-                        </div>
-                        ${exam.description ? `<p style="margin-top: 12px;"><strong>Description:</strong> ${exam.description}</p>` : ''}
-                        <div style="margin-top: 16px;">
-                            <button class="btn-start" onclick="startExam('${exam.id}')" id="startExamBtn">
-                                🚀 Start Exam
-                            </button>
-                        </div>
-                    </div>
-                `;
-                logDebug('✅ Exam details rendered', 'success');
+                const exams = data.exams || [];
+                logDebug(`✅ Loaded ${exams.length} exam subjects`, 'success');
+                renderExamSubjects(exams);
             })
             .catch(err => {
-                logDebug(`❌ Error loading exam: ${err.message}`, 'error');
-                document.getElementById('examInfo').innerHTML = `
-                    <div class="exam-card">
-                        <p style="color: #dc2626;">Error loading exam: ${err.message}</p>
-                        <p style="color: #64748b; margin-top: 8px;">Please try again or go back.</p>
-                        <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button class="btn-start" onclick="location.reload()">Retry</button>
-                            <a href="exams.html" class="btn-start" style="display: inline-block; text-decoration: none; background: #64748b;">Go Back</a>
-                        </div>
+                logDebug(`❌ Error loading exams: ${err.message}`, 'error');
+                document.getElementById('examListContainer').innerHTML = `
+                    <div class="exam-card" style="padding:20px;text-align:center;">
+                        <p style="color:#dc2626;">Error loading exams: ${err.message}</p>
+                        <button onclick="loadExamSubjects()" class="btn-start" style="margin-top:10px;">Retry</button>
                     </div>
                 `;
-                showToast('Error loading exam details', 'error');
             });
         }
 
         // ============================================
-        // START EXAM
+        // RENDER EXAM SUBJECTS
         // ============================================
-        function startExam(examId) {
-            const password = prompt('Enter exam password:');
-            if (password === null) return;
+        function renderExamSubjects(exams) {
+            const container = document.getElementById('examListContainer');
             
-            const btn = document.getElementById('startExamBtn');
-            if (btn) {
-                btn.textContent = 'Starting...';
-                btn.disabled = true;
-            }
-            
-            const token = localStorage.getItem('token');
-            
-            if (!token) {
-                showToast('Please login first', 'error');
-                if (btn) {
-                    btn.textContent = '🚀 Start Exam';
-                    btn.disabled = false;
-                }
+            if (!exams || exams.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center;padding:40px;color:#64748b;">
+                        <p style="font-size:3rem;margin-bottom:1rem;">📚</p>
+                        <h3>No exams available</h3>
+                        <p>Check back later for new exams.</p>
+                    </div>
+                `;
                 return;
             }
-            
-            logDebug(`📡 Starting exam ${examId}...`, 'info');
-            
-            fetch(`${API_BASE}/api/exams/start`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ exam_id: examId, password: password })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    logDebug('✅ Exam started successfully!', 'success');
-                    showToast('✅ Exam started! Redirecting...', 'success');
-                    // Save exam ID before redirecting
-                    localStorage.setItem('currentExamId', examId);
-                    setTimeout(() => {
-                        window.location.href = `maths-exam.html?exam=${examId}`;
-                    }, 1000);
-                } else {
-                    logDebug(`❌ Failed to start exam: ${data.error}`, 'error');
-                    showToast(data.error || 'Failed to start exam', 'error');
-                    if (btn) {
-                        btn.textContent = '🚀 Start Exam';
-                        btn.disabled = false;
-                    }
+
+            // Group exams by subject for cleaner display
+            const subjectMap = {};
+            exams.forEach(exam => {
+                const subject = exam.subject || 'General';
+                if (!subjectMap[subject]) {
+                    subjectMap[subject] = [];
                 }
-            })
-            .catch(err => {
-                logDebug(`❌ Error starting exam: ${err.message}`, 'error');
-                showToast('Error starting exam', 'error');
-                console.error(err);
-                if (btn) {
-                    btn.textContent = '🚀 Start Exam';
-                    btn.disabled = false;
-                }
+                subjectMap[subject].push(exam);
             });
+
+            const subjects = Object.keys(subjectMap);
+            const category = getCategoryFromURL();
+            
+            // Update title
+            document.getElementById('examCategoryTitle').textContent = 
+                `${category.toUpperCase()} Exams - ${subjects.length} Subjects`;
+
+            // Build HTML for each subject
+            let html = `
+                <div class="exam-list-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6l6 -6"></path></svg>
+                    <span>Available Exam Subjects</span>
+                </div>
+                <div class="exam-list">
+            `;
+
+            subjects.forEach(subject => {
+                const examItems = subjectMap[subject];
+                const firstExam = examItems[0];
+                const iconClass = getSubjectIcon(subject);
+                
+                html += `
+                    <div class="exam-item" onclick="window.location.href='exam-portal.html?id=${firstExam.id}'">
+                        <div class="item-content">
+                            <div class="item-icon ${iconClass}">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"></path><path d="M13.5 6.5l4 4"></path></svg>
+                            </div>
+                            <div>
+                                <p class="item-label">Exam</p>
+                                <p class="item-name">${subject}</p>
+                            </div>
+                        </div>
+                        <div class="item-footer">
+                            <span class="label">Opened:</span> 
+                            <span class="value">${examItems.length} exam${examItems.length > 1 ? 's' : ''} available</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+            container.innerHTML = html;
+
+            // Update sidebar
+            updateSidebar(subjects, category);
+            
+            logDebug(`✅ Rendered ${subjects.length} subjects`, 'success');
+        }
+
+        // ============================================
+        // UPDATE SIDEBAR
+        // ============================================
+        function updateSidebar(subjects, category) {
+            const sidebar = document.getElementById('sidebar');
+            if (!sidebar) return;
+
+            let html = `
+                <div class="menu-item" style="font-weight:700;color:#0f172a;">${category.toUpperCase()} Exams</div>
+            `;
+
+            subjects.forEach(subject => {
+                html += `
+                    <div class="menu-item active">${subject}</div>
+                `;
+            });
+
+            sidebar.innerHTML = html;
         }
 
         // ============================================
         // LOGOUT
         // ============================================
         function logout() {
-            logDebug('🔓 Logging out...', 'info');
             localStorage.removeItem('token');
             localStorage.removeItem('currentExamId');
             showToast('Logged out successfully', 'success');
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 500);
+            setTimeout(() => window.location.href = 'index.html', 500);
         }
 
         // ============================================
@@ -616,20 +675,29 @@
         document.addEventListener('DOMContentLoaded', function() {
             logDebug('📄 Exam Detail page loaded', 'info');
             
-            // Setup logout button
-            document.getElementById('logoutBtn')?.addEventListener('click', function(e) {
-                e.preventDefault();
-                logout();
-            });
-            
             if (checkAuth()) {
-                loadExamDetails();
+                loadExamSubjects();
             }
-            
+
+            // Logout button (add to header)
+            const nav = document.querySelector('.app-header nav');
+            if (nav) {
+                const logoutLink = document.createElement('a');
+                logoutLink.href = '#';
+                logoutLink.textContent = 'Logout';
+                logoutLink.style.color = '#dc2626';
+                logoutLink.style.borderBottomColor = 'transparent';
+                logoutLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    logout();
+                });
+                nav.appendChild(logoutLink);
+            }
+
             logDebug('✅ Page initialization complete', 'success');
         });
 
-        console.log('✅ Exam Detail page loaded with debug box');
+        console.log('✅ Exam Detail page loaded with dynamic subjects');
     </script>
 
 </body>
