@@ -417,7 +417,7 @@
 
             logDebug(`🔑 Token found: ${token.substring(0, 20)}...`, 'success');
 
-            // Verify token with /api/me (FIXED: was /api/team)
+            // Verify token with /api/me
             logDebug('📡 Verifying token with /api/me...', 'info');
             
             fetch(`${API_BASE}/api/me`, {
@@ -427,7 +427,7 @@
                 }
             })
             .then(res => {
-                logDebug(`📡 Response status: ${res.status}`, res.status === 200 ? 'success' : 'warn');
+                logDebug(`📡 /api/me response status: ${res.status}`, res.status === 200 ? 'success' : 'warn');
                 
                 if (res.status === 401) {
                     logDebug('❌ Token expired/invalid', 'error');
@@ -467,7 +467,7 @@
         }
 
         // ============================================
-        // LOAD EXAMS - WITH DEBUG
+        // LOAD EXAMS - FIXED WITH BETTER ERROR HANDLING
         // ============================================
 
         function loadExams() {
@@ -484,9 +484,11 @@
                 return;
             }
 
+            logDebug('📡 Token found: ' + token.substring(0, 30) + '...', 'success');
             logDebug('📡 Loading exams from /api/exams...', 'info');
 
             fetch(`${API_BASE}/api/exams`, {
+                method: 'GET',
                 headers: {
                     'Authorization': 'Bearer ' + token,
                     'Content-Type': 'application/json'
@@ -496,12 +498,35 @@
                 logDebug(`📡 Exams response status: ${res.status}`, res.status === 200 ? 'success' : 'warn');
                 
                 if (res.status === 401) {
-                    logDebug('❌ Token expired during exams fetch', 'error');
-                    localStorage.removeItem('token');
-                    showToast('Session expired. Please login again.', 'error');
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 1500);
+                    logDebug('❌ Token expired or invalid for /api/exams', 'error');
+                    logDebug('🔑 Trying to verify token with /api/me...', 'warn');
+                    
+                    // Try to verify token first
+                    fetch(`${API_BASE}/api/me`, {
+                        headers: {
+                            'Authorization': 'Bearer ' + token,
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(meRes => {
+                        if (meRes.status === 200) {
+                            logDebug('✅ Token is valid for /api/me, but /api/exams failed', 'warn');
+                            logDebug('🔄 Please try clicking "Retry" button', 'warn');
+                            document.getElementById('examGrid').innerHTML = `
+                                <div style="grid-column:1/-1;text-align:center;padding:40px;color:#64748b;">
+                                    <p style="color:#f9e2af;font-size:1.2rem;">⚠️ Token valid but exams not loading</p>
+                                    <p>Please click the Retry button below.</p>
+                                    <button onclick="loadExams()" style="margin-top:12px;padding:8px 20px;background:#2563eb;color:white;border:none;border-radius:8px;cursor:pointer;">Retry</button>
+                                </div>
+                            `;
+                        } else {
+                            localStorage.removeItem('token');
+                            showToast('Session expired. Please login again.', 'error');
+                            setTimeout(() => {
+                                window.location.href = 'index.html';
+                            }, 1500);
+                        }
+                    });
                     return null;
                 }
                 if (!res.ok) {
