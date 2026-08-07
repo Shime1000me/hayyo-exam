@@ -17,6 +17,11 @@ const { v2: cloudinary } = require('cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 // ============================================
+// APP VERSION - Change this when you update the app
+// ============================================
+const APP_VERSION = '1.0.1';
+
+// ============================================
 // SUPABASE REST API CLIENT
 // ============================================
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -478,6 +483,11 @@ async function isTeacher(req, res, next) {
 // ROUTES
 // ============================================
 
+// --- VERSION ROUTE ---
+app.get('/api/version', (req, res) => {
+  res.json({ version: APP_VERSION });
+});
+
 // --- AUTH ROUTES ---
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
@@ -487,7 +497,7 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => {
   const token = generateToken(req.user);
   // Redirect to the REAL dashboard (not test-dashboard)
-  const redirectUrl = 'https://Shime1000me.github.io/hayyo-exam/dashboard.html?token=' + token;
+  const redirectUrl = 'https://Shime1000me.github.io/hayyo-exam/dashboard.html?token=' + token + '&v=' + APP_VERSION;
   console.log('🔍 OAuth Success - Redirecting to:', redirectUrl);
   res.redirect(redirectUrl);
 });
@@ -548,7 +558,7 @@ app.get('/api/me', verifyToken, async (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     name: 'Hayyo Exam API',
-    version: '1.0.0',
+    version: APP_VERSION,
     status: 'running',
     documentation: 'https://hayyo-exam.onrender.com/api-docs',
     endpoints: {
@@ -557,7 +567,8 @@ app.get('/', (req, res) => {
       payment: '/api/payment',
       admin: '/api/admin',
       teacher: '/api/teacher',
-      health: '/health'
+      health: '/health',
+      version: '/api/version'
     }
   });
 });
@@ -1078,6 +1089,7 @@ app.listen(PORT, () => {
   console.log('📊 Environment: ' + (process.env.NODE_ENV || 'development'));
   console.log('🔗 Supabase API: ' + SUPABASE_URL);
   console.log('🌐 Trust proxy: ' + app.get('trust proxy'));
+  console.log('📦 App version: ' + APP_VERSION);
 });
 
 // Handle graceful shutdown
