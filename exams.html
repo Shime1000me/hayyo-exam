@@ -216,6 +216,33 @@
             margin: 0 auto 1rem;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* DEBUG BOX */
+        .debug-box {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #313244;
+        }
+        .debug-box .label {
+            color: #89b4fa;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .debug-box .success { color: #a6e3a1; }
+        .debug-box .error { color: #f38ba8; }
+        .debug-box .info { color: #89b4fa; }
+        .debug-box .warn { color: #f9e2af; }
+
         @media (max-width: 480px) {
             .info-box .info-row { grid-template-columns: 1fr 1fr; gap: 0.25rem 0.5rem; }
             .main-content { padding: 1rem; }
@@ -296,6 +323,12 @@
                     </div>
                 </div>
 
+                <!-- ===== DEBUG BOX ===== -->
+                <div class="debug-box" id="debugBox">
+                    <span class="label">🔍 Debug Log:</span>
+                    <div id="debugContent">Waiting for page to load...</div>
+                </div>
+
             </main>
         </div>
     </div>
@@ -306,6 +339,15 @@
         // ============================================
 
         const API_BASE = 'https://hayyo-exam.onrender.com';
+        const debugContent = document.getElementById('debugContent');
+
+        function logDebug(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warn' ? '⚠️' : '🔍';
+            const color = type === 'success' ? '#a6e3a1' : type === 'error' ? '#f38ba8' : type === 'warn' ? '#f9e2af' : '#89b4fa';
+            debugContent.innerHTML += `<div style="color:${color}">${prefix} [${timestamp}] ${message}</div>`;
+            console.log(`${prefix} ${message}`);
+        }
 
         function showToast(message, type = 'info') {
             const toast = document.getElementById('toast');
@@ -315,14 +357,15 @@
         }
 
         // ============================================
-        // AUTO-VERSION - Fetches version from backend
+        // AUTO-VERSION
         // ============================================
         (function autoVersion() {
+            logDebug('📦 Fetching app version...', 'info');
             fetch('https://hayyo-exam.onrender.com/api/version')
                 .then(res => res.json())
                 .then(data => {
                     const v = data.version;
-                    console.log('📦 App version:', v);
+                    logDebug(`📦 App version: ${v}`, 'success');
                     document.querySelectorAll('a[href]').forEach(link => {
                         const href = link.getAttribute('href');
                         if (href && href.includes('.html') && !href.includes('?')) {
@@ -330,7 +373,9 @@
                         }
                     });
                 })
-                .catch(err => console.log('⚠️ Version fetch failed'));
+                .catch(err => {
+                    logDebug('⚠️ Version fetch failed: ' + err.message, 'warn');
+                });
         })();
 
         // ============================================
@@ -342,15 +387,18 @@
         }
 
         // ============================================
-        // AUTH CHECK - SIMPLIFIED (LIKE DASHBOARD)
+        // AUTH CHECK - WITH DEBUG
         // ============================================
 
         function checkAuth() {
-            // Check for token in URL first
+            logDebug('📄 Checking authentication...', 'info');
+            
+            // Check for token in URL
             const urlParams = new URLSearchParams(window.location.search);
             const tokenFromUrl = urlParams.get('token');
 
             if (tokenFromUrl) {
+                logDebug('🔑 Token found in URL', 'success');
                 localStorage.setItem('token', tokenFromUrl);
                 window.history.replaceState({}, document.title, window.location.pathname);
                 showToast('✅ Login successful!', 'success');
@@ -358,9 +406,8 @@
 
             const token = getToken();
 
-            // If NO token at all, redirect to login
             if (!token) {
-                console.log('❌ No token found, redirecting to login');
+                logDebug('❌ No token found in localStorage', 'error');
                 showToast('Please login first', 'error');
                 setTimeout(() => {
                     window.location.href = 'index.html';
@@ -368,9 +415,11 @@
                 return false;
             }
 
-            console.log('✅ Token found:', token.substring(0, 20) + '...');
+            logDebug(`🔑 Token found: ${token.substring(0, 20)}...`, 'success');
 
-            // Try to get user data - but DON'T redirect on failure
+            // Verify token with /api/me
+            logDebug('📡 Verifying token with /api/me...', 'info');
+            
             fetch(`${API_BASE}/api/me`, {
                 headers: {
                     'Authorization': 'Bearer ' + token,
@@ -378,8 +427,10 @@
                 }
             })
             .then(res => {
+                logDebug(`📡 Response status: ${res.status}`, res.status === 200 ? 'success' : 'warn');
+                
                 if (res.status === 401) {
-                    console.log('⚠️ Token expired, clearing and redirecting');
+                    logDebug('❌ Token expired/invalid', 'error');
                     localStorage.removeItem('token');
                     showToast('Session expired. Please login again.', 'error');
                     setTimeout(() => {
@@ -395,6 +446,8 @@
                     const name = user.name || 'Student';
                     const email = user.email || 'No email';
 
+                    logDebug(`👤 User: ${name} (${email})`, 'success');
+                    
                     document.getElementById('userName').textContent = name.toUpperCase();
                     document.getElementById('userEmail').textContent = email;
                     document.getElementById('welcomeName').textContent = name;
@@ -402,12 +455,10 @@
                     const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                     document.getElementById('userAvatar').textContent = initials;
                     localStorage.setItem('userName', name);
-                    console.log('✅ User data loaded:', name);
                 }
             })
             .catch(err => {
-                console.log('⚠️ API error but staying on page:', err.message);
-                // Show placeholder, don't redirect
+                logDebug(`⚠️ API error: ${err.message}`, 'warn');
                 document.getElementById('userName').textContent = 'STUDENT';
                 document.getElementById('userEmail').textContent = 'student@hayyo.com';
             });
@@ -416,13 +467,14 @@
         }
 
         // ============================================
-        // LOAD EXAMS
+        // LOAD EXAMS - WITH DEBUG
         // ============================================
 
         function loadExams() {
             const token = getToken();
 
             if (!token) {
+                logDebug('❌ No token, cannot load exams', 'error');
                 document.getElementById('examGrid').innerHTML = `
                     <div style="grid-column:1/-1;text-align:center;padding:40px;color:#64748b;">
                         <p>Please login to view exams.</p>
@@ -432,7 +484,7 @@
                 return;
             }
 
-            console.log('🔍 Loading exams...');
+            logDebug('📡 Loading exams from /api/exams...', 'info');
 
             fetch(`${API_BASE}/api/exams`, {
                 headers: {
@@ -441,9 +493,10 @@
                 }
             })
             .then(res => {
-                console.log('📡 Exams response status:', res.status);
+                logDebug(`📡 Exams response status: ${res.status}`, res.status === 200 ? 'success' : 'warn');
                 
                 if (res.status === 401) {
+                    logDebug('❌ Token expired during exams fetch', 'error');
                     localStorage.removeItem('token');
                     showToast('Session expired. Please login again.', 'error');
                     setTimeout(() => {
@@ -460,8 +513,10 @@
                 if (!data) return;
                 
                 if (data.exams && data.exams.length > 0) {
+                    logDebug(`✅ Loaded ${data.exams.length} exams`, 'success');
                     renderExams(data.exams);
                 } else {
+                    logDebug('📭 No exams available', 'warn');
                     document.getElementById('examGrid').innerHTML = `
                         <div style="grid-column:1/-1;text-align:center;padding:40px;color:#64748b;">
                             <p style="font-size:3rem;margin-bottom:1rem;">📚</p>
@@ -472,7 +527,7 @@
                 }
             })
             .catch(err => {
-                console.error('❌ Error loading exams:', err);
+                logDebug(`❌ Error loading exams: ${err.message}`, 'error');
                 document.getElementById('examGrid').innerHTML = `
                     <div style="grid-column:1/-1;text-align:center;padding:40px;color:#64748b;">
                         <p style="font-size:3rem;margin-bottom:1rem;">⚠️</p>
@@ -565,14 +620,16 @@
         // ============================================
 
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔐 Exams Page - Loading');
+            logDebug('📄 Exams page loaded', 'info');
             
             if (checkAuth()) {
                 loadExams();
             }
+            
+            logDebug('✅ Page initialization complete', 'success');
         });
 
-        console.log('✅ Exams page loaded');
+        console.log('✅ Exams page loaded with debug box');
     </script>
 
 </body>
