@@ -19,7 +19,7 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 // ============================================
 // APP VERSION - Change this when you update the app
 // ============================================
-const APP_VERSION = '1.0.1';
+const APP_VERSION = '1.0.2';  // Incremented version
 
 // ============================================
 // SUPABASE REST API CLIENT
@@ -423,7 +423,7 @@ function generateToken(user) {
   return jwt.sign(
     { userId: user.id, email: user.email },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    { expiresIn: '365d' }  // 1 year - tokens last a long time
   );
 }
 
@@ -496,7 +496,6 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 // ============================================
 app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => {
   const token = generateToken(req.user);
-  // Redirect to the REAL dashboard (not test-dashboard)
   const redirectUrl = 'https://Shime1000me.github.io/hayyo-exam/dashboard.html?token=' + token + '&v=' + APP_VERSION;
   console.log('🔍 OAuth Success - Redirecting to:', redirectUrl);
   res.redirect(redirectUrl);
@@ -517,7 +516,6 @@ app.get('/api/me', verifyToken, async (req, res) => {
   try {
     console.log('🔍 /api/me called for user:', req.user.userId);
     
-    // DIRECT fetch to Supabase - bypasses supabaseSelect helper
     const url = SUPABASE_URL + '/rest/v1/users?select=*&id=eq.' + encodeURIComponent(req.user.userId);
     console.log('🔍 /api/me: Fetching from:', url);
     
@@ -573,31 +571,84 @@ app.get('/', (req, res) => {
   });
 });
 
-// --- EXAM ROUTES ---
-app.get('/api/exams', isAuthenticated, async (req, res) => {
+// ============================================
+// FIXED: /api/exams - Uses verifyToken + direct fetch
+// ============================================
+app.get('/api/exams', verifyToken, async (req, res) => {
   try {
-    const exams = await supabaseSelect('exams', {
-      order: { column: 'year', direction: 'desc' }
+    console.log('🔍 /api/exams called for user:', req.user.userId);
+    
+    const url = SUPABASE_URL + '/rest/v1/exams?select=*&order=year.desc';
+    console.log('🔍 /api/exams: Fetching from:', url);
+    
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
     });
+    
+    console.log('🔍 /api/exams: Response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('❌ /api/exams: Supabase error:', response.status, errorText);
+      return res.status(500).json({ error: 'Failed to fetch exams' });
+    }
+    
+    const exams = await response.json();
+    console.log('✅ /api/exams: Loaded', exams.length, 'exams');
     res.json({ success: true, exams: exams });
+    
   } catch (error) {
+    console.error('❌ /api/exams error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
-app.get('/api/exams/:id', isAuthenticated, async (req, res) => {
+// ============================================
+// FIXED: /api/exams/:id - Uses verifyToken + direct fetch
+// ============================================
+app.get('/api/exams/:id', verifyToken, async (req, res) => {
   try {
-    const exams = await supabaseSelect('exams', {
-      eq: { id: req.params.id },
-      select: '*'
+    console.log('🔍 /api/exams/:id called for user:', req.user.userId);
+    console.log('🔍 Exam ID:', req.params.id);
+    
+    const url = SUPABASE_URL + '/rest/v1/exams?select=*&id=eq.' + encodeURIComponent(req.params.id);
+    console.log('🔍 /api/exams/:id: Fetching from:', url);
+    
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
     });
-    if (exams.length === 0) return res.status(404).json({ error: 'Exam not found' });
+    
+    console.log('🔍 /api/exams/:id: Response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('❌ /api/exams/:id: Supabase error:', response.status, errorText);
+      return res.status(500).json({ error: 'Failed to fetch exam' });
+    }
+    
+    const exams = await response.json();
+    if (!exams || exams.length === 0) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
+    
+    console.log('✅ /api/exams/:id: Exam found:', exams[0].title);
     res.json({ success: true, exam: exams[0] });
+    
   } catch (error) {
+    console.error('❌ /api/exams/:id error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
+// --- OTHER EXAM ROUTES (Keep using isAuthenticated for now) ---
 app.get('/api/exams/:id/access', isAuthenticated, async (req, res) => {
   try {
     const exams = await supabaseSelect('exams', {
@@ -996,10 +1047,8 @@ app.post('/api/teacher/exams/:id/questions/bulk', isAuthenticated, isTeacher, as
     });
     if (teacherExams.length === 0) return res.status(403).json({ error: 'You are not assigned to this exam' });
     
-    // Delete existing questions
     await supabaseDelete('questions', { exam_id: id });
     
-    // Insert new questions
     const inserted = [];
     for (const q of questions) {
       const result = await supabaseInsert('questions', {
