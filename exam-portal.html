@@ -134,13 +134,6 @@
             max-height: 300px;
             object-fit: contain;
         }
-        .math-display {
-            font-size: 1.2rem;
-            background: #f8f9fa;
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin: 10px 0;
-        }
         .feedback-msg {
             position: fixed;
             top: 20px;
@@ -186,20 +179,8 @@
             background: #fff3cd;
             color: #856404;
         }
-        .btn-review {
-            background: #ffc107;
-            color: #000;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-weight: 500;
-        }
-        .btn-review:hover {
-            background: #e0a800;
-            color: #000;
-        }
 
-        /* Debug Box */
+        /* DEBUG BOX */
         .debug-box {
             background: #1e1e2e;
             color: #cdd6f4;
@@ -343,14 +324,6 @@
         </div>
     </div>
 
-    <!-- Debug Box -->
-    <div class="container">
-        <div class="debug-box" id="debugBox">
-            <span class="label">🔍 Debug Log:</span>
-            <div id="debugContent">Waiting for page to load...</div>
-        </div>
-    </div>
-
     <!-- Submit Confirmation Modal -->
     <div class="modal fade" id="submitModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -374,10 +347,18 @@
         </div>
     </div>
 
+    <!-- ===== DEBUG BOX ===== -->
+    <div class="container">
+        <div class="debug-box" id="debugBox">
+            <span class="label">🔍 Debug Log:</span>
+            <div id="debugContent">Waiting for page to load...</div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ============================================================
-        // 1. API Base URL
+        // 1. API Configuration
         // ============================================================
         const API_BASE = 'https://hayyo-exam.onrender.com';
         const debugContent = document.getElementById('debugContent');
@@ -477,7 +458,10 @@
         // ============================================================
         function renderQuestion(index) {
             const questions = examData.questions;
-            if (!questions || questions.length === 0 || index >= questions.length) return;
+            if (!questions || questions.length === 0 || index >= questions.length) {
+                logDebug('⚠️ No questions to render', 'warn');
+                return;
+            }
 
             const q = questions[index];
             const isAnswered = userAnswers[index] !== undefined && userAnswers[index] !== null;
@@ -491,18 +475,20 @@
                         ${isReviewed ? '<span class="badge bg-warning text-dark"><i class="bi bi-flag"></i> Review</span>' : ''}
                     </div>
                 </div>
-                <div class="question-text">${q.question_text || 'Question text not available'}</div>
+                <div class="question-text">${q.text || q.question_text || 'Question text not available'}</div>
                 ${q.image_url ? `<img src="${q.image_url}" alt="Question image" class="question-image">` : ''}
                 <div class="options-container">`;
 
-            if (q.options && q.options.length > 0) {
-                q.options.forEach((opt, optIndex) => {
+            const options = q.options || [];
+            if (options.length > 0) {
+                options.forEach((opt, optIndex) => {
+                    const optText = typeof opt === 'string' ? opt : (opt.option_text || opt.text || '');
                     const isSelected = (userAnswers[index] === optIndex);
                     const selectedClass = isSelected ? 'selected' : '';
                     html += `
                         <label class="option-label ${selectedClass}" data-q="${index}" data-opt="${optIndex}">
                             <input type="radio" name="q${index}" value="${optIndex}" ${isSelected ? 'checked' : ''}>
-                            ${String.fromCharCode(65 + optIndex)}. ${opt.option_text || opt}
+                            ${String.fromCharCode(65 + optIndex)}. ${optText}
                         </label>
                     `;
                 });
@@ -672,7 +658,8 @@
 
             const answers = examData.questions.map((q, index) => {
                 const selected = userAnswers[index] !== undefined ? userAnswers[index] : null;
-                const isCorrect = selected !== null && q.options && q.options[selected] && q.options[selected].is_correct;
+                const options = q.options || [];
+                const isCorrect = selected !== null && options[selected] && (options[selected].is_correct === true || options[selected].isCorrect === true);
                 const marks = q.marks || 1;
                 if (selected !== null) {
                     if (isCorrect) {
@@ -689,7 +676,7 @@
                     totalMarks += marks;
                 }
                 return {
-                    question_id: q.id,
+                    question_id: q.id || index,
                     selected_option: selected,
                     is_correct: isCorrect || false
                 };
@@ -707,10 +694,11 @@
                 unanswered: unanswered
             };
 
-            fetch(`${API_BASE}/api/submit-exam`, {
+            fetch(`${API_BASE}/api/exams/submit`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + getToken()
                 },
                 body: JSON.stringify(payload)
             })
@@ -723,7 +711,7 @@
                         window.location.href = `results.html?exam=${examData.examId}&student=${examData.studentId}`;
                     }, 2000);
                 } else {
-                    showFeedback('Error submitting exam: ' + data.message, 'error');
+                    showFeedback('Error submitting exam: ' + (data.message || data.error), 'error');
                     isExamSubmitted = false;
                     submitExamBtn.disabled = false;
                 }
@@ -776,14 +764,14 @@
         // 9. Load Exam Data - FIXED
         // ============================================================
         function loadExam() {
-            logDebug('📄 Loading exam page...', 'info');
+            logDebug('📄 Maths Exam page loaded', 'info');
             
             const urlParams = new URLSearchParams(window.location.search);
             const examId = urlParams.get('exam');
             const token = getToken();
 
             if (!examId) {
-                logDebug('❌ No exam ID provided', 'error');
+                logDebug('❌ No exam ID provided in URL', 'error');
                 showFeedback('Invalid exam link. Please contact your teacher.', 'error');
                 return;
             }
@@ -798,6 +786,7 @@
             }
 
             examData.examId = examId;
+            examData.studentId = 'student';
             logDebug(`🔍 Loading exam: ${examId}`, 'info');
 
             // Fetch exam data from the correct endpoint
@@ -822,49 +811,8 @@
                     throw new Error('Invalid exam data');
                 }
 
-                // For now, use placeholder questions since we don't have a questions endpoint
-                // You'll need to add a /api/exams/:id/questions endpoint
-                const placeholderQuestions = [
-                    {
-                        id: 1,
-                        question_number: 1,
-                        text: 'What is 2 + 2?',
-                        options: [
-                            { option_text: '3', is_correct: false },
-                            { option_text: '4', is_correct: true },
-                            { option_text: '5', is_correct: false },
-                            { option_text: '6', is_correct: false }
-                        ],
-                        marks: 1
-                    },
-                    {
-                        id: 2,
-                        question_number: 2,
-                        text: 'What is the square root of 16?',
-                        options: [
-                            { option_text: '2', is_correct: false },
-                            { option_text: '3', is_correct: false },
-                            { option_text: '4', is_correct: true },
-                            { option_text: '5', is_correct: false }
-                        ],
-                        marks: 1
-                    },
-                    {
-                        id: 3,
-                        question_number: 3,
-                        text: 'Solve: 5x = 20',
-                        options: [
-                            { option_text: 'x = 2', is_correct: false },
-                            { option_text: 'x = 3', is_correct: false },
-                            { option_text: 'x = 4', is_correct: true },
-                            { option_text: 'x = 5', is_correct: false }
-                        ],
-                        marks: 1
-                    }
-                ];
-
-                // Try to fetch real questions if the endpoint exists
-                fetch(`${API_BASE}/api/exams/${examId}/questions`, {
+                // Try to fetch questions
+                return fetch(`${API_BASE}/api/exams/${examId}/questions`, {
                     headers: {
                         'Authorization': 'Bearer ' + token,
                         'Content-Type': 'application/json'
@@ -881,7 +829,12 @@
                         examData.questions = qData.questions;
                         logDebug(`✅ Loaded ${examData.questions.length} questions from API`, 'success');
                     } else {
-                        examData.questions = placeholderQuestions;
+                        // Fallback: use placeholder questions
+                        examData.questions = [
+                            { id: 1, question_number: 1, text: 'What is 2 + 2?', options: [{option_text: '3', is_correct: false}, {option_text: '4', is_correct: true}, {option_text: '5', is_correct: false}, {option_text: '6', is_correct: false}], marks: 1 },
+                            { id: 2, question_number: 2, text: 'What is the square root of 16?', options: [{option_text: '2', is_correct: false}, {option_text: '3', is_correct: false}, {option_text: '4', is_correct: true}, {option_text: '5', is_correct: false}], marks: 1 },
+                            { id: 3, question_number: 3, text: 'Solve: 5x = 20', options: [{option_text: 'x = 2', is_correct: false}, {option_text: 'x = 3', is_correct: false}, {option_text: 'x = 4', is_correct: true}, {option_text: 'x = 5', is_correct: false}], marks: 1 }
+                        ];
                         logDebug(`ℹ️ Using ${examData.questions.length} placeholder questions`, 'warn');
                     }
                     
@@ -990,7 +943,10 @@
         // ============================================================
         // 11. Initialize
         // ============================================================
-        document.addEventListener('DOMContentLoaded', loadExam);
+        document.addEventListener('DOMContentLoaded', function() {
+            logDebug('📄 DOM loaded', 'info');
+            loadExam();
+        });
 
         window.addEventListener('beforeunload', (e) => {
             if (!isExamSubmitted && Object.keys(userAnswers).length > 0) {
@@ -1001,4 +957,4 @@
     </script>
 
 </body>
-    </html>
+</html>
