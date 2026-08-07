@@ -205,6 +205,17 @@
         .toast.show { opacity: 1; }
         .toast.error { background: #dc2626; }
         .toast.success { background: #16a34a; }
+        .loading-spinner { text-align: center; padding: 40px; }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2563eb;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @media (max-width: 480px) {
             .info-box .info-row { grid-template-columns: 1fr 1fr; gap: 0.25rem 0.5rem; }
             .main-content { padding: 1rem; }
@@ -229,7 +240,7 @@
                     <a href="#" id="logoutBtn" style="color:#dc2626;border-bottom-color:transparent;">Logout</a>
                 </nav>
                 <div class="user-menu">
-                    <div class="avatar" id="userAvatar">SH</div>
+                    <div class="avatar" id="userAvatar">ST</div>
                 </div>
             </header>
 
@@ -278,8 +289,8 @@
                     </div>
 
                     <div class="exam-grid" id="examGrid">
-                        <div style="grid-column:1/-1;text-align:center;padding:40px;color:#64748b;">
-                            <div style="border:4px solid #f3f3f3;border-top:4px solid #2563eb;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto 1rem;"></div>
+                        <div class="loading-spinner" style="grid-column:1/-1;">
+                            <div class="spinner"></div>
                             <p>Loading exams...</p>
                         </div>
                     </div>
@@ -288,13 +299,6 @@
             </main>
         </div>
     </div>
-
-    <style>
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
 
     <script>
         // ============================================
@@ -338,10 +342,11 @@
         }
 
         // ============================================
-        // AUTH CHECK - STAYS ON PAGE
+        // AUTH CHECK - SIMPLIFIED (LIKE DASHBOARD)
         // ============================================
 
         function checkAuth() {
+            // Check for token in URL first
             const urlParams = new URLSearchParams(window.location.search);
             const tokenFromUrl = urlParams.get('token');
 
@@ -353,6 +358,7 @@
 
             const token = getToken();
 
+            // If NO token at all, redirect to login
             if (!token) {
                 console.log('❌ No token found, redirecting to login');
                 showToast('Please login first', 'error');
@@ -362,7 +368,9 @@
                 return false;
             }
 
-            // Try to get user data (but DON'T redirect on failure)
+            console.log('✅ Token found:', token.substring(0, 20) + '...');
+
+            // Try to get user data - but DON'T redirect on failure
             fetch(`${API_BASE}/api/me`, {
                 headers: {
                     'Authorization': 'Bearer ' + token,
@@ -371,8 +379,9 @@
             })
             .then(res => {
                 if (res.status === 401) {
+                    console.log('⚠️ Token expired, clearing and redirecting');
                     localStorage.removeItem('token');
-                    showToast('Session expired', 'error');
+                    showToast('Session expired. Please login again.', 'error');
                     setTimeout(() => {
                         window.location.href = 'index.html';
                     }, 1500);
@@ -393,10 +402,12 @@
                     const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                     document.getElementById('userAvatar').textContent = initials;
                     localStorage.setItem('userName', name);
+                    console.log('✅ User data loaded:', name);
                 }
             })
             .catch(err => {
                 console.log('⚠️ API error but staying on page:', err.message);
+                // Show placeholder, don't redirect
                 document.getElementById('userName').textContent = 'STUDENT';
                 document.getElementById('userEmail').textContent = 'student@hayyo.com';
             });
@@ -405,7 +416,7 @@
         }
 
         // ============================================
-        // LOAD EXAMS FROM DATABASE
+        // LOAD EXAMS
         // ============================================
 
         function loadExams() {
@@ -421,6 +432,8 @@
                 return;
             }
 
+            console.log('🔍 Loading exams...');
+
             fetch(`${API_BASE}/api/exams`, {
                 headers: {
                     'Authorization': 'Bearer ' + token,
@@ -428,6 +441,8 @@
                 }
             })
             .then(res => {
+                console.log('📡 Exams response status:', res.status);
+                
                 if (res.status === 401) {
                     localStorage.removeItem('token');
                     showToast('Session expired. Please login again.', 'error');
@@ -437,12 +452,14 @@
                     return null;
                 }
                 if (!res.ok) {
-                    throw new Error('Failed to load exams');
+                    throw new Error(`HTTP ${res.status}`);
                 }
                 return res.json();
             })
             .then(data => {
-                if (data && data.exams && data.exams.length > 0) {
+                if (!data) return;
+                
+                if (data.exams && data.exams.length > 0) {
                     renderExams(data.exams);
                 } else {
                     document.getElementById('examGrid').innerHTML = `
@@ -455,7 +472,7 @@
                 }
             })
             .catch(err => {
-                console.error('Error loading exams:', err);
+                console.error('❌ Error loading exams:', err);
                 document.getElementById('examGrid').innerHTML = `
                     <div style="grid-column:1/-1;text-align:center;padding:40px;color:#64748b;">
                         <p style="font-size:3rem;margin-bottom:1rem;">⚠️</p>
@@ -495,7 +512,7 @@
         }
 
         // ============================================
-        // SEARCH FUNCTIONALITY
+        // SEARCH
         // ============================================
 
         document.getElementById('searchInput')?.addEventListener('input', function() {
@@ -513,7 +530,7 @@
         });
 
         // ============================================
-        // RADIO BUTTON BEHAVIOR
+        // RADIO BUTTONS
         // ============================================
 
         document.getElementById('pilotRadio')?.addEventListener('change', function() {
@@ -548,14 +565,14 @@
         // ============================================
 
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔐 Exams Page - JWT Authentication');
-
+            console.log('🔐 Exams Page - Loading');
+            
             if (checkAuth()) {
                 loadExams();
             }
         });
 
-        console.log('✅ Exams page loaded with JWT');
+        console.log('✅ Exams page loaded');
     </script>
 
 </body>
