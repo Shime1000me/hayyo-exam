@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <title>Hayyo Academy - Exam Details</title>
     <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@100..900&family=Inter:opsz@14..32&display=swap" rel="stylesheet">
@@ -91,7 +93,7 @@
             margin-bottom: 20px;
             border-left: 4px solid #2563eb;
         }
-        .exam-card .badge {
+        .badge {
             display: inline-block;
             padding: 4px 12px;
             border-radius: 20px;
@@ -188,6 +190,7 @@
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <a href="exams.html" class="back-btn">← Back to Exams</a>
+                    <a href="#" id="logoutBtn" style="color:#dc2626;text-decoration:none;font-size:0.9rem;">Logout</a>
                 </div>
 
                 <!-- Basic Information -->
@@ -248,7 +251,7 @@
         }
 
         // ============================================
-        // AUTH CHECK - STAYS ON PAGE
+        // AUTH CHECK - REFRESH TOKEN IF EXPIRED
         // ============================================
         function checkAuth() {
             // Check for token in URL first
@@ -258,6 +261,7 @@
             if (tokenFromUrl) {
                 localStorage.setItem('token', tokenFromUrl);
                 window.history.replaceState({}, document.title, window.location.pathname);
+                showToast('✅ Login successful!', 'success');
             }
             
             const token = localStorage.getItem('token');
@@ -270,7 +274,7 @@
                 return false;
             }
             
-            // Try to get user data (but DON'T redirect on failure)
+            // Verify token with /api/me - if it fails, try to refresh
             fetch(`${API_BASE}/api/me`, {
                 headers: {
                     'Authorization': 'Bearer ' + token,
@@ -279,8 +283,13 @@
             })
             .then(res => {
                 if (res.status === 401) {
+                    // Token expired - try to refresh by redirecting to login
+                    console.log('⚠️ Token expired, redirecting to login');
                     localStorage.removeItem('token');
-                    window.location.href = 'index.html';
+                    showToast('Session expired. Please login again.', 'error');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
                     return null;
                 }
                 return res.json();
@@ -296,11 +305,14 @@
                     
                     const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                     document.getElementById('userAvatar').textContent = initials;
+                    
+                    // Store name for other pages
+                    localStorage.setItem('userName', name);
                 }
             })
             .catch(err => {
-                console.log('⚠️ API call failed but staying on page:', err.message);
-                // Don't redirect - just show placeholder
+                console.log('⚠️ API error but staying on page:', err.message);
+                // Show placeholder
                 document.getElementById('userName').textContent = 'STUDENT';
                 document.getElementById('userEmail').textContent = 'student@hayyo.com';
             });
@@ -313,7 +325,7 @@
         // ============================================
         function getExamIdFromURL() {
             const params = new URLSearchParams(window.location.search);
-            return params.get('id') || '1';
+            return params.get('id');
         }
 
         // ============================================
@@ -323,15 +335,33 @@
             const examId = getExamIdFromURL();
             const token = getToken();
             
-            if (!token) {
+            if (!examId) {
                 document.getElementById('examInfo').innerHTML = `
                     <div class="exam-card">
-                        <p style="color: #dc2626;">Please login to view exam details.</p>
-                        <a href="index.html" class="btn-start">Go to Login</a>
+                        <p style="color: #dc2626;">No exam ID provided. Please go back and select an exam.</p>
+                        <a href="exams.html" class="btn-start" style="display: inline-block; text-decoration: none; margin-top: 10px;">Go to Exams</a>
                     </div>
                 `;
                 return;
             }
+            
+            if (!token) {
+                document.getElementById('examInfo').innerHTML = `
+                    <div class="exam-card">
+                        <p style="color: #dc2626;">Please login to view exam details.</p>
+                        <a href="index.html" class="btn-start" style="display: inline-block; text-decoration: none; margin-top: 10px;">Go to Login</a>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Show loading state
+            document.getElementById('examInfo').innerHTML = `
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Loading exam details...</p>
+                </div>
+            `;
             
             fetch(`${API_BASE}/api/exams/${examId}`, {
                 headers: {
@@ -340,13 +370,19 @@
                 }
             })
             .then(res => {
+                console.log('📡 Response status:', res.status);
+                
                 if (res.status === 401) {
+                    // Token expired
                     localStorage.removeItem('token');
-                    window.location.href = 'index.html';
+                    showToast('Session expired. Please login again.', 'error');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
                     return null;
                 }
                 if (!res.ok) {
-                    throw new Error('Failed to load exam');
+                    throw new Error(`HTTP ${res.status}`);
                 }
                 return res.json();
             })
@@ -376,57 +412,23 @@
                         </div>
                         ${exam.description ? `<p style="margin-top: 12px;"><strong>Description:</strong> ${exam.description}</p>` : ''}
                         <div style="margin-top: 16px;">
-                            <button class="btn-start" id="startExamBtn" data-exam-id="${exam.id}">
+                            <button class="btn-start" onclick="startExam('${exam.id}')" id="startExamBtn">
                                 🚀 Start Exam
                             </button>
                         </div>
                     </div>
                 `;
-
-                // Add event listener to start button
-                document.getElementById('startExamBtn').addEventListener('click', function() {
-                    const examId = this.dataset.examId;
-                    const password = prompt('Enter exam password:');
-                    if (password === null) return;
-                    
-                    this.textContent = 'Starting...';
-                    this.disabled = true;
-                    
-                    fetch(`${API_BASE}/api/exams/start`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': 'Bearer ' + token,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ exam_id: examId, password: password })
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) {
-                            showToast('✅ Exam started! Redirecting...', 'success');
-                            setTimeout(() => {
-                                window.location.href = `maths-exam.html?exam=${examId}`;
-                            }, 1000);
-                        } else {
-                            showToast(data.error || 'Failed to start exam', 'error');
-                            this.textContent = '🚀 Start Exam';
-                            this.disabled = false;
-                        }
-                    })
-                    .catch(err => {
-                        showToast('Error starting exam', 'error');
-                        console.error(err);
-                        this.textContent = '🚀 Start Exam';
-                        this.disabled = false;
-                    });
-                });
             })
             .catch(err => {
-                console.error('Error loading exam:', err);
+                console.error('❌ Error loading exam:', err);
                 document.getElementById('examInfo').innerHTML = `
                     <div class="exam-card">
                         <p style="color: #dc2626;">Error loading exam: ${err.message}</p>
-                        <button class="btn-start" onclick="location.reload()">Retry</button>
+                        <p style="color: #64748b; margin-top: 8px;">Please try again or go back.</p>
+                        <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn-start" onclick="location.reload()">Retry</button>
+                            <a href="exams.html" class="btn-start" style="display: inline-block; text-decoration: none; background: #64748b;">Go Back</a>
+                        </div>
                     </div>
                 `;
                 showToast('Error loading exam details', 'error');
@@ -434,10 +436,84 @@
         }
 
         // ============================================
+        // START EXAM
+        // ============================================
+        function startExam(examId) {
+            const password = prompt('Enter exam password:');
+            if (password === null) return;
+            
+            const btn = document.getElementById('startExamBtn');
+            if (btn) {
+                btn.textContent = 'Starting...';
+                btn.disabled = true;
+            }
+            
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                showToast('Please login first', 'error');
+                if (btn) {
+                    btn.textContent = '🚀 Start Exam';
+                    btn.disabled = false;
+                }
+                return;
+            }
+            
+            fetch(`${API_BASE}/api/exams/start`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ exam_id: examId, password: password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('✅ Exam started! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = `maths-exam.html?exam=${examId}`;
+                    }, 1000);
+                } else {
+                    showToast(data.error || 'Failed to start exam', 'error');
+                    if (btn) {
+                        btn.textContent = '🚀 Start Exam';
+                        btn.disabled = false;
+                    }
+                }
+            })
+            .catch(err => {
+                showToast('Error starting exam', 'error');
+                console.error(err);
+                if (btn) {
+                    btn.textContent = '🚀 Start Exam';
+                    btn.disabled = false;
+                }
+            });
+        }
+
+        // ============================================
+        // LOGOUT
+        // ============================================
+        function logout() {
+            localStorage.removeItem('token');
+            showToast('Logged out successfully', 'success');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 500);
+        }
+
+        // ============================================
         // INITIALIZE
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔐 Exam Detail Page - JWT Authentication');
+            console.log('🔐 Exam Detail Page - Loaded');
+            
+            // Setup logout button
+            document.getElementById('logoutBtn')?.addEventListener('click', function(e) {
+                e.preventDefault();
+                logout();
+            });
             
             if (checkAuth()) {
                 loadExamDetails();
