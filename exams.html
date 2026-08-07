@@ -1,7 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
+    <!-- ============================================ -->
+    <!-- PREVENT CACHING - ALWAYS LOAD FRESH          -->
+    <!-- ============================================ -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <!-- ============================================ -->
     <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <title>Hayyo Academy - Exams</title>
@@ -315,6 +322,27 @@
             margin-left: 8px;
         }
 
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1f2937;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            max-width: 90%;
+        }
+        .toast.show { opacity: 1; }
+        .toast.error { background: #dc2626; }
+        .toast.success { background: #16a34a; }
+
         @media (max-width: 480px) {
             .info-box .info-row {
                 grid-template-columns: 1fr 1fr;
@@ -337,6 +365,8 @@
 </head>
 <body>
 
+    <div class="toast" id="toast"></div>
+
     <div id="root">
         <div style="min-height:100vh;background:#ffffff;display:flex;flex-direction:column;">
 
@@ -346,6 +376,7 @@
                 <nav>
                     <a href="dashboard.html">Home</a>
                     <a href="#" class="active">My exam</a>
+                    <a href="#" id="logoutBtn" style="color:#dc2626;border-bottom-color:transparent;">Logout</a>
                 </nav>
                 <div class="user-menu">
                     <div class="avatar" id="userAvatar">SH</div>
@@ -363,13 +394,13 @@
                     <div class="info-header">Basic Information</div>
                     <div class="info-row">
                         <span class="label">Full Name:</span>
-                        <span class="value" id="userName">SHIMELIS HATISO</span>
+                        <span class="value" id="userName">Loading...</span>
                         <span class="label">School:</span>
                         <span class="value">Hayyo Academy</span>
                     </div>
                     <div class="info-row">
-                        <span class="label">Is Blind / Is Deaf:</span>
-                        <span class="value">No / No</span>
+                        <span class="label">Email:</span>
+                        <span class="value" id="userEmail">Loading...</span>
                         <span class="label">Admission Number:</span>
                         <span class="value">HAY001</span>
                     </div>
@@ -383,7 +414,7 @@
 
                 <!-- Welcome Section -->
                 <div class="welcome-section">
-                    <h1>Welcome, <span id="welcomeName">Shimelis</span>! 👋</h1>
+                    <h1>Welcome, <span id="welcomeName">Student</span>! 👋</h1>
                     <h2>Exam Overview</h2>
 
                     <!-- Radio Buttons -->
@@ -405,97 +436,16 @@
                             <path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"></path>
                             <path d="M21 21l-6 -6"></path>
                         </svg>
-                        <input placeholder="Search" value="" />
+                        <input placeholder="Search" id="searchInput" value="" />
                     </div>
 
                     <!-- Exam Cards Grid -->
-                    <div class="exam-grid">
-
-                        <!-- UEE 2018 R1 -->
-                        <div class="exam-card" onclick="window.location.href='exam-detail.html'">
-                            <div class="card-image">
-                                <div class="circle circle-1"></div>
-                                <div class="circle circle-2"></div>
-                                <div class="circle circle-3"></div>
-                                <div class="circle circle-4"></div>
-                                <div class="circle circle-5"></div>
-                            </div>
-                            <div class="card-footer">
-                                <span class="title">UEE 2018 R1</span>
-                                <button>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path><path d="M11 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path><path d="M11 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path></svg>
-                                </button>
-                            </div>
+                    <div class="exam-grid" id="examGrid">
+                        <!-- Exams will be loaded here dynamically -->
+                        <div style="grid-column:1/-1;text-align:center;padding:40px;color:#64748b;">
+                            <div style="border:4px solid #f3f3f3;border-top:4px solid #2563eb;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto 1rem;"></div>
+                            <p>Loading exams...</p>
                         </div>
-
-                        <!-- UEE 2018 R2 -->
-                        <div class="exam-card">
-                            <div class="card-image">
-                                <div class="circle circle-1"></div>
-                                <div class="circle circle-2"></div>
-                                <div class="circle circle-3"></div>
-                                <div class="circle circle-4"></div>
-                                <div class="circle circle-5"></div>
-                            </div>
-                            <div class="card-footer">
-                                <span class="title">UEE 2018 R2</span>
-                                <button>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path><path d="M11 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path><path d="M11 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path></svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- UEE 2018 R3 -->
-                        <div class="exam-card">
-                            <div class="card-image">
-                                <div class="circle circle-1"></div>
-                                <div class="circle circle-2"></div>
-                                <div class="circle circle-3"></div>
-                                <div class="circle circle-4"></div>
-                                <div class="circle circle-5"></div>
-                            </div>
-                            <div class="card-footer">
-                                <span class="title">UEE 2018 R3</span>
-                                <button>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path><path d="M11 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path><path d="M11 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path></svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- UEE 2017 -->
-                        <div class="exam-card">
-                            <div class="card-image">
-                                <div class="circle circle-1"></div>
-                                <div class="circle circle-2"></div>
-                                <div class="circle circle-3"></div>
-                                <div class="circle circle-4"></div>
-                                <div class="circle circle-5"></div>
-                            </div>
-                            <div class="card-footer">
-                                <span class="title">UEE 2017</span>
-                                <button>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path><path d="M11 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path><path d="M11 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path></svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- UEE 2016 -->
-                        <div class="exam-card">
-                            <div class="card-image">
-                                <div class="circle circle-1"></div>
-                                <div class="circle circle-2"></div>
-                                <div class="circle circle-3"></div>
-                                <div class="circle circle-4"></div>
-                                <div class="circle circle-5"></div>
-                            </div>
-                            <div class="card-footer">
-                                <span class="title">UEE 2016</span>
-                                <button>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path><path d="M11 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path><path d="M11 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path></svg>
-                                </button>
-                            </div>
-                        </div>
-
                     </div>
                 </div>
 
@@ -503,12 +453,26 @@
         </div>
     </div>
 
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
     <script>
         // ============================================
         // API CONFIGURATION
         // ============================================
 
         const API_BASE = 'https://hayyo-exam.onrender.com';
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => { toast.className = 'toast'; }, 3000);
+        }
 
         // ============================================
         // JWT API HELPER
@@ -531,67 +495,225 @@
         }
 
         // ============================================
-        // AUTH CHECK WITH JWT
+        // AUTH CHECK - STAYS ON PAGE
         // ============================================
 
         function checkAuth() {
-            const token = getToken();
-            if (!token) {
-                window.location.href = 'index.html';
-                return;
+            // Check for token in URL first
+            const urlParams = new URLSearchParams(window.location.search);
+            const tokenFromUrl = urlParams.get('token');
+
+            if (tokenFromUrl) {
+                localStorage.setItem('token', tokenFromUrl);
+                window.history.replaceState({}, document.title, window.location.pathname);
+                showToast('✅ Login successful!', 'success');
             }
 
-            apiCall('/api/me')
-                .then(res => {
-                    if (res.status === 401) {
-                        localStorage.removeItem('token');
-                        window.location.href = 'index.html';
-                        return null;
-                    }
-                    return res.json();
-                })
-                .then(data => {
-                    if (data && data.authenticated) {
-                        console.log('✅ Exams page loaded! Welcome:', data.user);
-                        
-                        const userName = data.user.name || 'Student';
-                        document.getElementById('userName').textContent = userName.toUpperCase();
-                        document.getElementById('welcomeName').textContent = userName;
-                        
-                        const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-                        document.getElementById('userAvatar').textContent = initials;
-                    }
-                })
-                .catch(() => {
+            const token = getToken();
+
+            if (!token) {
+                console.log('❌ No token found, redirecting to login');
+                showToast('Please login first', 'error');
+                setTimeout(() => {
                     window.location.href = 'index.html';
-                });
+                }, 1500);
+                return false;
+            }
+
+            // Try to get user data (but DON'T redirect on failure)
+            fetch(`${API_BASE}/api/me`, {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => {
+                if (res.status === 401) {
+                    localStorage.removeItem('token');
+                    showToast('Session expired', 'error');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
+                    return null;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data && data.authenticated) {
+                    const user = data.user;
+                    const name = user.name || 'Student';
+                    const email = user.email || 'No email';
+
+                    document.getElementById('userName').textContent = name.toUpperCase();
+                    document.getElementById('userEmail').textContent = email;
+                    document.getElementById('welcomeName').textContent = name;
+
+                    const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                    document.getElementById('userAvatar').textContent = initials;
+
+                    // Store name for other pages
+                    localStorage.setItem('userName', name);
+                }
+            })
+            .catch(err => {
+                console.log('⚠️ API error but staying on page:', err.message);
+            });
+
+            return true;
         }
 
         // ============================================
-        // RADIO BUTTON BEHAVIOR (UNCHANGED)
+        // LOAD EXAMS FROM DATABASE
         // ============================================
 
-        document.getElementById('pilotRadio').addEventListener('change', function() {
+        function loadExams() {
+            const token = getToken();
+
+            if (!token) {
+                document.getElementById('examGrid').innerHTML = `
+                    <div style="grid-column:1/-1;text-align:center;padding:40px;color:#64748b;">
+                        <p>Please login to view exams.</p>
+                        <a href="index.html" style="color:#2563eb;text-decoration:underline;">Go to Login</a>
+                    </div>
+                `;
+                return;
+            }
+
+            fetch(`${API_BASE}/api/exams`, {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => {
+                if (res.status === 401) {
+                    localStorage.removeItem('token');
+                    showToast('Session expired', 'error');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
+                    return null;
+                }
+                if (!res.ok) {
+                    throw new Error('Failed to load exams');
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data && data.exams && data.exams.length > 0) {
+                    renderExams(data.exams);
+                } else {
+                    document.getElementById('examGrid').innerHTML = `
+                        <div style="grid-column:1/-1;text-align:center;padding:40px;color:#64748b;">
+                            <p style="font-size:3rem;margin-bottom:1rem;">📚</p>
+                            <h3>No exams available</h3>
+                            <p>Check back later for new exams.</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(err => {
+                console.error('Error loading exams:', err);
+                document.getElementById('examGrid').innerHTML = `
+                    <div style="grid-column:1/-1;text-align:center;padding:40px;color:#64748b;">
+                        <p style="font-size:3rem;margin-bottom:1rem;">⚠️</p>
+                        <h3>Could not load exams</h3>
+                        <p>${err.message}</p>
+                        <button onclick="loadExams()" style="margin-top:12px;padding:8px 20px;background:#2563eb;color:white;border:none;border-radius:8px;cursor:pointer;">Retry</button>
+                    </div>
+                `;
+                showToast('Could not load exams', 'error');
+            });
+        }
+
+        // ============================================
+        // RENDER EXAMS
+        // ============================================
+
+        function renderExams(exams) {
+            const container = document.getElementById('examGrid');
+
+            container.innerHTML = exams.map(exam => `
+                <div class="exam-card" onclick="window.location.href='exam-detail.html?id=${exam.id}'">
+                    <div class="card-image">
+                        <div class="circle circle-1"></div>
+                        <div class="circle circle-2"></div>
+                        <div class="circle circle-3"></div>
+                        <div class="circle circle-4"></div>
+                        <div class="circle circle-5"></div>
+                    </div>
+                    <div class="card-footer">
+                        <span class="title">${exam.title || 'Untitled Exam'}</span>
+                        <button>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path><path d="M11 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path><path d="M11 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ============================================
+        // SEARCH FUNCTIONALITY
+        // ============================================
+
+        document.getElementById('searchInput')?.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            const cards = document.querySelectorAll('.exam-card');
+
+            cards.forEach(card => {
+                const title = card.querySelector('.title')?.textContent?.toLowerCase() || '';
+                if (title.includes(query)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+
+        // ============================================
+        // RADIO BUTTON BEHAVIOR
+        // ============================================
+
+        document.getElementById('pilotRadio')?.addEventListener('change', function() {
             if (this.checked) {
-                alert('📢 Pilot Exams coming soon! Stay tuned.');
+                showToast('📢 Pilot Exams coming soon! Stay tuned.', 'info');
                 document.getElementById('ueeRadio').checked = true;
             }
         });
 
-        document.getElementById('regionalRadio').addEventListener('change', function() {
+        document.getElementById('regionalRadio')?.addEventListener('change', function() {
             if (this.checked) {
-                alert('📢 Regional Model Exams coming soon! Stay tuned.');
+                showToast('📢 Regional Model Exams coming soon! Stay tuned.', 'info');
                 document.getElementById('ueeRadio').checked = true;
             }
+        });
+
+        // ============================================
+        // LOGOUT
+        // ============================================
+
+        document.getElementById('logoutBtn')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            localStorage.removeItem('token');
+            showToast('Logged out successfully', 'success');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 500);
         });
 
         // ============================================
         // RUN ON PAGE LOAD
         // ============================================
 
-        document.addEventListener('DOMContentLoaded', checkAuth);
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔐 Exams Page - JWT Authentication');
 
-        console.log('🔐 JWT Authentication Enabled on Exams page');
+            if (checkAuth()) {
+                loadExams();
+            }
+        });
+
+        console.log('✅ Exams page loaded with JWT');
     </script>
 
 </body>
