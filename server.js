@@ -791,6 +791,43 @@ app.post('/api/exams/start', verifyToken, async (req, res) => {
   }
 });
 
+// ============================================
+// FIXED: /api/exams/:id/questions - Uses verifyToken + direct fetch
+// ============================================
+app.get('/api/exams/:id/questions', verifyToken, async (req, res) => {
+  try {
+    console.log('🔍 /api/exams/:id/questions called for user:', req.user.userId);
+    console.log('🔍 Exam ID:', req.params.id);
+    
+    const url = SUPABASE_URL + '/rest/v1/questions?select=*&exam_id=eq.' + encodeURIComponent(req.params.id) + '&order=question_number.asc';
+    console.log('🔍 /api/exams/:id/questions: Fetching from:', url);
+    
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log('🔍 /api/exams/:id/questions: Response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('❌ /api/exams/:id/questions: Supabase error:', response.status, errorText);
+      return res.status(500).json({ error: 'Failed to fetch questions' });
+    }
+    
+    const questions = await response.json();
+    console.log('✅ /api/exams/:id/questions: Loaded', questions.length, 'questions');
+    res.json({ success: true, questions: questions });
+    
+  } catch (error) {
+    console.error('❌ /api/exams/:id/questions error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- OTHER EXAM ROUTES (Keep using isAuthenticated for now) ---
 app.get('/api/exams/:id/access', isAuthenticated, async (req, res) => {
   try {
@@ -810,19 +847,6 @@ app.get('/api/exams/:id/access', isAuthenticated, async (req, res) => {
       is_premium: isPremium,
       message: isPremium ? 'Premium access granted' : 'Premium access required'
     });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/exams/:id/questions', isAuthenticated, async (req, res) => {
-  try {
-    const questions = await supabaseSelect('questions', {
-      eq: { exam_id: req.params.id },
-      order: { column: 'question_number' },
-      select: 'id, question_number, text, options'
-    });
-    res.json({ success: true, questions: questions });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
