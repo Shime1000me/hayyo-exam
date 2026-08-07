@@ -10,28 +10,8 @@
     <title>Hayyo Academy - Exams</title>
     <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@100..900&family=Inter:opsz@14..32&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Raleway', 'Inter', sans-serif;
-            background: #f8fafc;
-        }
-        .bg-background { background: #ffffff; }
-        .border-border { border-color: #e2e8f0; }
-        .text-muted-foreground { color: #64748b; }
-        .text-foreground { color: #0f172a; }
-        .bg-muted { background: #f1f5f9; }
-        .bg-card { background: #ffffff; }
-        .hover\:shadow-md:hover { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .transition-shadow { transition: box-shadow 0.2s; }
-        .hover\:underline:hover { text-decoration: underline; }
-        .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .cursor-not-allowed { cursor: not-allowed; }
-        .opacity-50 { opacity: 0.5; }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Raleway', 'Inter', sans-serif; background: #f8fafc; }
         .app-header {
             background: #ffffff;
             border-bottom: 1px solid #e2e8f0;
@@ -44,17 +24,8 @@
             top: 0;
             z-index: 100;
         }
-        .app-header .logo {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #2563eb;
-            margin-right: 1rem;
-        }
-        .app-header nav {
-            display: flex;
-            align-items: stretch;
-            height: 100%;
-        }
+        .app-header .logo { font-size: 1.25rem; font-weight: 700; color: #2563eb; margin-right: 1rem; }
+        .app-header nav { display: flex; align-items: stretch; height: 100%; }
         .app-header nav a {
             display: flex;
             align-items: center;
@@ -65,19 +36,9 @@
             color: #64748b;
             cursor: pointer;
         }
-        .app-header nav a:hover {
-            color: #0f172a;
-        }
-        .app-header nav a.active {
-            border-bottom-color: #2563eb;
-            color: #2563eb;
-            font-weight: 500;
-        }
-        .app-header .user-menu {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-        }
+        .app-header nav a:hover { color: #0f172a; }
+        .app-header nav a.active { border-bottom-color: #2563eb; color: #2563eb; font-weight: 500; }
+        .app-header .user-menu { margin-left: auto; display: flex; align-items: center; }
         .app-header .user-menu .avatar {
             width: 28px;
             height: 28px;
@@ -91,11 +52,7 @@
             justify-content: center;
             text-transform: uppercase;
         }
-        .red-line {
-            height: 2px;
-            background: #dc2626;
-        }
-
+        .red-line { height: 2px; background: #dc2626; }
         .main-content {
             flex: 1;
             min-width: 0;
@@ -104,7 +61,6 @@
             margin: 0 auto;
             width: 100%;
         }
-
         .info-box {
             border: 1px solid #e2e8f0;
             font-size: 0.875rem;
@@ -125,35 +81,12 @@
             align-items: center;
             border-bottom: 1px solid #f1f5f9;
         }
-        .info-box .info-row:last-child {
-            border-bottom: none;
-        }
-        .info-box .info-row .label {
-            font-weight: 600;
-            color: #0f172a;
-            white-space: nowrap;
-        }
-        .info-box .info-row .value {
-            font-weight: 600;
-            color: #0f172a;
-        }
-
-        .welcome-section {
-            margin-top: 2.5rem;
-        }
-        .welcome-section h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.125rem;
-            color: #0f172a;
-        }
-        .welcome-section h2 {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #0f172a;
-            margin-bottom: 1rem;
-        }
-
+        .info-box .info-row:last-child { border-bottom: none; }
+        .info-box .info-row .label { font-weight: 600; color: #0f172a; white-space: nowrap; }
+        .info-box .info-row .value { font-weight: 600; color: #0f172a; }
+        .welcome-section { margin-top: 2.5rem; }
+        .welcome-section h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.125rem; color: #0f172a; }
+        .welcome-section h2 { font-size: 1rem; font-weight: 600; color: #0f172a; margin-bottom: 1rem; }
         .radio-group {
             display: flex;
             align-items: center;
@@ -169,10 +102,7 @@
             font-size: 0.875rem;
             user-select: none;
         }
-        .radio-group input[type="radio"] {
-            accent-color: #2563eb;
-        }
-
+        .radio-group input[type="radio"] { accent-color: #2563eb; }
         .search-bar {
             position: relative;
             width: 12rem;
@@ -190,10 +120,7 @@
             font-family: 'Inter', sans-serif;
             color: #0f172a;
         }
-        .search-bar input:focus {
-            outline: none;
-            border-bottom-color: #2563eb;
-        }
+        .search-bar input:focus { outline: none; border-bottom-color: #2563eb; }
         .search-bar .icon {
             position: absolute;
             left: 0.5rem;
@@ -201,23 +128,13 @@
             transform: translateY(-50%);
             color: #9ca3af;
         }
-
         .exam-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 1rem;
         }
-        @media (min-width: 640px) {
-            .exam-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-        @media (min-width: 768px) {
-            .exam-grid {
-                grid-template-columns: repeat(4, 1fr);
-            }
-        }
-
+        @media (min-width: 640px) { .exam-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 768px) { .exam-grid { grid-template-columns: repeat(4, 1fr); } }
         .exam-card {
             border: 1px solid #e2e8f0;
             border-radius: 0.125rem;
@@ -226,13 +143,7 @@
             background: #ffffff;
             transition: box-shadow 0.2s;
         }
-        .exam-card:hover:not(.locked) {
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-        }
-        .exam-card.locked {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        .exam-card:hover { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .exam-card .card-image {
             height: 7rem;
             background: linear-gradient(135deg, #6366f1, #8b5cf6, #7c3aed);
@@ -244,36 +155,11 @@
             border-radius: 50%;
             background: rgba(255,255,255,0.1);
         }
-        .exam-card .card-image .circle-1 {
-            top: -1rem;
-            left: -1rem;
-            width: 5rem;
-            height: 5rem;
-        }
-        .exam-card .card-image .circle-2 {
-            top: 1.5rem;
-            left: 2rem;
-            width: 2.5rem;
-            height: 2.5rem;
-        }
-        .exam-card .card-image .circle-3 {
-            bottom: -1rem;
-            right: 1rem;
-            width: 4rem;
-            height: 4rem;
-        }
-        .exam-card .card-image .circle-4 {
-            bottom: 1rem;
-            right: 3rem;
-            width: 2rem;
-            height: 2rem;
-        }
-        .exam-card .card-image .circle-5 {
-            top: 0.5rem;
-            right: 0.5rem;
-            width: 1.5rem;
-            height: 1.5rem;
-        }
+        .exam-card .card-image .circle-1 { top: -1rem; left: -1rem; width: 5rem; height: 5rem; }
+        .exam-card .card-image .circle-2 { top: 1.5rem; left: 2rem; width: 2.5rem; height: 2.5rem; }
+        .exam-card .card-image .circle-3 { bottom: -1rem; right: 1rem; width: 4rem; height: 4rem; }
+        .exam-card .card-image .circle-4 { bottom: 1rem; right: 3rem; width: 2rem; height: 2rem; }
+        .exam-card .card-image .circle-5 { top: 0.5rem; right: 0.5rem; width: 1.5rem; height: 1.5rem; }
         .exam-card .card-footer {
             padding: 0.5rem 0.75rem;
             display: flex;
@@ -289,9 +175,7 @@
             white-space: nowrap;
             min-width: 0;
         }
-        .exam-card .card-footer .title:hover:not(.locked) {
-            text-decoration: underline;
-        }
+        .exam-card .card-footer .title:hover { text-decoration: underline; }
         .exam-card .card-footer button {
             background: none;
             border: none;
@@ -300,24 +184,7 @@
             flex-shrink: 0;
             margin-left: 0.5rem;
         }
-        .exam-card .card-footer button:hover {
-            color: #0f172a;
-        }
-        .exam-card.locked .card-footer .title {
-            color: #94a3b8;
-        }
-
-        .badge {
-            display: inline-block;
-            background: #fbbf24;
-            color: #1f2937;
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 700;
-            margin-left: 8px;
-        }
-
+        .exam-card .card-footer button:hover { color: #0f172a; }
         .toast {
             position: fixed;
             top: 20px;
@@ -338,24 +205,12 @@
         .toast.show { opacity: 1; }
         .toast.error { background: #dc2626; }
         .toast.success { background: #16a34a; }
-
         @media (max-width: 480px) {
-            .info-box .info-row {
-                grid-template-columns: 1fr 1fr;
-                gap: 0.25rem 0.5rem;
-            }
-            .main-content {
-                padding: 1rem;
-            }
-            .search-bar {
-                width: 100%;
-            }
-            .exam-grid {
-                gap: 0.75rem;
-            }
-            .radio-group {
-                gap: 0.75rem;
-            }
+            .info-box .info-row { grid-template-columns: 1fr 1fr; gap: 0.25rem 0.5rem; }
+            .main-content { padding: 1rem; }
+            .search-bar { width: 100%; }
+            .exam-grid { gap: 0.75rem; }
+            .radio-group { gap: 0.75rem; }
         }
     </style>
 </head>
@@ -366,7 +221,6 @@
     <div id="root">
         <div style="min-height:100vh;background:#ffffff;display:flex;flex-direction:column;">
 
-            <!-- ===== HEADER ===== -->
             <header class="app-header">
                 <div class="logo">🏫 Hayyo</div>
                 <nav>
@@ -379,13 +233,10 @@
                 </div>
             </header>
 
-            <!-- ===== RED LINE ===== -->
             <div class="red-line"></div>
 
-            <!-- ===== MAIN CONTENT ===== -->
             <main class="main-content">
 
-                <!-- Basic Information -->
                 <div class="info-box">
                     <div class="info-header">Basic Information</div>
                     <div class="info-row">
@@ -408,25 +259,16 @@
                     </div>
                 </div>
 
-                <!-- Welcome Section -->
                 <div class="welcome-section">
                     <h1>Welcome, <span id="welcomeName">Student</span>! 👋</h1>
                     <h2>Exam Overview</h2>
 
-                    <!-- Radio Buttons -->
                     <div class="radio-group">
-                        <label>
-                            <input type="radio" value="uee" checked name="examType" id="ueeRadio" /> UEE Exams
-                        </label>
-                        <label>
-                            <input type="radio" value="pilot" name="examType" id="pilotRadio" /> Pilot Exams
-                        </label>
-                        <label>
-                            <input type="radio" value="regional" name="examType" id="regionalRadio" /> Regional Model Exams
-                        </label>
+                        <label><input type="radio" value="uee" checked name="examType" id="ueeRadio" /> UEE Exams</label>
+                        <label><input type="radio" value="pilot" name="examType" id="pilotRadio" /> Pilot Exams</label>
+                        <label><input type="radio" value="regional" name="examType" id="regionalRadio" /> Regional Model Exams</label>
                     </div>
 
-                    <!-- Search Bar -->
                     <div class="search-bar">
                         <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"></path>
@@ -435,9 +277,7 @@
                         <input placeholder="Search" id="searchInput" value="" />
                     </div>
 
-                    <!-- Exam Cards Grid -->
                     <div class="exam-grid" id="examGrid">
-                        <!-- Exams will be loaded here dynamically -->
                         <div style="grid-column:1/-1;text-align:center;padding:40px;color:#64748b;">
                             <div style="border:4px solid #f3f3f3;border-top:4px solid #2563eb;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto 1rem;"></div>
                             <p>Loading exams...</p>
@@ -471,6 +311,25 @@
         }
 
         // ============================================
+        // AUTO-VERSION - Fetches version from backend
+        // ============================================
+        (function autoVersion() {
+            fetch('https://hayyo-exam.onrender.com/api/version')
+                .then(res => res.json())
+                .then(data => {
+                    const v = data.version;
+                    console.log('📦 App version:', v);
+                    document.querySelectorAll('a[href]').forEach(link => {
+                        const href = link.getAttribute('href');
+                        if (href && href.includes('.html') && !href.includes('?')) {
+                            link.href = href + '?v=' + v;
+                        }
+                    });
+                })
+                .catch(err => console.log('⚠️ Version fetch failed'));
+        })();
+
+        // ============================================
         // JWT API HELPER
         // ============================================
 
@@ -479,11 +338,10 @@
         }
 
         // ============================================
-        // AUTH CHECK - REFRESH TOKEN IF EXPIRED
+        // AUTH CHECK - STAYS ON PAGE
         // ============================================
 
         function checkAuth() {
-            // Check for token in URL first
             const urlParams = new URLSearchParams(window.location.search);
             const tokenFromUrl = urlParams.get('token');
 
@@ -504,7 +362,7 @@
                 return false;
             }
 
-            // Verify token - if expired, clear and redirect
+            // Try to get user data (but DON'T redirect on failure)
             fetch(`${API_BASE}/api/me`, {
                 headers: {
                     'Authorization': 'Bearer ' + token,
@@ -513,10 +371,8 @@
             })
             .then(res => {
                 if (res.status === 401) {
-                    // Token expired - clear and redirect to login
-                    console.log('⚠️ Token expired');
                     localStorage.removeItem('token');
-                    showToast('Session expired. Please login again.', 'error');
+                    showToast('Session expired', 'error');
                     setTimeout(() => {
                         window.location.href = 'index.html';
                     }, 1500);
@@ -536,14 +392,11 @@
 
                     const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                     document.getElementById('userAvatar').textContent = initials;
-
-                    // Store name for other pages
                     localStorage.setItem('userName', name);
                 }
             })
             .catch(err => {
                 console.log('⚠️ API error but staying on page:', err.message);
-                // Show placeholder
                 document.getElementById('userName').textContent = 'STUDENT';
                 document.getElementById('userEmail').textContent = 'student@hayyo.com';
             });
@@ -576,7 +429,6 @@
             })
             .then(res => {
                 if (res.status === 401) {
-                    // Token expired - clear and redirect
                     localStorage.removeItem('token');
                     showToast('Session expired. Please login again.', 'error');
                     setTimeout(() => {
