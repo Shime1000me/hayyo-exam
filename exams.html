@@ -387,7 +387,7 @@
         }
 
         // ============================================
-        // AUTH CHECK - WITH DEBUG
+        // AUTH CHECK - FIXED (/api/me not /api/team)
         // ============================================
 
         function checkAuth() {
@@ -417,7 +417,7 @@
 
             logDebug(`🔑 Token found: ${token.substring(0, 20)}...`, 'success');
 
-            // Verify token with /api/me
+            // Verify token with /api/me (FIXED: was /api/team)
             logDebug('📡 Verifying token with /api/me...', 'info');
             
             fetch(`${API_BASE}/api/me`, {
