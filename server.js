@@ -19,7 +19,7 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 // ============================================
 // APP VERSION - Change this when you update the app
 // ============================================
-const APP_VERSION = '1.0.2';  // Incremented version
+const APP_VERSION = '1.0.3';
 
 // ============================================
 // SUPABASE REST API CLIENT
@@ -648,6 +648,149 @@ app.get('/api/exams/:id', verifyToken, async (req, res) => {
   }
 });
 
+// ============================================
+// FIXED: /api/exams/start - Uses verifyToken + direct fetch
+// ============================================
+app.post('/api/exams/start', verifyToken, async (req, res) => {
+  const { exam_id, password } = req.body;
+  
+  console.log('🔍 /api/exams/start called for user:', req.user.userId);
+  console.log('🔍 Exam ID:', exam_id);
+  
+  if (password !== process.env.EXAM_PASSWORD) {
+    console.log('❌ Invalid password attempt');
+    return res.status(401).json({ error: 'Invalid password' });
+  }
+  
+  try {
+    // Check if user already has an in-progress attempt
+    const url = SUPABASE_URL + '/rest/v1/exam_attempts?select=*&user_id=eq.' + encodeURIComponent(req.user.userId) + '&exam_id=eq.' + encodeURIComponent(exam_id) + '&status=eq.in-progress';
+    console.log('🔍 Checking existing attempts:', url);
+    
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('❌ Error checking attempts:', errorText);
+      return res.status(500).json({ error: 'Failed to check attempts' });
+    }
+    
+    const existing = await response.json();
+    const inProgress = existing.find(a => a.status === 'in-progress');
+    
+    if (inProgress) {
+      console.log('✅ Found existing attempt:', inProgress.id);
+      return res.json({
+        success: true,
+        attempt_id: inProgress.id,
+        current_question: inProgress.current_question || 1,
+        time_remaining: inProgress.time_remaining,
+        answers: inProgress.answers || {}
+      });
+    }
+    
+    // Get exam details
+    const examUrl = SUPABASE_URL + '/rest/v1/exams?select=time_limit,total_questions&id=eq.' + encodeURIComponent(exam_id);
+    console.log('🔍 Fetching exam details:', examUrl);
+    
+    const examResponse = await fetch(examUrl, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!examResponse.ok) {
+      const errorText = await examResponse.text();
+      console.log('❌ Error fetching exam:', errorText);
+      return res.status(500).json({ error: 'Failed to fetch exam' });
+    }
+    
+    const exams = await examResponse.json();
+    if (!exams || exams.length === 0) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
+    
+    const exam = exams[0];
+    console.log('✅ Exam found:', exam);
+    
+    // Create new attempt
+    const newAttemptData = {
+      user_id: req.user.userId,
+      exam_id: exam_id,
+      time_remaining: exam.time_limit * 60,
+      status: 'in-progress',
+      started_at: new Date().toISOString(),
+      current_question: 1,
+      answers: {}
+    };
+    
+    console.log('📝 Creating new attempt:', newAttemptData);
+    
+    const insertUrl = SUPABASE_URL + '/rest/v1/exam_attempts';
+    const insertResponse = await fetch(insertUrl, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(newAttemptData)
+    });
+    
+    if (!insertResponse.ok) {
+      const errorText = await insertResponse.text();
+      console.log('❌ Error creating attempt:', errorText);
+      return res.status(500).json({ error: 'Failed to create attempt' });
+    }
+    
+    const newAttempt = await insertResponse.json();
+    console.log('✅ New attempt created:', newAttempt);
+    
+    // Get questions
+    const questionsUrl = SUPABASE_URL + '/rest/v1/questions?select=id,question_number,text,options&exam_id=eq.' + encodeURIComponent(exam_id) + '&order=question_number.asc';
+    console.log('🔍 Fetching questions:', questionsUrl);
+    
+    const questionsResponse = await fetch(questionsUrl, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!questionsResponse.ok) {
+      const errorText = await questionsResponse.text();
+      console.log('❌ Error fetching questions:', errorText);
+      return res.status(500).json({ error: 'Failed to fetch questions' });
+    }
+    
+    const questions = await questionsResponse.json();
+    console.log('✅ Loaded', questions.length, 'questions');
+    
+    res.json({
+      success: true,
+      attempt_id: newAttempt[0]?.id,
+      current_question: 1,
+      time_remaining: exam.time_limit * 60,
+      total_questions: exam.total_questions || questions.length,
+      questions: questions
+    });
+    
+  } catch (error) {
+    console.error('❌ /api/exams/start error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- OTHER EXAM ROUTES (Keep using isAuthenticated for now) ---
 app.get('/api/exams/:id/access', isAuthenticated, async (req, res) => {
   try {
@@ -680,57 +823,6 @@ app.get('/api/exams/:id/questions', isAuthenticated, async (req, res) => {
       select: 'id, question_number, text, options'
     });
     res.json({ success: true, questions: questions });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post('/api/exams/start', isAuthenticated, async (req, res) => {
-  const { exam_id, password } = req.body;
-  if (password !== process.env.EXAM_PASSWORD) {
-    return res.status(401).json({ error: 'Invalid password' });
-  }
-  try {
-    const existing = await supabaseSelect('exam_attempts', {
-      eq: { user_id: req.user.userId, exam_id: exam_id },
-      select: '*'
-    });
-    const inProgress = existing.find(a => a.status === 'in-progress');
-    if (inProgress) {
-      return res.json({
-        success: true,
-        attempt_id: inProgress.id,
-        current_question: inProgress.current_question,
-        time_remaining: inProgress.time_remaining,
-        answers: inProgress.answers
-      });
-    }
-    const exams = await supabaseSelect('exams', {
-      eq: { id: exam_id },
-      select: 'time_limit, total_questions'
-    });
-    if (exams.length === 0) return res.status(404).json({ error: 'Exam not found' });
-    const exam = exams[0];
-    const newAttempt = await supabaseInsert('exam_attempts', {
-      user_id: req.user.userId,
-      exam_id: exam_id,
-      time_remaining: exam.time_limit * 60,
-      status: 'in-progress',
-      started_at: new Date().toISOString()
-    });
-    const questions = await supabaseSelect('questions', {
-      eq: { exam_id: exam_id },
-      order: { column: 'question_number' },
-      select: 'id, question_number, text, options'
-    });
-    res.json({
-      success: true,
-      attempt_id: newAttempt[0]?.id,
-      current_question: 1,
-      time_remaining: exam.time_limit * 60,
-      total_questions: exam.total_questions,
-      questions: questions
-    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
