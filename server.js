@@ -19,7 +19,7 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 // ============================================
 // APP VERSION - Change this when you update the app
 // ============================================
-const APP_VERSION = '1.0.3';
+const APP_VERSION = '1.0.4';
 
 // ============================================
 // SUPABASE REST API CLIENT
@@ -259,10 +259,10 @@ app.use(helmet({
 }));
 
 // ============================================
-// CORS - Allow all origins (FIXED)
+// CORS - Allow all origins
 // ============================================
 app.use(cors({
-  origin: true, // Allow any origin
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
@@ -423,7 +423,7 @@ function generateToken(user) {
   return jwt.sign(
     { userId: user.id, email: user.email },
     process.env.JWT_SECRET,
-    { expiresIn: '365d' }  // 1 year - tokens last a long time
+    { expiresIn: '365d' }
   );
 }
 
@@ -491,9 +491,6 @@ app.get('/api/version', (req, res) => {
 // --- AUTH ROUTES ---
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-// ============================================
-// FIXED: OAuth Callback - Redirects to REAL Dashboard
-// ============================================
 app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => {
   const token = generateToken(req.user);
   const redirectUrl = 'https://Shime1000me.github.io/hayyo-exam/dashboard.html?token=' + token + '&v=' + APP_VERSION;
@@ -509,9 +506,7 @@ app.get('/auth/logout', (req, res) => {
   });
 });
 
-// ============================================
-// FIXED: /api/me - Uses DIRECT fetch to Supabase
-// ============================================
+// --- USER ROUTE ---
 app.get('/api/me', verifyToken, async (req, res) => {
   try {
     console.log('🔍 /api/me called for user:', req.user.userId);
@@ -572,8 +567,10 @@ app.get('/', (req, res) => {
 });
 
 // ============================================
-// FIXED: /api/exams - Uses verifyToken + direct fetch
+// EXAM ROUTES (Public/Student)
 // ============================================
+
+// Get all exams
 app.get('/api/exams', verifyToken, async (req, res) => {
   try {
     console.log('🔍 /api/exams called for user:', req.user.userId);
@@ -607,9 +604,7 @@ app.get('/api/exams', verifyToken, async (req, res) => {
   }
 });
 
-// ============================================
-// FIXED: /api/exams/:id - Uses verifyToken + direct fetch
-// ============================================
+// Get single exam
 app.get('/api/exams/:id', verifyToken, async (req, res) => {
   try {
     console.log('🔍 /api/exams/:id called for user:', req.user.userId);
@@ -648,9 +643,66 @@ app.get('/api/exams/:id', verifyToken, async (req, res) => {
   }
 });
 
-// ============================================
-// FIXED: /api/exams/start - Uses verifyToken + direct fetch
-// ============================================
+// Get exam questions
+app.get('/api/exams/:id/questions', verifyToken, async (req, res) => {
+  try {
+    console.log('🔍 /api/exams/:id/questions called for user:', req.user.userId);
+    console.log('🔍 Exam ID:', req.params.id);
+    
+    const url = SUPABASE_URL + '/rest/v1/questions?select=*&exam_id=eq.' + encodeURIComponent(req.params.id) + '&order=question_number.asc';
+    console.log('🔍 /api/exams/:id/questions: Fetching from:', url);
+    
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log('🔍 /api/exams/:id/questions: Response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('❌ /api/exams/:id/questions: Supabase error:', response.status, errorText);
+      return res.status(500).json({ error: 'Failed to fetch questions' });
+    }
+    
+    const questions = await response.json();
+    console.log('✅ /api/exams/:id/questions: Loaded', questions.length, 'questions');
+    res.json({ success: true, questions: questions });
+    
+  } catch (error) {
+    console.error('❌ /api/exams/:id/questions error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Check exam access
+app.get('/api/exams/:id/access', isAuthenticated, async (req, res) => {
+  try {
+    const exams = await supabaseSelect('exams', {
+      eq: { id: req.params.id },
+      select: 'is_premium_only, title'
+    });
+    if (exams.length === 0) return res.status(404).json({ error: 'Exam not found' });
+    const exam = exams[0];
+    if (!exam.is_premium_only) {
+      return res.json({ can_access: true, is_free: true, message: 'Free exam - access granted' });
+    }
+    const isPremium = req.userData?.is_premium && (!req.userData.premium_expires_at || new Date(req.userData.premium_expires_at) > new Date());
+    res.json({
+      can_access: isPremium,
+      is_premium_only: true,
+      is_premium: isPremium,
+      message: isPremium ? 'Premium access granted' : 'Premium access required'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Start exam
 app.post('/api/exams/start', verifyToken, async (req, res) => {
   const { exam_id, password } = req.body;
   
@@ -791,67 +843,7 @@ app.post('/api/exams/start', verifyToken, async (req, res) => {
   }
 });
 
-// ============================================
-// FIXED: /api/exams/:id/questions - Uses verifyToken + direct fetch
-// ============================================
-app.get('/api/exams/:id/questions', verifyToken, async (req, res) => {
-  try {
-    console.log('🔍 /api/exams/:id/questions called for user:', req.user.userId);
-    console.log('🔍 Exam ID:', req.params.id);
-    
-    const url = SUPABASE_URL + '/rest/v1/questions?select=*&exam_id=eq.' + encodeURIComponent(req.params.id) + '&order=question_number.asc';
-    console.log('🔍 /api/exams/:id/questions: Fetching from:', url);
-    
-    const response = await fetch(url, {
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    console.log('🔍 /api/exams/:id/questions: Response status:', response.status);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.log('❌ /api/exams/:id/questions: Supabase error:', response.status, errorText);
-      return res.status(500).json({ error: 'Failed to fetch questions' });
-    }
-    
-    const questions = await response.json();
-    console.log('✅ /api/exams/:id/questions: Loaded', questions.length, 'questions');
-    res.json({ success: true, questions: questions });
-    
-  } catch (error) {
-    console.error('❌ /api/exams/:id/questions error:', error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- OTHER EXAM ROUTES (Keep using isAuthenticated for now) ---
-app.get('/api/exams/:id/access', isAuthenticated, async (req, res) => {
-  try {
-    const exams = await supabaseSelect('exams', {
-      eq: { id: req.params.id },
-      select: 'is_premium_only, title'
-    });
-    if (exams.length === 0) return res.status(404).json({ error: 'Exam not found' });
-    const exam = exams[0];
-    if (!exam.is_premium_only) {
-      return res.json({ can_access: true, is_free: true, message: 'Free exam - access granted' });
-    }
-    const isPremium = req.userData?.is_premium && (!req.userData.premium_expires_at || new Date(req.userData.premium_expires_at) > new Date());
-    res.json({
-      can_access: isPremium,
-      is_premium_only: true,
-      is_premium: isPremium,
-      message: isPremium ? 'Premium access granted' : 'Premium access required'
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
+// Submit exam
 app.post('/api/exams/submit', isAuthenticated, async (req, res) => {
   const { attempt_id, answers } = req.body;
   try {
@@ -888,7 +880,7 @@ app.post('/api/exams/submit', isAuthenticated, async (req, res) => {
   }
 });
 
-// --- GET EXAM RESULTS ---
+// Get exam results
 app.get('/api/exams/:exam_id/results/:user_id', async (req, res) => {
   try {
     const { exam_id, user_id } = req.params;
@@ -923,7 +915,9 @@ app.get('/api/exams/:exam_id/results/:user_id', async (req, res) => {
   }
 });
 
-// --- PAYMENT ROUTES ---
+// ============================================
+// PAYMENT ROUTES
+// ============================================
 app.post('/api/payment/request', isAuthenticated, async (req, res) => {
   const { exam_id, payment_method, reference_number } = req.body;
   try {
@@ -978,7 +972,9 @@ app.get('/api/payment/status', isAuthenticated, async (req, res) => {
   }
 });
 
-// --- ADMIN ROUTES ---
+// ============================================
+// ADMIN ROUTES
+// ============================================
 app.get('/api/admin/payments', isAuthenticated, isAdmin, async (req, res) => {
   try {
     const payments = await supabaseSelect('payments', {
@@ -1060,7 +1056,11 @@ app.get('/api/admin/payments/:id/receipt', isAuthenticated, isAdmin, async (req,
   }
 });
 
-// --- TEACHER ROUTES ---
+// ============================================
+// TEACHER ROUTES
+// ============================================
+
+// Get all teacher exams
 app.get('/api/teacher/exams', isAuthenticated, isTeacher, async (req, res) => {
   try {
     const teacherExams = await supabaseSelect('teacher_exams', {
@@ -1081,6 +1081,7 @@ app.get('/api/teacher/exams', isAuthenticated, isTeacher, async (req, res) => {
   }
 });
 
+// Get single teacher exam with questions
 app.get('/api/teacher/exams/:id', isAuthenticated, isTeacher, async (req, res) => {
   try {
     const { id } = req.params;
@@ -1111,28 +1112,129 @@ app.get('/api/teacher/exams/:id', isAuthenticated, isTeacher, async (req, res) =
   }
 });
 
+// CREATE exam - NEW ENDPOINT
+app.post('/api/teacher/exams', isAuthenticated, isTeacher, async (req, res) => {
+  const { title, subject, time_limit, passing_score, description, status, price, questions } = req.body;
+  
+  try {
+    console.log('📝 Creating new exam for teacher:', req.user.userId);
+    console.log('📝 Exam data:', { title, subject, time_limit, passing_score, description, status, price });
+    
+    // Create exam
+    const examData = {
+      title: title || 'Untitled Exam',
+      subject: subject || 'General',
+      time_limit: time_limit || 180,
+      passing_score: passing_score || 40,
+      description: description || '',
+      status: status || 'draft',
+      price: price || 0,
+      total_questions: questions ? questions.length : 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    const examResult = await supabaseInsert('exams', examData);
+    const examId = examResult[0]?.id;
+    
+    if (!examId) {
+      throw new Error('Failed to create exam');
+    }
+    
+    console.log('✅ Exam created with ID:', examId);
+    
+    // Link teacher to exam
+    await supabaseInsert('teacher_exams', {
+      teacher_id: req.user.userId,
+      exam_id: examId,
+      created_at: new Date().toISOString()
+    });
+    
+    // Insert questions if provided
+    if (questions && questions.length > 0) {
+      for (const q of questions) {
+        await supabaseInsert('questions', {
+          exam_id: examId,
+          question_number: q.question_number || (questions.indexOf(q) + 1),
+          text: q.question_text || q.text || '',
+          options: q.options ? JSON.stringify(q.options) : null,
+          correct_answer: q.correct_answer || '',
+          explanation: q.explanation || '',
+          marks: q.marks || 1,
+          type: q.type || 'mcq'
+        });
+      }
+      console.log('✅ Inserted', questions.length, 'questions');
+    }
+    
+    res.json({ 
+      success: true, 
+      exam_id: examId, 
+      message: 'Exam created successfully' 
+    });
+    
+  } catch (error) {
+    console.error('❌ Create exam error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// UPDATE exam
 app.put('/api/teacher/exams/:id', isAuthenticated, isTeacher, async (req, res) => {
   const { id } = req.params;
-  const { title, subject, year, type, category, is_premium_only, time_limit, total_questions, description } = req.body;
+  const { title, subject, time_limit, passing_score, description, status, price, questions } = req.body;
   try {
     const teacherExams = await supabaseSelect('teacher_exams', {
       eq: { teacher_id: req.user.userId, exam_id: id },
       select: '*'
     });
-    if (teacherExams.length === 0) return res.status(403).json({ error: 'You are not assigned to this exam' });
+    if (teacherExams.length === 0) {
+      return res.status(403).json({ error: 'You are not assigned to this exam' });
+    }
+    
+    // Update exam
     await supabaseUpdate('exams', {
-      title, subject, year, type, category, is_premium_only, time_limit, total_questions, description,
+      title: title || 'Untitled Exam',
+      subject: subject || 'General',
+      time_limit: time_limit || 180,
+      passing_score: passing_score || 40,
+      description: description || '',
+      status: status || 'draft',
+      price: price || 0,
+      total_questions: questions ? questions.length : 0,
       updated_at: new Date().toISOString()
     }, { id: id });
+    
+    // Update questions if provided
+    if (questions && questions.length > 0) {
+      // Delete existing questions
+      await supabaseDelete('questions', { exam_id: id });
+      
+      // Insert new questions
+      for (const q of questions) {
+        await supabaseInsert('questions', {
+          exam_id: id,
+          question_number: q.question_number || (questions.indexOf(q) + 1),
+          text: q.question_text || q.text || '',
+          options: q.options ? JSON.stringify(q.options) : null,
+          correct_answer: q.correct_answer || '',
+          explanation: q.explanation || '',
+          marks: q.marks || 1,
+          type: q.type || 'mcq'
+        });
+      }
+    }
+    
     res.json({ success: true, message: 'Exam updated successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
+// UPDATE question
 app.put('/api/teacher/exams/:id/questions/:num', isAuthenticated, isTeacher, async (req, res) => {
   const { id, num } = req.params;
-  const { text, option_a, option_b, option_c, option_d, correct_answer, explanation } = req.body;
+  const { text, options, correct_answer, explanation, marks, type } = req.body;
   try {
     const teacherExams = await supabaseSelect('teacher_exams', {
       eq: { teacher_id: req.user.userId, exam_id: id },
@@ -1140,10 +1242,12 @@ app.put('/api/teacher/exams/:id/questions/:num', isAuthenticated, isTeacher, asy
     });
     if (teacherExams.length === 0) return res.status(403).json({ error: 'You are not assigned to this exam' });
     await supabaseUpdate('questions', {
-      text: text,
-      options: JSON.stringify([option_a, option_b, option_c, option_d]),
-      correct_answer: correct_answer,
-      explanation: explanation,
+      text: text || '',
+      options: options ? JSON.stringify(options) : null,
+      correct_answer: correct_answer || '',
+      explanation: explanation || '',
+      marks: marks || 1,
+      type: type || 'mcq',
       updated_at: new Date().toISOString()
     }, { exam_id: id, question_number: num });
     res.json({ success: true, message: 'Question updated successfully' });
@@ -1152,7 +1256,7 @@ app.put('/api/teacher/exams/:id/questions/:num', isAuthenticated, isTeacher, asy
   }
 });
 
-// --- BULK INSERT QUESTIONS ---
+// BULK INSERT QUESTIONS
 app.post('/api/teacher/exams/:id/questions/bulk', isAuthenticated, isTeacher, async (req, res) => {
   const { id } = req.params;
   const { questions } = req.body;
@@ -1169,17 +1273,65 @@ app.post('/api/teacher/exams/:id/questions/bulk', isAuthenticated, isTeacher, as
     for (const q of questions) {
       const result = await supabaseInsert('questions', {
         exam_id: id,
-        question_number: q.question_number,
-        text: q.text,
+        question_number: q.question_number || (questions.indexOf(q) + 1),
+        text: q.text || q.question_text || '',
         options: q.options ? JSON.stringify(q.options) : null,
-        correct_answer: q.correct_answer,
-        explanation: q.explanation,
-        marks: q.marks || 1
+        correct_answer: q.correct_answer || '',
+        explanation: q.explanation || '',
+        marks: q.marks || 1,
+        type: q.type || 'mcq'
       });
       inserted.push(result[0]);
     }
+    // Update total questions count
+    await supabaseUpdate('exams', {
+      total_questions: inserted.length,
+      updated_at: new Date().toISOString()
+    }, { id: id });
+    
     res.json({ success: true, message: inserted.length + ' questions imported successfully' });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// DELETE Exam - NEW ENDPOINT
+// ============================================
+app.delete('/api/teacher/exams/:id', isAuthenticated, isTeacher, async (req, res) => {
+  const { id } = req.params;
+  try {
+    console.log('🗑️ Deleting exam:', id, 'for teacher:', req.user.userId);
+    
+    // Check if teacher is assigned to this exam
+    const teacherExams = await supabaseSelect('teacher_exams', {
+      eq: { teacher_id: req.user.userId, exam_id: id },
+      select: '*'
+    });
+    
+    if (teacherExams.length === 0) {
+      return res.status(403).json({ error: 'You are not assigned to this exam' });
+    }
+
+    // Delete questions first (due to foreign key constraints)
+    await supabaseDelete('questions', { exam_id: id });
+    console.log('✅ Deleted questions for exam:', id);
+    
+    // Delete exam_attempts
+    await supabaseDelete('exam_attempts', { exam_id: id });
+    console.log('✅ Deleted attempts for exam:', id);
+    
+    // Delete teacher_exam association
+    await supabaseDelete('teacher_exams', { exam_id: id });
+    console.log('✅ Deleted teacher_exam association for exam:', id);
+    
+    // Delete the exam
+    await supabaseDelete('exams', { id: id });
+    console.log('✅ Deleted exam:', id);
+    
+    res.json({ success: true, message: 'Exam deleted successfully' });
+  } catch (error) {
+    console.error('❌ Delete exam error:', error);
     res.status(500).json({ error: error.message });
   }
 });
