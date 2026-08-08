@@ -15,7 +15,7 @@ const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const { v2: cloudinary } = require('cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 // ============================================
 // APP VERSION - Change this when you update the app
