@@ -318,7 +318,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ============================================================
-        // 1. API Base URL - UPDATED
+        // 1. API Base URL
         // ============================================================
         const API_BASE = 'https://hayyo-exam.onrender.com';
 
@@ -431,7 +431,6 @@
             document.getElementById('fillAnswer').value = '';
             document.getElementById('fillAnswerContainer').style.display = 'none';
             
-            // Reset options
             document.getElementById('optionsList').innerHTML = `
                 <div class="option-group">
                     <div class="d-flex gap-2">
@@ -459,7 +458,6 @@
                 </div>
             `;
             
-            // Show modal
             if (!questionModalInstance) {
                 questionModalInstance = new bootstrap.Modal(document.getElementById('questionModal'));
             }
@@ -479,14 +477,12 @@
             document.getElementById('questionExplanation').value = q.explanation || '';
             document.getElementById('fillAnswer').value = q.correct_answer || '';
 
-            // Handle fill in the blank
             if (q.type === 'fill') {
                 document.getElementById('fillAnswerContainer').style.display = 'block';
             } else {
                 document.getElementById('fillAnswerContainer').style.display = 'none';
             }
 
-            // Render options
             let optionsHtml = '';
             if (q.options && q.options.length > 0) {
                 q.options.forEach((opt, optIndex) => {
@@ -555,7 +551,6 @@
                 }
                 correctAnswer = fillAnswer;
             } else {
-                // Collect options
                 const optionInputs = document.querySelectorAll('#optionsList .option-group');
                 if (optionInputs.length < 2) {
                     showFeedback('Please add at least 2 options.', 'error');
@@ -646,14 +641,13 @@
                 return;
             }
             group.remove();
-            // Re-index radio buttons
             document.querySelectorAll('#optionsList .option-group input[type="radio"]').forEach((radio, idx) => {
                 radio.value = idx;
             });
         }
 
         // ============================================================
-        // 6. Save Exam
+        // 6. Save Exam - FIXED ENDPOINT
         // ============================================================
         function saveExam() {
             const title = document.getElementById('examTitle').value.trim();
@@ -709,7 +703,6 @@
                         pageTitle.textContent = `Edit Exam: ${title}`;
                         window.history.replaceState({}, '', `?id=${data.exam_id}`);
                     }
-                    // Update status display
                     updateStatusDisplay(status);
                 } else {
                     showFeedback('Failed to save exam: ' + data.message, 'error');
@@ -841,14 +834,9 @@
         // 10. Initialize
         // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize question modal
             questionModalInstance = new bootstrap.Modal(document.getElementById('questionModal'));
             previewModalInstance = new bootstrap.Modal(document.getElementById('previewModal'));
-            
-            // Check if editing existing exam
             loadExam();
-            
-            // If no questions, render empty state
             renderQuestions();
         });
 
@@ -863,4 +851,4 @@
         window.previewExam = previewExam;
     </script>
 </body>
-</html>
+    </html>
