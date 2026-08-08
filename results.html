@@ -6,141 +6,95 @@
     <title>Exam Results - HAYYO</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        .result-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .results-header {
+            background: linear-gradient(135deg, #2d3436 0%, #636e72 100%);
             color: white;
-            padding: 40px 0 30px;
-            border-radius: 0 0 30px 30px;
+            padding: 20px 0;
             margin-bottom: 30px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         }
         .score-card {
             background: white;
-            border-radius: 20px;
-            padding: 25px;
+            border-radius: 15px;
+            padding: 30px;
             box-shadow: 0 2px 15px rgba(0,0,0,0.08);
-            height: 100%;
-            transition: transform 0.3s;
+            text-align: center;
+            margin-bottom: 20px;
         }
-        .score-card:hover {
-            transform: translateY(-5px);
-        }
-        .score-number {
-            font-size: 3rem;
+        .score-card .score {
+            font-size: 4rem;
             font-weight: 700;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0984e3 0%, #6c5ce7 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
-        .score-label {
-            font-size: 0.9rem;
-            color: #6c757d;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .result-badge {
-            padding: 8px 25px;
-            border-radius: 50px;
-            font-size: 1.1rem;
+        .score-card .percentage {
+            font-size: 2rem;
             font-weight: 600;
+            color: #2d3436;
         }
-        .result-pass {
-            background: #d4edda;
-            color: #155724;
+        .score-card .label {
+            color: #6c757d;
+            font-size: 0.9rem;
         }
-        .result-fail {
-            background: #f8d7da;
-            color: #721c24;
+        .score-card.pass {
+            border-left: 5px solid #28a745;
         }
-        .detail-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid #e9ecef;
+        .score-card.fail {
+            border-left: 5px solid #dc3545;
         }
-        .detail-item:last-child {
-            border-bottom: none;
-        }
-        .question-review-card {
+        .stat-card {
             background: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border-left: 5px solid #667eea;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-        }
-        .question-review-card.correct {
-            border-left-color: #28a745;
-        }
-        .question-review-card.wrong {
-            border-left-color: #dc3545;
-        }
-        .question-review-card.unanswered {
-            border-left-color: #ffc107;
-        }
-        .option-review {
-            padding: 8px 15px;
-            margin: 5px 0;
-            border-radius: 8px;
-            background: #f8f9fa;
-        }
-        .option-review.correct-answer {
-            background: #d4edda;
-            border: 2px solid #28a745;
-        }
-        .option-review.wrong-answer {
-            background: #f8d7da;
-            border: 2px solid #dc3545;
-        }
-        .option-review.selected-answer {
-            background: #cce5ff;
-            border: 2px solid #007bff;
-        }
-        .chart-container {
-            position: relative;
-            height: 250px;
-            width: 100%;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-        .stat-item {
-            text-align: center;
-            padding: 15px;
-            background: #f8f9fa;
             border-radius: 12px;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            margin-bottom: 15px;
         }
-        .stat-item .number {
-            font-size: 1.8rem;
+        .stat-card .number {
+            font-size: 1.5rem;
             font-weight: 700;
+            color: #2d3436;
         }
-        .stat-item .label {
+        .stat-card .label {
             font-size: 0.85rem;
             color: #6c757d;
         }
-        .stat-item.correct .number { color: #28a745; }
-        .stat-item.wrong .number { color: #dc3545; }
-        .stat-item.unanswered .number { color: #ffc107; }
-        .stat-item.marks .number { color: #667eea; }
-        .print-btn {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            z-index: 1000;
-            border-radius: 50px;
-            padding: 15px 30px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        .stat-card .icon {
+            font-size: 2rem;
+            opacity: 0.3;
+            float: right;
         }
-        @media print {
-            .print-btn { display: none; }
-            .no-print { display: none; }
-            .result-header { border-radius: 0; }
+        .question-review {
+            background: white;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            border-left: 4px solid #0984e3;
+        }
+        .question-review.correct {
+            border-left-color: #28a745;
+        }
+        .question-review.wrong {
+            border-left-color: #dc3545;
+        }
+        .question-review .q-number {
+            font-weight: 600;
+            color: #2d3436;
+        }
+        .question-review .q-text {
+            margin: 8px 0;
+        }
+        .question-review .answer {
+            font-size: 0.9rem;
+        }
+        .question-review .answer.correct {
+            color: #28a745;
+        }
+        .question-review .answer.wrong {
+            color: #dc3545;
         }
         .feedback-msg {
             position: fixed;
@@ -149,36 +103,73 @@
             z-index: 9999;
             max-width: 400px;
         }
-        .share-buttons .btn {
+        .btn-primary {
+            background: linear-gradient(135deg, #0984e3 0%, #6c5ce7 100%);
+            border: none;
             border-radius: 50px;
-            padding: 8px 20px;
+            padding: 10px 25px;
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(9, 132, 227, 0.3);
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1f2937;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            max-width: 90%;
+        }
+        .toast.show { opacity: 1; }
+        .toast.error { background: #dc2626; }
+        .toast.success { background: #16a34a; }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        .empty-state .icon {
+            font-size: 4rem;
+            opacity: 0.3;
+            margin-bottom: 15px;
         }
     </style>
 </head>
 <body>
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
     <!-- Feedback Messages -->
     <div class="feedback-msg" id="feedbackMsg"></div>
 
-    <!-- Print Button -->
-    <button class="btn btn-primary print-btn no-print" onclick="window.print()">
-        <i class="bi bi-printer"></i> Print Results
-    </button>
-
-    <!-- Result Header -->
-    <div class="result-header">
+    <!-- Header -->
+    <div class="results-header">
         <div class="container">
             <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h1 class="display-5 fw-bold mb-2">
-                        <i class="bi bi-trophy-fill me-2"></i>Exam Results
+                <div class="col-md-6">
+                    <h1 class="display-6 fw-bold mb-2">
+                        <i class="bi bi-clipboard-check me-2"></i>Exam Results
                     </h1>
-                    <p class="mb-1 fs-5" id="studentName">Loading...</p>
-                    <p class="mb-0 opacity-75" id="examInfo">Exam: Loading...</p>
+                    <p class="mb-0 opacity-75" id="examInfo">Exam: <span id="examTitle">Loading...</span></p>
                 </div>
-                <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                    <div id="resultBadge" class="result-badge result-pass">
-                        <i class="bi bi-check-circle"></i> Passed
-                    </div>
+                <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                    <a href="exams.html" class="btn btn-light">
+                        <i class="bi bi-arrow-left"></i> Back to Exams
+                    </a>
+                    <a href="dashboard.html" class="btn btn-outline-light ms-2">
+                        <i class="bi bi-house"></i> Dashboard
+                    </a>
                 </div>
             </div>
         </div>
@@ -186,149 +177,40 @@
 
     <!-- Main Content -->
     <div class="container mb-5">
-        <!-- Score Summary -->
-        <div class="row g-4 mb-4">
-            <div class="col-md-3 col-sm-6">
-                <div class="score-card text-center">
-                    <div class="score-label">Total Marks</div>
-                    <div class="score-number" id="totalMarks">0</div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="score-card text-center">
-                    <div class="score-label">Obtained Marks</div>
-                    <div class="score-number" id="obtainedMarks">0</div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="score-card text-center">
-                    <div class="score-label">Percentage</div>
-                    <div class="score-number" id="percentage">0%</div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="score-card text-center">
-                    <div class="score-label">Time Taken</div>
-                    <div class="score-number" id="timeTaken" style="font-size: 2rem;">0m</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Detailed Stats -->
-        <div class="row g-4 mb-4">
-            <div class="col-md-8">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Performance Overview</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="stats-grid">
-                            <div class="stat-item correct">
-                                <div class="number" id="correctCount">0</div>
-                                <div class="label">Correct</div>
-                            </div>
-                            <div class="stat-item wrong">
-                                <div class="number" id="wrongCount">0</div>
-                                <div class="label">Wrong</div>
-                            </div>
-                            <div class="stat-item unanswered">
-                                <div class="number" id="unansweredCount">0</div>
-                                <div class="label">Unanswered</div>
-                            </div>
-                            <div class="stat-item marks">
-                                <div class="number" id="accuracy">0%</div>
-                                <div class="label">Accuracy</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Distribution</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="resultChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Question Review -->
-        <div class="card shadow-sm">
-            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Question Review</h5>
-                <div>
-                    <button class="btn btn-sm btn-outline-primary no-print" id="showCorrectBtn">
-                        <i class="bi bi-check-circle"></i> Correct
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger no-print" id="showWrongBtn">
-                        <i class="bi bi-x-circle"></i> Wrong
-                    </button>
-                    <button class="btn btn-sm btn-outline-warning no-print" id="showUnansweredBtn">
-                        <i class="bi bi-question-circle"></i> Unanswered
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary no-print" id="showAllBtn">
-                        <i class="bi bi-list"></i> All
-                    </button>
-                </div>
-            </div>
-            <div class="card-body" id="questionsReview">
-                <!-- Questions will be loaded here -->
-            </div>
-        </div>
-
-        <!-- Share/Action Buttons -->
-        <div class="mt-4 text-center no-print">
-            <div class="share-buttons">
-                <button class="btn btn-success me-2" onclick="downloadResult()">
-                    <i class="bi bi-download"></i> Download Result
-                </button>
-                <button class="btn btn-primary me-2" onclick="shareResult()">
-                    <i class="bi bi-share"></i> Share
-                </button>
-                <a href="maths-exam.html" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> Back to Exams
-                </a>
-            </div>
+        <div id="resultsContent">
+            <!-- Results will be rendered here -->
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ============================================================
-        // 1. API Base URL - UPDATED
+        // 1. API Base URL
         // ============================================================
         const API_BASE = 'https://hayyo-exam.onrender.com';
 
         // ============================================================
         // 2. Global State
         // ============================================================
-        let resultData = null;
-        let questions = [];
-        let chartInstance = null;
+        let results = null;
+        let examId = null;
+        let userId = null;
 
         // DOM elements
-        const studentName = document.getElementById('studentName');
-        const examInfo = document.getElementById('examInfo');
-        const resultBadge = document.getElementById('resultBadge');
-        const totalMarks = document.getElementById('totalMarks');
-        const obtainedMarks = document.getElementById('obtainedMarks');
-        const percentage = document.getElementById('percentage');
-        const timeTaken = document.getElementById('timeTaken');
-        const correctCount = document.getElementById('correctCount');
-        const wrongCount = document.getElementById('wrongCount');
-        const unansweredCount = document.getElementById('unansweredCount');
-        const accuracy = document.getElementById('accuracy');
-        const questionsReview = document.getElementById('questionsReview');
+        const toast = document.getElementById('toast');
         const feedbackMsg = document.getElementById('feedbackMsg');
+        const resultsContent = document.getElementById('resultsContent');
+        const examTitle = document.getElementById('examTitle');
 
         // ============================================================
         // 3. Helper Functions
         // ============================================================
+        function showToast(message, type = 'success') {
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => { toast.className = 'toast'; }, 3000);
+        }
+
         function showFeedback(message, type = 'success') {
             const bgColor = type === 'success' ? '#d4edda' : type === 'error' ? '#f8d7da' : '#fff3cd';
             const textColor = type === 'success' ? '#155724' : type === 'error' ? '#721c24' : '#856404';
@@ -344,17 +226,20 @@
             }, 5000);
         }
 
-        function formatTime(seconds) {
-            const hours = Math.floor(seconds / 3600);
-            const mins = Math.floor((seconds % 3600) / 60);
-            if (hours > 0) {
-                return `${hours}h ${mins}m`;
-            }
-            return `${mins}m`;
+        function getToken() {
+            return localStorage.getItem('token');
         }
 
-        function getOptionLabel(index) {
-            return String.fromCharCode(65 + index);
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
         }
 
         // ============================================================
@@ -362,268 +247,215 @@
         // ============================================================
         function loadResults() {
             const urlParams = new URLSearchParams(window.location.search);
-            const examId = urlParams.get('exam');
-            const studentId = urlParams.get('student');
+            examId = urlParams.get('exam');
+            const attemptId = urlParams.get('attempt');
 
-            if (!examId || !studentId) {
-                showFeedback('Invalid result link. Please contact your teacher.', 'error');
+            if (!examId) {
+                // Try to get from localStorage
+                const storedExamId = localStorage.getItem('currentExamId');
+                if (storedExamId) {
+                    examId = storedExamId;
+                    // Update URL
+                    const newUrl = window.location.pathname + '?exam=' + examId;
+                    window.history.replaceState({}, '', newUrl);
+                } else {
+                    showFeedback('No exam specified.', 'error');
+                    resultsContent.innerHTML = `
+                        <div class="empty-state">
+                            <div class="icon"><i class="bi bi-clipboard-check"></i></div>
+                            <h5>No Results Found</h5>
+                            <p>Please complete an exam to see your results.</p>
+                            <a href="exams.html" class="btn btn-primary">Browse Exams</a>
+                        </div>
+                    `;
+                    return;
+                }
+            }
+
+            const token = getToken();
+            if (!token) {
+                showFeedback('Please login to view results.', 'error');
+                setTimeout(() => window.location.href = 'index.html', 1500);
                 return;
             }
 
-            // Fetch results
-            fetch(`${API_BASE}/api/get-results/${examId}/${studentId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    resultData = data;
-                    questions = data.questions || [];
-                    renderResults(data);
-                } else {
-                    showFeedback('Failed to load results: ' + data.message, 'error');
+            // Get user info
+            fetch(`${API_BASE}/api/me`, {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
                 }
             })
-            .catch(error => {
-                console.error('Load results error:', error);
-                showFeedback('Network error loading results. Please refresh.', 'error');
+            .then(res => {
+                if (res.status === 401) {
+                    localStorage.removeItem('token');
+                    showToast('Session expired. Please login again.', 'error');
+                    setTimeout(() => window.location.href = 'index.html', 1500);
+                    return null;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data && data.authenticated) {
+                    userId = data.user.id;
+                    // Get exam details
+                    return fetch(`${API_BASE}/api/exams/${examId}`, {
+                        headers: {
+                            'Authorization': 'Bearer ' + token,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                }
+                return null;
+            })
+            .then(res => {
+                if (!res) return null;
+                return res.json();
+            })
+            .then(data => {
+                if (data && data.exam) {
+                    examTitle.textContent = data.exam.title || 'Exam';
+                    
+                    // Get results
+                    return fetch(`${API_BASE}/api/exams/${examId}/results/${userId}`, {
+                        headers: {
+                            'Authorization': 'Bearer ' + token,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                }
+                return null;
+            })
+            .then(res => {
+                if (!res) return null;
+                return res.json();
+            })
+            .then(data => {
+                if (data && data.success) {
+                    results = data.results;
+                    renderResults();
+                } else {
+                    // Check localStorage for results from exam
+                    const storedResults = localStorage.getItem('examResults');
+                    if (storedResults) {
+                        results = JSON.parse(storedResults);
+                        renderResults();
+                    } else {
+                        showFeedback('No results found for this exam.', 'error');
+                        resultsContent.innerHTML = `
+                            <div class="empty-state">
+                                <div class="icon"><i class="bi bi-clipboard-check"></i></div>
+                                <h5>No Results Found</h5>
+                                <p>You haven't completed this exam yet.</p>
+                                <a href="exams.html" class="btn btn-primary">Browse Exams</a>
+                            </div>
+                        `;
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Load results error:', err);
+                showFeedback('Network error loading results.', 'error');
             });
         }
 
         // ============================================================
         // 5. Render Results
         // ============================================================
-        function renderResults(data) {
-            // Header
-            studentName.textContent = `👤 ${data.student_name || 'Student'}`;
-            examInfo.textContent = `📚 Exam: ${data.exam_title || 'Mathematics'} | ${data.subject || 'Math'}`;
-
-            // Score
-            const total = data.total_marks || 0;
-            const obtained = data.obtained_marks || 0;
-            const percent = total > 0 ? Math.round((obtained / total) * 100) : 0;
-            const passed = percent >= 40;
-
-            totalMarks.textContent = total;
-            obtainedMarks.textContent = obtained;
-            percentage.textContent = `${percent}%`;
-            timeTaken.textContent = formatTime(data.time_taken || 0);
-
-            // Badge
-            resultBadge.className = `result-badge ${passed ? 'result-pass' : 'result-fail'}`;
-            resultBadge.innerHTML = passed 
-                ? '<i class="bi bi-check-circle"></i> Passed' 
-                : '<i class="bi bi-x-circle"></i> Failed';
-
-            // Stats
-            const correct = data.correct_answers || 0;
-            const wrong = data.wrong_answers || 0;
-            const unanswered = data.unanswered || 0;
-            const totalQ = correct + wrong + unanswered;
-            const acc = totalQ > 0 ? Math.round((correct / totalQ) * 100) : 0;
-
-            correctCount.textContent = correct;
-            wrongCount.textContent = wrong;
-            unansweredCount.textContent = unanswered;
-            accuracy.textContent = `${acc}%`;
-
-            // Render questions
-            renderQuestions();
-
-            // Render chart
-            renderChart(correct, wrong, unanswered);
-        }
-
-        // ============================================================
-        // 6. Render Questions Review
-        // ============================================================
-        function renderQuestions(filter = 'all') {
-            if (!questions || questions.length === 0) {
-                questionsReview.innerHTML = '<p class="text-muted">No questions to review.</p>';
+        function renderResults() {
+            if (!results) {
+                showFeedback('No results data available.', 'error');
                 return;
             }
 
-            let html = '';
-            let filteredQuestions = [];
+            const score = results.score || 0;
+            const total = results.total_questions || results.total || 0;
+            const percentage = results.percentage || (total > 0 ? Math.round((score / total) * 100) : 0);
+            const passed = percentage >= 40;
+            const correct = results.correct || score;
+            const wrong = total - correct;
 
-            questions.forEach((q, index) => {
-                const isCorrect = q.is_correct;
-                const isAnswered = q.selected_option !== null && q.selected_option !== undefined;
-                const status = isAnswered ? (isCorrect ? 'correct' : 'wrong') : 'unanswered';
-
-                // Apply filter
-                if (filter === 'correct' && status !== 'correct') return;
-                if (filter === 'wrong' && status !== 'wrong') return;
-                if (filter === 'unanswered' && status !== 'unanswered') return;
-
-                filteredQuestions.push({ ...q, index, status });
-            });
-
-            if (filteredQuestions.length === 0) {
-                questionsReview.innerHTML = `<p class="text-muted">No ${filter} questions found.</p>`;
-                return;
-            }
-
-            filteredQuestions.forEach((q) => {
-                const statusClass = q.status;
-                const statusIcon = q.status === 'correct' ? '✅' : q.status === 'wrong' ? '❌' : '⏳';
-                const statusText = q.status === 'correct' ? 'Correct' : q.status === 'wrong' ? 'Wrong' : 'Unanswered';
-
-                html += `
-                    <div class="question-review-card ${statusClass}">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h6 class="mb-0">
-                                <span class="badge bg-secondary me-2">Q${q.index + 1}</span>
-                                ${q.question_text || 'Question text not available'}
-                            </h6>
-                            <span class="badge ${q.status === 'correct' ? 'bg-success' : q.status === 'wrong' ? 'bg-danger' : 'bg-warning'}">
-                                ${statusIcon} ${statusText}
-                            </span>
-                        </div>
-                        <div class="mt-2">
-                            <small class="text-muted">Marks: ${q.marks || 1}</small>
-                        </div>
-                        <div class="options-container mt-2">
-                `;
-
-                if (q.options && q.options.length > 0) {
-                    q.options.forEach((opt, optIndex) => {
-                        const isSelected = q.selected_option === optIndex;
-                        const isCorrectOption = opt.is_correct === true;
-                        let optionClass = 'option-review';
-                        if (isCorrectOption) optionClass += ' correct-answer';
-                        if (isSelected && !isCorrectOption) optionClass += ' wrong-answer';
-                        if (isSelected && isCorrectOption) optionClass += ' selected-answer';
-                        
-                        const icon = isCorrectOption ? '✅' : isSelected ? '➡️' : '';
-                        html += `
-                            <div class="${optionClass}">
-                                ${getOptionLabel(optIndex)}. ${opt.option_text || opt}
-                                ${icon ? ` <span class="ms-2">${icon}</span>` : ''}
-                                ${isSelected ? ' <span class="badge bg-primary ms-2">Your Answer</span>' : ''}
-                                ${isCorrectOption ? ' <span class="badge bg-success ms-2">Correct Answer</span>' : ''}
+            let html = `
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="score-card ${passed ? 'pass' : 'fail'}">
+                            <div class="score">${score}/${total}</div>
+                            <div class="percentage">${percentage}%</div>
+                            <div class="label">${passed ? '✅ PASSED' : '❌ FAILED'}</div>
+                            <div class="mt-3">
+                                <span class="badge ${passed ? 'bg-success' : 'bg-danger'}">${passed ? 'Pass' : 'Fail'}</span>
                             </div>
-                        `;
-                    });
-                }
-
-                html += `
+                            ${results.submitted_at ? `<div class="mt-2 text-muted small">Completed: ${formatDate(results.submitted_at)}</div>` : ''}
                         </div>
-                        ${q.explanation ? `<div class="mt-2 text-muted small"><strong>Explanation:</strong> ${q.explanation}</div>` : ''}
+                    </div>
+                    <div class="col-lg-8">
+                        <div class="row g-3">
+                            <div class="col-4">
+                                <div class="stat-card">
+                                    <div class="icon"><i class="bi bi-check-circle text-success"></i></div>
+                                    <div class="number text-success">${correct}</div>
+                                    <div class="label">Correct</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="stat-card">
+                                    <div class="icon"><i class="bi bi-x-circle text-danger"></i></div>
+                                    <div class="number text-danger">${wrong}</div>
+                                    <div class="label">Wrong</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="stat-card">
+                                    <div class="icon"><i class="bi bi-clock"></i></div>
+                                    <div class="number">${total}</div>
+                                    <div class="label">Total Questions</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add question review if available
+            if (results.results && results.results.length > 0) {
+                html += `
+                    <div class="mt-4">
+                        <h5><i class="bi bi-list-check me-2"></i>Question Review</h5>
+                        ${results.results.map((q, index) => `
+                            <div class="question-review ${q.is_correct ? 'correct' : 'wrong'}">
+                                <div class="q-number">Question ${index + 1}</div>
+                                <div class="q-text">${q.question || `Question ${index + 1}`}</div>
+                                <div class="answer ${q.is_correct ? 'correct' : 'wrong'}">
+                                    <strong>Your Answer:</strong> ${q.user_answer || 'Not answered'}
+                                    ${q.is_correct ? ' ✅' : ' ❌'}
+                                </div>
+                                ${q.correct_answer ? `<div class="answer correct"><strong>Correct Answer:</strong> ${q.correct_answer}</div>` : ''}
+                            </div>
+                        `).join('')}
                     </div>
                 `;
-            });
-
-            questionsReview.innerHTML = html;
-        }
-
-        // ============================================================
-        // 7. Render Chart
-        // ============================================================
-        function renderChart(correct, wrong, unanswered) {
-            const ctx = document.getElementById('resultChart').getContext('2d');
-            
-            if (chartInstance) {
-                chartInstance.destroy();
             }
 
-            chartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Correct', 'Wrong', 'Unanswered'],
-                    datasets: [{
-                        data: [correct, wrong, unanswered],
-                        backgroundColor: ['#28a745', '#dc3545', '#ffc107'],
-                        borderWidth: 2,
-                        borderColor: '#fff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 10,
-                                usePointStyle: true,
-                                pointStyle: 'circle'
-                            }
-                        }
-                    },
-                    cutout: '60%'
-                }
-            });
+            resultsContent.innerHTML = html;
         }
 
         // ============================================================
-        // 8. Filter Buttons
+        // 6. Initialize
         // ============================================================
-        document.getElementById('showAllBtn')?.addEventListener('click', () => renderQuestions('all'));
-        document.getElementById('showCorrectBtn')?.addEventListener('click', () => renderQuestions('correct'));
-        document.getElementById('showWrongBtn')?.addEventListener('click', () => renderQuestions('wrong'));
-        document.getElementById('showUnansweredBtn')?.addEventListener('click', () => renderQuestions('unanswered'));
+        document.addEventListener('DOMContentLoaded', function() {
+            loadResults();
+        });
 
         // ============================================================
-        // 9. Download & Share
+        // 7. Check for token in URL (OAuth callback)
         // ============================================================
-        function downloadResult() {
-            const content = document.querySelector('.container').cloneNode(true);
-            // Remove buttons from cloned content
-            content.querySelectorAll('.no-print').forEach(el => el.remove());
-            
-            const win = window.open('', '_blank');
-            win.document.write(`
-                <html>
-                    <head>
-                        <title>Exam Results - HAYYO</title>
-                        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-                        <style>
-                            body { padding: 30px; }
-                            .result-header { background: #667eea; color: white; padding: 30px; border-radius: 10px; }
-                            .score-number { font-size: 2.5rem; font-weight: 700; color: #667eea; }
-                            .question-review-card { border-left: 5px solid #667eea; padding: 15px; margin-bottom: 15px; }
-                            .question-review-card.correct { border-left-color: #28a745; }
-                            .question-review-card.wrong { border-left-color: #dc3545; }
-                            .question-review-card.unanswered { border-left-color: #ffc107; }
-                            .option-review { padding: 5px 10px; margin: 3px 0; border-radius: 5px; }
-                            .option-review.correct-answer { background: #d4edda; }
-                            .option-review.wrong-answer { background: #f8d7da; }
-                            .option-review.selected-answer { background: #cce5ff; }
-                            @media print { .no-print { display: none; } }
-                        </style>
-                    </head>
-                    <body>
-                        ${content.innerHTML}
-                    </body>
-                </html>
-            `);
-            win.document.close();
-            setTimeout(() => {
-                win.print();
-            }, 500);
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        if (token) {
+            localStorage.setItem('token', token);
+            window.history.replaceState({}, document.title, window.location.pathname);
+            showToast('✅ Login successful!', 'success');
         }
-
-        function shareResult() {
-            if (navigator.share) {
-                navigator.share({
-                    title: 'My Exam Results',
-                    text: `I scored ${obtainedMarks.textContent}/${totalMarks.textContent} (${percentage.textContent}) in my exam!`,
-                    url: window.location.href
-                }).catch(() => {});
-            } else {
-                // Fallback: copy to clipboard
-                const text = `📊 Exam Results\n\nScore: ${obtainedMarks.textContent}/${totalMarks.textContent}\nPercentage: ${percentage.textContent}\nCorrect: ${correctCount.textContent}\nWrong: ${wrongCount.textContent}\nUnanswered: ${unansweredCount.textContent}`;
-                navigator.clipboard.writeText(text).then(() => {
-                    showFeedback('Results copied to clipboard!', 'success');
-                }).catch(() => {
-                    showFeedback('Please copy the URL to share.', 'info');
-                });
-            }
-        }
-
-        // ============================================================
-        // 10. Initialize
-        // ============================================================
-        document.addEventListener('DOMContentLoaded', loadResults);
     </script>
 </body>
-    </html>
+</html>
