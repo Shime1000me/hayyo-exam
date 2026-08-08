@@ -1,295 +1,813 @@
-<!-- Add this after the users list section -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - User Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        .admin-header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .user-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        .user-card:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        .user-card .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .user-card .user-name {
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        .user-card .user-email {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        .user-card .user-meta {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        .badge-teacher {
+            background: #d4edda;
+            color: #155724;
+            padding: 3px 12px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+        }
+        .badge-student {
+            background: #cce5ff;
+            color: #004085;
+            padding: 3px 12px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+        }
+        .badge-premium {
+            background: #fff3cd;
+            color: #856404;
+            padding: 3px 12px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1f2937;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            max-width: 90%;
+        }
+        .toast.show { opacity: 1; }
+        .toast.error { background: #dc2626; }
+        .toast.success { background: #16a34a; }
+        .search-box {
+            border-radius: 50px;
+            padding: 10px 20px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s;
+        }
+        .search-box:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50px;
+            padding: 10px 25px;
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        .empty-state .icon {
+            font-size: 4rem;
+            opacity: 0.3;
+            margin-bottom: 15px;
+        }
+        .loading-spinner {
+            text-align: center;
+            padding: 40px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .password-wrapper {
+            position: relative;
+        }
+        .password-wrapper input {
+            padding-right: 44px;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+            line-height: 1;
+        }
+        .password-toggle:hover {
+            color: #4b5563;
+        }
+        .section-divider {
+            border-top: 2px solid #e9ecef;
+            margin: 40px 0 30px 0;
+        }
+        .staff-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 12px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        .staff-card:hover {
+            background: #f1f5f9;
+        }
+        .staff-card .staff-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .staff-card .staff-name {
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        .staff-card .staff-username {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        .staff-card .staff-email {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        .staff-card .badge {
+            font-size: 0.75rem;
+        }
+        .admin-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .admin-actions .btn {
+            border-radius: 50px;
+            padding: 5px 15px;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
 
-<!-- Staff Management Section -->
-<div class="mt-5">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4><i class="bi bi-person-badge me-2"></i>Staff Accounts (Admins & Teachers)</h4>
-        <button class="btn btn-primary btn-sm" onclick="showCreateStaffModal()">
-            <i class="bi bi-plus-circle"></i> Add Staff
-        </button>
-    </div>
-    <div id="staffList">
-        <div class="loading-spinner">
-            <div class="spinner"></div>
-            <p>Loading staff...</p>
+    <div class="toast" id="toast"></div>
+
+    <!-- Header -->
+    <div class="admin-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="display-6 fw-bold mb-2">
+                        <i class="bi bi-people me-2"></i>User Management
+                    </h1>
+                    <p class="mb-0 opacity-75">
+                        <i class="bi bi-person me-1"></i>Admin Dashboard
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                    <a href="admin-payments.html" class="btn btn-light me-2">
+                        <i class="bi bi-credit-card"></i> Payments
+                    </a>
+                    <a href="staff-login.html" class="btn btn-outline-light me-2">
+                        <i class="bi bi-person-badge"></i> Staff Login
+                    </a>
+                    <a href="dashboard.html" class="btn btn-outline-light">
+                        <i class="bi bi-house"></i> Dashboard
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Create Staff Modal -->
-<div class="modal fade" id="createStaffModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Create Staff Account</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <!-- Main Content -->
+    <div class="container mb-5">
+
+        <!-- Instructions -->
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>How to add a teacher:</strong> Find the user's email below, then click the <strong>"Make Teacher"</strong> button next to their name.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Search -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <input type="text" class="search-box w-100" id="searchInput" placeholder="🔍 Search by name or email...">
             </div>
-            <div class="modal-body">
-                <form id="createStaffForm">
-                    <div class="mb-3">
-                        <label class="form-label">Username *</label>
-                        <input type="text" class="form-control" id="staffUsername" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Password *</label>
-                        <div class="password-wrapper">
-                            <input type="password" class="form-control" id="staffPassword" required>
-                            <button type="button" class="password-toggle" onclick="toggleStaffPassword()">👁</button>
+            <div class="col-md-6 text-md-end">
+                <button class="btn btn-primary" onclick="loadUsers()">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Users List -->
+        <h5><i class="bi bi-person me-2"></i>Students (Google OAuth Users)</h5>
+        <div id="usersContainer">
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+                <p>Loading users...</p>
+            </div>
+        </div>
+
+        <!-- Divider -->
+        <div class="section-divider"></div>
+
+        <!-- Staff Management Section -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5><i class="bi bi-person-badge me-2"></i>Staff Accounts (Admins & Teachers)</h5>
+            <button class="btn btn-primary btn-sm" onclick="showCreateStaffModal()">
+                <i class="bi bi-plus-circle"></i> Add Staff
+            </button>
+        </div>
+        <div id="staffList">
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+                <p>Loading staff...</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Create Staff Modal -->
+    <div class="modal fade" id="createStaffModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Create Staff Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createStaffForm">
+                        <div class="mb-3">
+                            <label class="form-label">Username *</label>
+                            <input type="text" class="form-control" id="staffUsername" placeholder="Enter username" required>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Name</label>
-                        <input type="text" class="form-control" id="staffName">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" class="form-control" id="staffEmail">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Role *</label>
-                        <select class="form-select" id="staffRole" required>
-                            <option value="teacher">Teacher</option>
-                            <option value="admin">Admin</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-primary" onclick="createStaff()">
-                    <i class="bi bi-plus-circle"></i> Create
-                </button>
+                        <div class="mb-3">
+                            <label class="form-label">Password *</label>
+                            <div class="password-wrapper">
+                                <input type="password" class="form-control" id="staffPassword" placeholder="Enter password" required>
+                                <button type="button" class="password-toggle" onclick="toggleStaffPassword()">👁</button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="staffName" placeholder="Enter full name">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="staffEmail" placeholder="Enter email address">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Role *</label>
+                            <select class="form-select" id="staffRole" required>
+                                <option value="teacher">👨‍🏫 Teacher</option>
+                                <option value="admin">👑 Admin</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary" onclick="createStaff()">
+                        <i class="bi bi-plus-circle"></i> Create Account
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<style>
-    .password-wrapper {
-        position: relative;
-    }
-    .password-wrapper input {
-        padding-right: 44px;
-    }
-    .password-toggle {
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        color: #9ca3af;
-        cursor: pointer;
-        font-size: 18px;
-        padding: 4px;
-        line-height: 1;
-    }
-    .password-toggle:hover {
-        color: #4b5563;
-    }
-</style>
+    <script>
+        // ============================================================
+        // Admin Users Management - Complete
+        // ============================================================
+        const API_BASE = 'https://hayyo-exam.onrender.com';
+        let users = [];
+        let filteredUsers = [];
 
-<script>
-// Add this to admin-users.html script section
+        const toast = document.getElementById('toast');
+        const usersContainer = document.getElementById('usersContainer');
+        const searchInput = document.getElementById('searchInput');
 
-// Toggle staff password visibility
-function toggleStaffPassword() {
-    const input = document.getElementById('staffPassword');
-    const isPassword = input.type === 'password';
-    input.type = isPassword ? 'text' : 'password';
-    const btn = event.target;
-    btn.textContent = isPassword ? '🙈' : '👁';
-}
-
-// Load staff
-function loadStaff() {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        console.log('No token found');
-        return;
-    }
-    
-    const container = document.getElementById('staffList');
-    container.innerHTML = `
-        <div class="loading-spinner">
-            <div class="spinner"></div>
-            <p>Loading staff...</p>
-        </div>
-    `;
-    
-    fetch(`${API_BASE}/api/staff`, {
-        headers: {
-            'Authorization': 'Bearer ' + token,
-            'Content-Type': 'application/json'
+        // ============================================================
+        // Helper Functions
+        // ============================================================
+        function showToast(message, type = 'success') {
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => { toast.className = 'toast'; }, 3000);
         }
-    })
-    .then(res => {
-        if (res.status === 403) {
-            container.innerHTML = `
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
-                    You don't have permission to view staff. Admin access required.
+
+        function getToken() {
+            return localStorage.getItem('token');
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        // ============================================================
+        // Load Users (Students from Google OAuth)
+        // ============================================================
+        function loadUsers() {
+            const token = getToken();
+            if (!token) {
+                showToast('Please login first', 'error');
+                setTimeout(() => window.location.href = 'index.html', 1500);
+                return;
+            }
+
+            usersContainer.innerHTML = `
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Loading users...</p>
                 </div>
             `;
-            return null;
+
+            fetch(`${API_BASE}/api/admin/users`, {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => {
+                if (res.status === 401) {
+                    localStorage.removeItem('token');
+                    showToast('Session expired', 'error');
+                    setTimeout(() => window.location.href = 'index.html', 1500);
+                    return null;
+                }
+                if (res.status === 403) {
+                    usersContainer.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            You don't have admin access. Please login as admin.
+                        </div>
+                    `;
+                    return null;
+                }
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                if (data && data.success) {
+                    users = data.users || [];
+                    filteredUsers = users;
+                    renderUsers();
+                    showToast(`✅ Loaded ${users.length} users`, 'success');
+                } else if (data && !data.success) {
+                    throw new Error(data?.message || 'Failed to load users');
+                }
+            })
+            .catch(err => {
+                console.error('Load users error:', err);
+                usersContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon"><i class="bi bi-exclamation-triangle"></i></div>
+                        <h5>Error Loading Users</h5>
+                        <p>${err.message}</p>
+                        <button class="btn btn-primary mt-3" onclick="loadUsers()">
+                            <i class="bi bi-arrow-clockwise"></i> Retry
+                        </button>
+                    </div>
+                `;
+                showToast('Error loading users', 'error');
+            });
         }
-        return res.json();
-    })
-    .then(data => {
-        if (data && data.success) {
-            renderStaff(data.staff);
-        } else if (data && !data.success) {
+
+        // ============================================================
+        // Render Users
+        // ============================================================
+        function renderUsers() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            
+            if (searchTerm) {
+                filteredUsers = users.filter(u => 
+                    u.name?.toLowerCase().includes(searchTerm) || 
+                    u.email?.toLowerCase().includes(searchTerm)
+                );
+            } else {
+                filteredUsers = users;
+            }
+
+            if (filteredUsers.length === 0) {
+                usersContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon"><i class="bi bi-people"></i></div>
+                        <h5>No Users Found</h5>
+                        <p>${searchTerm ? 'Try adjusting your search.' : 'No users registered yet.'}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            usersContainer.innerHTML = filteredUsers.map(user => `
+                <div class="user-card">
+                    <div class="user-info">
+                        <div>
+                            <span class="user-name">${user.name || 'Unknown User'}</span>
+                            ${user.is_teacher ? '<span class="badge-teacher ms-2">👨‍🏫 Teacher</span>' : '<span class="badge-student ms-2">🎓 Student</span>'}
+                            ${user.is_premium ? '<span class="badge-premium ms-2">⭐ Premium</span>' : ''}
+                        </div>
+                        <span class="user-email">${user.email || 'No email'}</span>
+                        <span class="user-meta">Joined: ${formatDate(user.created_at)}</span>
+                    </div>
+                    <div class="admin-actions">
+                        ${user.is_teacher ? `
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeTeacher('${user.email}')">
+                                <i class="bi bi-person-x"></i> Remove Teacher
+                            </button>
+                        ` : `
+                            <button class="btn btn-sm btn-success" onclick="makeTeacher('${user.email}')">
+                                <i class="bi bi-person-plus"></i> Make Teacher
+                            </button>
+                        `}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ============================================================
+        // Make Teacher (for Google OAuth users)
+        // ============================================================
+        function makeTeacher(email) {
+            if (!confirm(`Are you sure you want to make "${email}" a teacher?`)) return;
+
+            const token = getToken();
+            if (!token) return;
+
+            const btn = event.target.closest('button');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            fetch(`${API_BASE}/api/admin/users/make-teacher`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`✅ ${email} is now a teacher!`, 'success');
+                    loadUsers();
+                } else {
+                    showToast('❌ ' + (data.error || 'Failed to make teacher'), 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-person-plus"></i> Make Teacher';
+                }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                showToast('Network error', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-person-plus"></i> Make Teacher';
+            });
+        }
+
+        // ============================================================
+        // Remove Teacher (for Google OAuth users)
+        // ============================================================
+        function removeTeacher(email) {
+            if (!confirm(`Are you sure you want to remove teacher status from "${email}"?`)) return;
+
+            const token = getToken();
+            if (!token) return;
+
+            const btn = event.target.closest('button');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            fetch(`${API_BASE}/api/admin/users/remove-teacher`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`✅ ${email} is no longer a teacher`, 'success');
+                    loadUsers();
+                } else {
+                    showToast('❌ ' + (data.error || 'Failed to remove teacher'), 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-person-x"></i> Remove Teacher';
+                }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                showToast('Network error', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-person-x"></i> Remove Teacher';
+            });
+        }
+
+        // ============================================================
+        // Staff Management (Username/Password accounts)
+        // ============================================================
+
+        // Toggle staff password visibility
+        function toggleStaffPassword() {
+            const input = document.getElementById('staffPassword');
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            const btn = event.target;
+            btn.textContent = isPassword ? '🙈' : '👁';
+        }
+
+        // Load staff
+        function loadStaff() {
+            const token = getToken();
+            if (!token) {
+                console.log('No token found');
+                return;
+            }
+            
+            const container = document.getElementById('staffList');
             container.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-circle me-2"></i>
-                    ${data.error || 'Failed to load staff'}
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Loading staff...</p>
                 </div>
             `;
+            
+            fetch(`${API_BASE}/api/staff`, {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => {
+                if (res.status === 403) {
+                    container.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            You don't have permission to view staff. Admin access required.
+                        </div>
+                    `;
+                    return null;
+                }
+                if (res.status === 401) {
+                    localStorage.removeItem('token');
+                    showToast('Session expired', 'error');
+                    setTimeout(() => window.location.href = 'index.html', 1500);
+                    return null;
+                }
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                if (data && data.success) {
+                    renderStaff(data.staff);
+                } else if (data && !data.success) {
+                    container.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-circle me-2"></i>
+                            ${data.error || 'Failed to load staff'}
+                        </div>
+                    `;
+                }
+            })
+            .catch(err => {
+                console.error('Error loading staff:', err);
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        Network error loading staff. Please try again.
+                    </div>
+                `;
+            });
         }
-    })
-    .catch(err => {
-        console.error('Error loading staff:', err);
-        container.innerHTML = `
-            <div class="alert alert-danger">
-                <i class="bi bi-exclamation-circle me-2"></i>
-                Network error loading staff. Please try again.
-            </div>
-        `;
-    });
-}
 
-function renderStaff(staff) {
-    const container = document.getElementById('staffList');
-    
-    if (!staff || staff.length === 0) {
-        container.innerHTML = `
-            <div class="text-center py-4 text-muted">
-                <i class="bi bi-people display-4 d-block mb-2"></i>
-                <p>No staff accounts created yet.</p>
-                <button class="btn btn-primary btn-sm" onclick="showCreateStaffModal()">
-                    <i class="bi bi-plus-circle"></i> Create First Staff Account
-                </button>
-            </div>
-        `;
-        return;
-    }
-    
-    container.innerHTML = staff.map(s => `
-        <div class="user-card">
-            <div class="user-info">
-                <div>
-                    <span class="user-name">${s.name || s.username}</span>
-                    <span class="badge ${s.role === 'admin' ? 'bg-primary' : 'bg-success'} ms-2">${s.role}</span>
-                    <span class="badge bg-secondary ms-1">@${s.username}</span>
+        function renderStaff(staff) {
+            const container = document.getElementById('staffList');
+            
+            if (!staff || staff.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-person-badge display-4 d-block mb-2"></i>
+                        <p>No staff accounts created yet.</p>
+                        <button class="btn btn-primary btn-sm" onclick="showCreateStaffModal()">
+                            <i class="bi bi-plus-circle"></i> Create First Staff Account
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = staff.map(s => `
+                <div class="staff-card">
+                    <div class="staff-info">
+                        <div>
+                            <span class="staff-name">${s.name || s.username}</span>
+                            <span class="badge ${s.role === 'admin' ? 'bg-primary' : 'bg-success'} ms-2">${s.role === 'admin' ? '👑 Admin' : '👨‍🏫 Teacher'}</span>
+                            <span class="badge bg-secondary ms-1">@${s.username}</span>
+                        </div>
+                        <span class="staff-email">${s.email || 'No email'}</span>
+                        <span class="staff-username">Created: ${formatDate(s.created_at)}</span>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteStaff('${s.id}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
                 </div>
-                <span class="user-email">${s.email || 'No email'}</span>
-                <span class="user-meta">Created: ${formatDate(s.created_at)}</span>
-            </div>
-            <div>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteStaff('${s.id}')">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-        </div>
-    `).join('');
-}
-
-function showCreateStaffModal() {
-    document.getElementById('staffUsername').value = '';
-    document.getElementById('staffPassword').value = '';
-    document.getElementById('staffName').value = '';
-    document.getElementById('staffEmail').value = '';
-    document.getElementById('staffRole').value = 'teacher';
-    new bootstrap.Modal(document.getElementById('createStaffModal')).show();
-}
-
-function createStaff() {
-    const username = document.getElementById('staffUsername').value.trim();
-    const password = document.getElementById('staffPassword').value.trim();
-    const name = document.getElementById('staffName').value.trim();
-    const email = document.getElementById('staffEmail').value.trim();
-    const role = document.getElementById('staffRole').value;
-    
-    if (!username || !password) {
-        showToast('Username and password required', 'error');
-        return;
-    }
-    
-    const token = localStorage.getItem('token');
-    if (!token) {
-        showToast('Please login first', 'error');
-        return;
-    }
-    
-    const btn = event.target;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-    
-    fetch(`${API_BASE}/api/staff/create`, {
-        method: 'POST',
-        headers: {
-            'Authorization': 'Bearer ' + token,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ username, password, name, email, role })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            showToast('✅ Staff created successfully!', 'success');
-            bootstrap.Modal.getInstance(document.getElementById('createStaffModal')).hide();
-            loadStaff();
-        } else {
-            showToast('❌ ' + (data.error || 'Failed to create staff'), 'error');
+            `).join('');
         }
-    })
-    .catch(err => {
-        showToast('Network error', 'error');
-        console.error(err);
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-plus-circle"></i> Create';
-    });
-}
 
-function deleteStaff(id) {
-    if (!confirm('Are you sure you want to delete this staff account?')) return;
-    
-    const token = localStorage.getItem('token');
-    if (!token) return;
-    
-    const btn = event.target.closest('button');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-    
-    fetch(`${API_BASE}/api/staff/${id}`, {
-        method: 'DELETE',
-        headers: {
-            'Authorization': 'Bearer ' + token,
-            'Content-Type': 'application/json'
+        function showCreateStaffModal() {
+            document.getElementById('staffUsername').value = '';
+            document.getElementById('staffPassword').value = '';
+            document.getElementById('staffName').value = '';
+            document.getElementById('staffEmail').value = '';
+            document.getElementById('staffRole').value = 'teacher';
+            new bootstrap.Modal(document.getElementById('createStaffModal')).show();
         }
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            showToast('✅ Staff deleted!', 'success');
-            loadStaff();
-        } else {
-            showToast('❌ ' + (data.error || 'Failed to delete'), 'error');
-        }
-    })
-    .catch(err => {
-        showToast('Network error', 'error');
-        console.error(err);
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-trash"></i>';
-    });
-}
 
-// Load staff when page loads
-// Add this to your existing DOMContentLoaded:
-// loadStaff();
-</script>
+        function createStaff() {
+            const username = document.getElementById('staffUsername').value.trim();
+            const password = document.getElementById('staffPassword').value.trim();
+            const name = document.getElementById('staffName').value.trim();
+            const email = document.getElementById('staffEmail').value.trim();
+            const role = document.getElementById('staffRole').value;
+            
+            if (!username || !password) {
+                showToast('Username and password required', 'error');
+                return;
+            }
+            
+            const token = getToken();
+            if (!token) {
+                showToast('Please login first', 'error');
+                return;
+            }
+            
+            const btn = event.target;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            
+            fetch(`${API_BASE}/api/staff/create`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password, name, email, role })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('✅ Staff created successfully!', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('createStaffModal')).hide();
+                    loadStaff();
+                } else {
+                    showToast('❌ ' + (data.error || 'Failed to create staff'), 'error');
+                }
+            })
+            .catch(err => {
+                showToast('Network error', 'error');
+                console.error(err);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-plus-circle"></i> Create Account';
+            });
+        }
+
+        function deleteStaff(id) {
+            if (!confirm('Are you sure you want to delete this staff account?')) return;
+            
+            const token = getToken();
+            if (!token) return;
+            
+            const btn = event.target.closest('button');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            
+            fetch(`${API_BASE}/api/staff/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('✅ Staff deleted!', 'success');
+                    loadStaff();
+                } else {
+                    showToast('❌ ' + (data.error || 'Failed to delete'), 'error');
+                }
+            })
+            .catch(err => {
+                showToast('Network error', 'error');
+                console.error(err);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-trash"></i>';
+            });
+        }
+
+        // ============================================================
+        // Search
+        // ============================================================
+        searchInput.addEventListener('input', renderUsers);
+
+        // ============================================================
+        // Initialize
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load users
+            loadUsers();
+            
+            // Load staff if the staff list element exists
+            if (document.getElementById('staffList')) {
+                loadStaff();
+            }
+            
+            // Make functions globally accessible
+            window.makeTeacher = makeTeacher;
+            window.removeTeacher = removeTeacher;
+            window.loadUsers = loadUsers;
+            window.loadStaff = loadStaff;
+            window.showCreateStaffModal = showCreateStaffModal;
+            window.createStaff = createStaff;
+            window.deleteStaff = deleteStaff;
+            window.toggleStaffPassword = toggleStaffPassword;
+        });
+
+        console.log('✅ Admin Users Management loaded');
+    </script>
+
+</body>
+</html>
