@@ -87,31 +87,6 @@
         .welcome-section { margin-top: 2.5rem; }
         .welcome-section h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.125rem; color: #0f172a; }
         .welcome-section h2 { font-size: 1rem; font-weight: 600; color: #0f172a; margin-bottom: 1rem; }
-        .search-bar {
-            position: relative;
-            width: 12rem;
-            margin-bottom: 1.25rem;
-        }
-        .search-bar input {
-            width: 100%;
-            border: none;
-            border-bottom: 1px solid #e2e8f0;
-            background: transparent;
-            padding: 0.25rem 0 0.25rem 2rem;
-            height: 2.25rem;
-            font-size: 0.875rem;
-            border-radius: 0;
-            font-family: 'Inter', sans-serif;
-            color: #0f172a;
-        }
-        .search-bar input:focus { outline: none; border-bottom-color: #2563eb; }
-        .search-bar .icon {
-            position: absolute;
-            left: 0.5rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9ca3af;
-        }
         .exam-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -171,9 +146,6 @@
         .social-card .card-image {
             background: linear-gradient(135deg, #34d399, #2dd4bf, #06b6d4);
         }
-        .social-card .card-image .circle-1 { top: -1rem; left: -1rem; width: 5rem; height: 5rem; }
-        .social-card .card-image .circle-2 { top: 1.5rem; left: 2rem; width: 2.5rem; height: 2.5rem; }
-        .social-card .card-image .circle-3 { bottom: -1rem; right: 1rem; width: 4rem; height: 4rem; }
         .toast {
             position: fixed;
             top: 20px;
@@ -197,7 +169,6 @@
         @media (max-width: 480px) {
             .info-box .info-row { grid-template-columns: 1fr 1fr; gap: 0.25rem 0.5rem; }
             .main-content { padding: 1rem; }
-            .search-bar { width: 100%; }
             .exam-grid { gap: 0.75rem; }
         }
     </style>
@@ -207,7 +178,7 @@
     <div class="toast" id="toast"></div>
 
     <div id="root">
-        <div class="min-h-screen" style="min-height:100vh;background:#ffffff;display:flex;flex-direction:column;">
+        <div style="min-height:100vh;background:#ffffff;display:flex;flex-direction:column;">
 
             <header class="app-header">
                 <div class="logo">🏫 Hayyo</div>
@@ -250,14 +221,6 @@
                 <div class="welcome-section">
                     <h1>Welcome, <span id="welcomeName">Student</span>! 👋</h1>
                     <h2>Select Exam Category</h2>
-
-                    <div class="search-bar">
-                        <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"></path>
-                            <path d="M21 21l-6 -6"></path>
-                        </svg>
-                        <input placeholder="Search" value="" />
-                    </div>
 
                     <div class="exam-grid">
 
@@ -304,25 +267,6 @@
         // ============================================
         const API_BASE = 'https://hayyo-exam.onrender.com';
 
-        // ============================================
-        // AUTO-VERSION - Fetches version from backend
-        // ============================================
-        (function autoVersion() {
-            fetch('https://hayyo-exam.onrender.com/api/version')
-                .then(res => res.json())
-                .then(data => {
-                    const v = data.version;
-                    console.log('📦 App version:', v);
-                    document.querySelectorAll('a[href]').forEach(link => {
-                        const href = link.getAttribute('href');
-                        if (href && href.includes('.html') && !href.includes('?')) {
-                            link.href = href + '?v=' + v;
-                        }
-                    });
-                })
-                .catch(err => console.log('⚠️ Version fetch failed'));
-        })();
-
         function showToast(message, type = 'info') {
             const toast = document.getElementById('toast');
             toast.textContent = message;
@@ -346,21 +290,30 @@
             localStorage.removeItem('token');
         }
 
-        function apiCall(endpoint, options = {}) {
-            const token = getToken();
-            return fetch(`${API_BASE}${endpoint}`, {
-                ...options,
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                    ...options.headers
-                }
-            });
-        }
+        // ============================================
+        // AUTO-VERSION
+        // ============================================
+        (function autoVersion() {
+            fetch('https://hayyo-exam.onrender.com/api/version')
+                .then(res => res.json())
+                .then(data => {
+                    const v = data.version;
+                    console.log('📦 App version:', v);
+                    document.querySelectorAll('a[href]').forEach(link => {
+                        const href = link.getAttribute('href');
+                        if (href && href.includes('.html') && !href.includes('?')) {
+                            link.href = href + '?v=' + v;
+                        }
+                    });
+                })
+                .catch(err => console.log('⚠️ Version fetch failed'));
+        })();
 
+        // ============================================
+        // AUTH CHECK - FIXED
+        // ============================================
         function checkAuth() {
             console.log('🔍 === DASHBOARD LOADED ===');
-            console.log('🔍 Current URL:', window.location.href);
             
             const urlParams = new URLSearchParams(window.location.search);
             const tokenFromUrl = urlParams.get('token');
@@ -384,79 +337,46 @@
                 return;
             }
             
-            console.log('✅ Showing dashboard');
-            showToast('✅ Dashboard loaded', 'success');
-            fetchUserData(token);
-        }
-
-        function fetchUserData(token) {
-            console.log('🔍 Fetching user data from /api/me');
-            
-            apiCall('/api/me')
-                .then(async res => {
-                    console.log('🔍 /api/me response status:', res.status);
+            // Verify token with backend
+            fetch(`${API_BASE}/api/me`, {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => {
+                console.log('🔍 /api/me response status:', res.status);
+                if (res.status === 401) {
+                    console.log('❌ Token invalid (401)');
+                    clearToken();
+                    showToast('Session expired. Please login again.', 'error');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
+                    return null;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data && data.authenticated) {
+                    const user = data.user;
+                    const name = user.name || 'Student';
+                    const email = user.email || 'No email';
                     
-                    const responseText = await res.text();
-                    console.log('🔍 Raw response:', responseText);
+                    console.log('✅ User data loaded:', name);
+                    document.getElementById('userName').textContent = name.toUpperCase();
+                    document.getElementById('userEmail').textContent = email;
+                    document.getElementById('welcomeName').textContent = name;
                     
-                    let data;
-                    try {
-                        data = JSON.parse(responseText);
-                        console.log('🔍 Parsed data:', data);
-                    } catch (e) {
-                        console.log('❌ Failed to parse response as JSON');
-                        showToast('Error loading user data', 'error');
-                        updateDashboardUI({ name: 'Student', email: 'student@hayyo.com' });
-                        return;
-                    }
+                    const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                    document.getElementById('userAvatar').textContent = initials;
                     
-                    if (res.status === 401) {
-                        console.log('❌ Token invalid (401)');
-                        clearToken();
-                        showToast('Session expired. Please login again.', 'error');
-                        setTimeout(() => {
-                            window.location.href = 'index.html';
-                        }, 1500);
-                        return;
-                    }
-                    
-                    if (data && data.user) {
-                        console.log('✅ User data loaded successfully!');
-                        updateDashboardUI(data.user);
-                    } else if (data && data.authenticated && data.user) {
-                        console.log('✅ User data loaded successfully!');
-                        updateDashboardUI(data.user);
-                    } else {
-                        console.log('❌ No user data found in response:', data);
-                        showToast('Could not load user data', 'error');
-                        updateDashboardUI({ name: 'Student', email: 'student@hayyo.com' });
-                    }
-                })
-                .catch(error => {
-                    console.log('❌ API call error:', error.message);
-                    showToast('Could not load user data, but you are logged in', 'error');
-                    updateDashboardUI({ name: 'Student', email: 'student@hayyo.com' });
-                });
-        }
-
-        function updateDashboardUI(user) {
-            const userName = user.name || 'Student';
-            const userEmail = user.email || 'No email provided';
-            
-            document.getElementById('userName').textContent = userName.toUpperCase();
-            document.getElementById('userEmail').textContent = userEmail;
-            document.getElementById('welcomeName').textContent = userName;
-            
-            const initials = userName
-                .split(' ')
-                .map(n => n[0])
-                .join('')
-                .toUpperCase()
-                .slice(0, 2);
-            document.getElementById('userAvatar').textContent = initials;
-            
-            showToast('Welcome, ' + userName + '!', 'success');
-            console.log('✅ Dashboard fully rendered with user data');
+                    showToast('Welcome, ' + name + '!', 'success');
+                }
+            })
+            .catch(err => {
+                console.log('⚠️ API error:', err.message);
+            });
         }
 
         function logout() {
