@@ -276,7 +276,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ============================================================
-        // 1. API Base URL - UPDATED
+        // 1. API Base URL
         // ============================================================
         const API_BASE = 'https://hayyo-exam.onrender.com';
 
@@ -358,10 +358,8 @@
                 return;
             }
 
-            // Update exam title
             document.getElementById('examTitle').textContent = 'Loading...';
 
-            // Load exam info
             fetch(`${API_BASE}/api/teacher/exams/${examId}`)
             .then(response => response.json())
             .then(data => {
@@ -481,7 +479,6 @@
             document.getElementById('fillAnswerContainer').style.display = 'none';
             document.getElementById('optionsContainer').style.display = 'block';
             
-            // Reset options
             document.getElementById('optionsList').innerHTML = `
                 <div class="option-group">
                     <div class="d-flex gap-2">
@@ -536,7 +533,6 @@
                 document.getElementById('optionsContainer').style.display = 'block';
             }
 
-            // Render options
             let optionsHtml = '';
             if (q.options && q.options.length > 0) {
                 q.options.forEach((opt, optIndex) => {
@@ -655,7 +651,6 @@
                 showFeedback('Question updated successfully!', 'success');
             }
 
-            // Save to server
             saveQuestionsToServer();
             renderQuestions();
             questionModalInstance.hide();
@@ -684,21 +679,37 @@
         }
 
         // ============================================================
-        // 7. Save Questions to Server
+        // 7. Save Questions to Server - FIXED ENDPOINT
         // ============================================================
         function saveQuestionsToServer() {
-            if (!examId) return;
+            if (!examId) {
+                showFeedback('No exam ID found. Cannot save questions.', 'error');
+                return;
+            }
 
-            fetch(`${API_BASE}/api/teacher/exams/${examId}/questions`, {
-                method: 'PUT',
+            // Format questions for bulk import
+            const formattedQuestions = questions.map((q, index) => ({
+                question_number: index + 1,
+                text: q.question_text,
+                options: q.options || null,
+                correct_answer: q.correct_answer || null,
+                explanation: q.explanation || null,
+                marks: q.marks || 1,
+                type: q.type || 'mcq'
+            }));
+
+            fetch(`${API_BASE}/api/teacher/exams/${examId}/questions/bulk`, {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ questions: questions })
+                body: JSON.stringify({ questions: formattedQuestions })
             })
             .then(response => response.json())
             .then(data => {
-                if (!data.success) {
+                if (data.success) {
+                    showFeedback('Questions saved successfully!', 'success');
+                } else {
                     showFeedback('Failed to save questions: ' + data.message, 'error');
                 }
             })
@@ -810,7 +821,6 @@ Water freezes at 0°C.|truefalse|1|True*|False||`;
                     } else {
                         const options = [];
                         let correctAnswer = null;
-                        // Parse options (rest up to explanation)
                         const optionParts = rest.slice(0, rest.length - 1);
                         optionParts.forEach((opt, optIdx) => {
                             if (opt) {
