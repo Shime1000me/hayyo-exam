@@ -22,6 +22,8 @@
             box-shadow: 0 2px 15px rgba(0,0,0,0.08);
             text-align: center;
             margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
         }
         .score-card .score {
             font-size: 4rem;
@@ -42,8 +44,18 @@
         .score-card.pass {
             border-left: 5px solid #28a745;
         }
+        .score-card.pass .score {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
         .score-card.fail {
             border-left: 5px solid #dc3545;
+        }
+        .score-card.fail .score {
+            background: linear-gradient(135deg, #dc3545 0%, #e74c3c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
         .stat-card {
             background: white;
@@ -51,6 +63,10 @@
             padding: 15px 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.06);
             margin-bottom: 15px;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
         }
         .stat-card .number {
             font-size: 1.5rem;
@@ -69,10 +85,14 @@
         .question-review {
             background: white;
             border-radius: 12px;
-            padding: 15px 20px;
-            margin-bottom: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-            border-left: 4px solid #0984e3;
+            border-left: 5px solid #0984e3;
+            transition: all 0.3s;
+        }
+        .question-review:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
         .question-review.correct {
             border-left-color: #28a745;
@@ -81,20 +101,69 @@
             border-left-color: #dc3545;
         }
         .question-review .q-number {
-            font-weight: 600;
+            font-weight: 700;
             color: #2d3436;
+            font-size: 1rem;
         }
         .question-review .q-text {
+            margin: 10px 0;
+            font-size: 1rem;
+            color: #2d3436;
+        }
+        .question-review .answer-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px 16px;
             margin: 8px 0;
         }
-        .question-review .answer {
-            font-size: 0.9rem;
+        .question-review .answer-section .label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #6c757d;
+            display: block;
+            margin-bottom: 4px;
         }
-        .question-review .answer.correct {
+        .question-review .answer-section .value {
+            font-size: 1rem;
+        }
+        .question-review .answer-section .value.correct {
             color: #28a745;
         }
-        .question-review .answer.wrong {
+        .question-review .answer-section .value.wrong {
             color: #dc3545;
+        }
+        .question-review .explanation-section {
+            background: #e8f4fd;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-top: 10px;
+            border-left: 3px solid #0984e3;
+        }
+        .question-review .explanation-section .label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #0984e3;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .question-review .explanation-section .value {
+            font-size: 0.95rem;
+            color: #2d3436;
+            line-height: 1.6;
+        }
+        .question-review .status-badge {
+            padding: 3px 12px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .question-review .status-badge.correct {
+            background: #d4edda;
+            color: #155724;
+        }
+        .question-review .status-badge.wrong {
+            background: #f8d7da;
+            color: #721c24;
         }
         .feedback-msg {
             position: fixed;
@@ -109,10 +178,27 @@
             border-radius: 50px;
             padding: 10px 25px;
             font-weight: 600;
+            transition: all 0.3s;
         }
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(9, 132, 227, 0.3);
+        }
+        .btn-outline-primary {
+            border-radius: 50px;
+            padding: 10px 25px;
+            font-weight: 600;
+            border-color: #0984e3;
+            color: #0984e3;
+        }
+        .btn-outline-primary:hover {
+            background: #0984e3;
+            color: white;
+        }
+        .btn-success {
+            border-radius: 50px;
+            padding: 10px 25px;
+            font-weight: 600;
         }
         .toast {
             position: fixed;
@@ -144,6 +230,59 @@
             opacity: 0.3;
             margin-bottom: 15px;
         }
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        .filter-bar .btn {
+            border-radius: 50px;
+            padding: 6px 18px;
+            font-size: 0.85rem;
+        }
+        .filter-bar .btn.active {
+            background: #0984e3;
+            color: white;
+            border-color: #0984e3;
+        }
+        .progress-bar-custom {
+            height: 8px;
+            border-radius: 4px;
+            background: #e9ecef;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar-custom .fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s ease;
+        }
+        .progress-bar-custom .fill.correct {
+            background: linear-gradient(90deg, #28a745, #20c997);
+        }
+        .progress-bar-custom .fill.wrong {
+            background: linear-gradient(90deg, #dc3545, #e74c3c);
+        }
+        @media (max-width: 768px) {
+            .score-card .score {
+                font-size: 3rem;
+            }
+            .score-card .percentage {
+                font-size: 1.5rem;
+            }
+            .question-review {
+                padding: 15px;
+            }
+            .filter-bar {
+                gap: 5px;
+            }
+            .filter-bar .btn {
+                padding: 4px 12px;
+                font-size: 0.75rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -164,10 +303,10 @@
                     <p class="mb-0 opacity-75" id="examInfo">Exam: <span id="examTitle">Loading...</span></p>
                 </div>
                 <div class="col-md-6 text-md-end mt-3 mt-md-0">
-                    <a href="exams.html" class="btn btn-light">
+                    <a href="exams.html" class="btn btn-light me-2">
                         <i class="bi bi-arrow-left"></i> Back to Exams
                     </a>
-                    <a href="dashboard.html" class="btn btn-outline-light ms-2">
+                    <a href="dashboard.html" class="btn btn-outline-light">
                         <i class="bi bi-house"></i> Dashboard
                     </a>
                 </div>
@@ -195,6 +334,8 @@
         let results = null;
         let examId = null;
         let userId = null;
+        let questions = [];
+        let currentFilter = 'all'; // all, correct, wrong
 
         // DOM elements
         const toast = document.getElementById('toast');
@@ -242,6 +383,10 @@
             });
         }
 
+        function getOptionLabel(index) {
+            return String.fromCharCode(65 + index);
+        }
+
         // ============================================================
         // 4. Load Results
         // ============================================================
@@ -251,11 +396,9 @@
             const attemptId = urlParams.get('attempt');
 
             if (!examId) {
-                // Try to get from localStorage
                 const storedExamId = localStorage.getItem('currentExamId');
                 if (storedExamId) {
                     examId = storedExamId;
-                    // Update URL
                     const newUrl = window.location.pathname + '?exam=' + examId;
                     window.history.replaceState({}, '', newUrl);
                 } else {
@@ -298,7 +441,7 @@
             .then(data => {
                 if (data && data.authenticated) {
                     userId = data.user.id;
-                    // Get exam details
+                    examTitle.textContent = 'Loading...';
                     return fetch(`${API_BASE}/api/exams/${examId}`, {
                         headers: {
                             'Authorization': 'Bearer ' + token,
@@ -315,9 +458,7 @@
             .then(data => {
                 if (data && data.exam) {
                     examTitle.textContent = data.exam.title || 'Exam';
-                    
-                    // Get results
-                    return fetch(`${API_BASE}/api/exams/${examId}/results/${userId}`, {
+                    return fetch(`${API_BASE}/api/exams/${examId}/questions`, {
                         headers: {
                             'Authorization': 'Bearer ' + token,
                             'Content-Type': 'application/json'
@@ -331,11 +472,25 @@
                 return res.json();
             })
             .then(data => {
+                if (data && data.questions) {
+                    questions = data.questions;
+                }
+                return fetch(`${API_BASE}/api/exams/${examId}/results/${userId}`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+            })
+            .then(res => {
+                if (!res) return null;
+                return res.json();
+            })
+            .then(data => {
                 if (data && data.success) {
                     results = data.results;
                     renderResults();
                 } else {
-                    // Check localStorage for results from exam
                     const storedResults = localStorage.getItem('examResults');
                     if (storedResults) {
                         results = JSON.parse(storedResults);
@@ -360,7 +515,7 @@
         }
 
         // ============================================================
-        // 5. Render Results
+        // 5. Render Results with Revision Feature
         // ============================================================
         function renderResults() {
             if (!results) {
@@ -375,6 +530,25 @@
             const correct = results.correct || score;
             const wrong = total - correct;
 
+            // Get detailed results
+            const resultsList = results.results || [];
+            const questionMap = {};
+            questions.forEach(q => {
+                questionMap[q.question_number] = q;
+            });
+
+            // Build enhanced results with question data
+            const enhancedResults = resultsList.map((r, index) => {
+                const qData = questionMap[r.question] || questionMap[r.question_number] || {};
+                return {
+                    ...r,
+                    question_text: qData.text || qData.question_text || `Question ${r.question || index + 1}`,
+                    options: qData.options || [],
+                    explanation: qData.explanation || r.explanation || '',
+                    marks: qData.marks || 1
+                };
+            });
+
             let html = `
                 <div class="row">
                     <div class="col-lg-4">
@@ -383,9 +557,14 @@
                             <div class="percentage">${percentage}%</div>
                             <div class="label">${passed ? '✅ PASSED' : '❌ FAILED'}</div>
                             <div class="mt-3">
-                                <span class="badge ${passed ? 'bg-success' : 'bg-danger'}">${passed ? 'Pass' : 'Fail'}</span>
+                                <span class="badge ${passed ? 'bg-success' : 'bg-danger'}" style="font-size:1rem;padding:8px 20px;">
+                                    ${passed ? 'Pass' : 'Fail'}
+                                </span>
                             </div>
                             ${results.submitted_at ? `<div class="mt-2 text-muted small">Completed: ${formatDate(results.submitted_at)}</div>` : ''}
+                            <div class="progress-bar-custom mt-3">
+                                <div class="fill correct" style="width: ${percentage}%;"></div>
+                            </div>
                         </div>
                     </div>
                     <div class="col-lg-8">
@@ -412,26 +591,34 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="mt-3 text-center">
+                            <span class="text-muted">Time Spent: ${results.time_spent ? Math.floor(results.time_spent / 60) + 'm ' + (results.time_spent % 60) + 's' : 'N/A'}</span>
+                        </div>
                     </div>
                 </div>
             `;
 
-            // Add question review if available
-            if (results.results && results.results.length > 0) {
+            // Add revision section with filter
+            if (enhancedResults.length > 0) {
                 html += `
-                    <div class="mt-4">
-                        <h5><i class="bi bi-list-check me-2"></i>Question Review</h5>
-                        ${results.results.map((q, index) => `
-                            <div class="question-review ${q.is_correct ? 'correct' : 'wrong'}">
-                                <div class="q-number">Question ${index + 1}</div>
-                                <div class="q-text">${q.question || `Question ${index + 1}`}</div>
-                                <div class="answer ${q.is_correct ? 'correct' : 'wrong'}">
-                                    <strong>Your Answer:</strong> ${q.user_answer || 'Not answered'}
-                                    ${q.is_correct ? ' ✅' : ' ❌'}
-                                </div>
-                                ${q.correct_answer ? `<div class="answer correct"><strong>Correct Answer:</strong> ${q.correct_answer}</div>` : ''}
+                    <div class="mt-5">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+                            <h4><i class="bi bi-book me-2"></i>Revise with Explanations</h4>
+                            <div class="filter-bar">
+                                <button class="btn btn-outline-secondary filter-btn active" data-filter="all" onclick="filterQuestions('all')">
+                                    All (${enhancedResults.length})
+                                </button>
+                                <button class="btn btn-outline-success filter-btn" data-filter="correct" onclick="filterQuestions('correct')">
+                                    ✅ Correct (${enhancedResults.filter(r => r.is_correct).length})
+                                </button>
+                                <button class="btn btn-outline-danger filter-btn" data-filter="wrong" onclick="filterQuestions('wrong')">
+                                    ❌ Wrong (${enhancedResults.filter(r => !r.is_correct).length})
+                                </button>
                             </div>
-                        `).join('')}
+                        </div>
+                        <div id="questionsContainer">
+                            ${renderQuestionList(enhancedResults, 'all')}
+                        </div>
                     </div>
                 `;
             }
@@ -440,14 +627,166 @@
         }
 
         // ============================================================
-        // 6. Initialize
+        // 6. Render Question List with Filter
+        // ============================================================
+        function renderQuestionList(resultsList, filter) {
+            let filtered = resultsList;
+            if (filter === 'correct') {
+                filtered = resultsList.filter(r => r.is_correct);
+            } else if (filter === 'wrong') {
+                filtered = resultsList.filter(r => !r.is_correct);
+            }
+
+            if (filtered.length === 0) {
+                return `
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                        <p>No questions to show for this filter.</p>
+                    </div>
+                `;
+            }
+
+            return filtered.map((r, index) => {
+                const isCorrect = r.is_correct;
+                const userAnswer = r.user_answer;
+                const correctAnswer = r.correct_answer;
+                const questionText = r.question_text || `Question ${r.question || index + 1}`;
+                const explanation = r.explanation || 'No explanation provided for this question.';
+                const options = r.options || [];
+
+                // Find the correct option text if available
+                let correctOptionText = correctAnswer;
+                if (options.length > 0 && typeof correctAnswer === 'number') {
+                    const correctOpt = options.find(o => o.is_correct);
+                    if (correctOpt) {
+                        correctOptionText = correctOpt.option_text || correctOpt.text || correctAnswer;
+                    }
+                }
+
+                // Find user's selected option text
+                let userOptionText = userAnswer;
+                if (options.length > 0 && typeof userAnswer === 'number') {
+                    const userOpt = options[userAnswer];
+                    if (userOpt) {
+                        userOptionText = userOpt.option_text || userOpt.text || userAnswer;
+                    }
+                }
+
+                return `
+                    <div class="question-review ${isCorrect ? 'correct' : 'wrong'}" data-correct="${isCorrect}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="q-number">Question ${r.question || index + 1}</span>
+                                <span class="status-badge ${isCorrect ? 'correct' : 'wrong'} ms-2">
+                                    ${isCorrect ? '✅ Correct' : '❌ Wrong'}
+                                </span>
+                                <span class="badge bg-secondary ms-2">${r.marks || 1} mark${r.marks > 1 ? 's' : ''}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="q-text">${questionText}</div>
+
+                        ${options.length > 0 ? `
+                            <div class="answer-section">
+                                <span class="label">Options:</span>
+                                ${options.map((opt, idx) => `
+                                    <div class="value ${opt.is_correct ? 'correct' : ''} ${idx === userAnswer ? (isCorrect ? 'correct' : 'wrong') : ''}" 
+                                         style="${idx === userAnswer ? 'font-weight:bold;' : ''} 
+                                                ${opt.is_correct ? 'color:#28a745;' : ''} 
+                                                ${idx === userAnswer && !isCorrect ? 'color:#dc3545;' : ''}">
+                                        ${getOptionLabel(idx)}. ${opt.option_text || opt.text || opt}
+                                        ${opt.is_correct ? ' ✓' : ''}
+                                        ${idx === userAnswer ? (isCorrect ? ' ← Your Answer ✅' : ' ← Your Answer ❌') : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+
+                        <div class="answer-section">
+                            <span class="label">Your Answer:</span>
+                            <span class="value ${isCorrect ? 'correct' : 'wrong'}">
+                                ${userOptionText !== undefined && userOptionText !== null && userOptionText !== '' 
+                                    ? userOptionText 
+                                    : 'Not answered'}
+                                ${isCorrect ? ' ✅' : ' ❌'}
+                            </span>
+                        </div>
+
+                        <div class="answer-section">
+                            <span class="label">Correct Answer:</span>
+                            <span class="value correct">
+                                ${correctOptionText || correctAnswer || 'N/A'} ✓
+                            </span>
+                        </div>
+
+                        <div class="explanation-section">
+                            <span class="label"><i class="bi bi-lightbulb me-1"></i>Explanation:</span>
+                            <div class="value">${explanation}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ============================================================
+        // 7. Filter Questions
+        // ============================================================
+        function filterQuestions(filter) {
+            currentFilter = filter;
+            
+            // Update active button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.filter === filter) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Get all question review elements
+            const container = document.getElementById('questionsContainer');
+            if (!container) return;
+
+            const allQuestions = container.querySelectorAll('.question-review');
+            let visibleCount = 0;
+
+            allQuestions.forEach(q => {
+                const isCorrect = q.dataset.correct === 'true';
+                let show = true;
+                
+                if (filter === 'correct' && !isCorrect) show = false;
+                if (filter === 'wrong' && isCorrect) show = false;
+                
+                q.style.display = show ? 'block' : 'none';
+                if (show) visibleCount++;
+            });
+
+            // Show/hide empty message
+            let emptyMsg = container.querySelector('.empty-filter-msg');
+            if (visibleCount === 0) {
+                if (!emptyMsg) {
+                    emptyMsg = document.createElement('div');
+                    emptyMsg.className = 'text-center py-4 text-muted empty-filter-msg';
+                    emptyMsg.innerHTML = `
+                        <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                        <p>No questions match this filter.</p>
+                    `;
+                    container.appendChild(emptyMsg);
+                }
+                emptyMsg.style.display = 'block';
+            } else if (emptyMsg) {
+                emptyMsg.style.display = 'none';
+            }
+        }
+
+        // ============================================================
+        // 8. Initialize
         // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
             loadResults();
         });
 
         // ============================================================
-        // 7. Check for token in URL (OAuth callback)
+        // 9. Check for token in URL (OAuth callback)
         // ============================================================
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
@@ -456,6 +795,10 @@
             window.history.replaceState({}, document.title, window.location.pathname);
             showToast('✅ Login successful!', 'success');
         }
+
+        // Make filter function globally accessible
+        window.filterQuestions = filterQuestions;
     </script>
+
 </body>
 </html>
