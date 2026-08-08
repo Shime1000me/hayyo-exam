@@ -1,0 +1,295 @@
+<!-- Add this after the users list section -->
+
+<!-- Staff Management Section -->
+<div class="mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4><i class="bi bi-person-badge me-2"></i>Staff Accounts (Admins & Teachers)</h4>
+        <button class="btn btn-primary btn-sm" onclick="showCreateStaffModal()">
+            <i class="bi bi-plus-circle"></i> Add Staff
+        </button>
+    </div>
+    <div id="staffList">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Loading staff...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Create Staff Modal -->
+<div class="modal fade" id="createStaffModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Staff Account</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createStaffForm">
+                    <div class="mb-3">
+                        <label class="form-label">Username *</label>
+                        <input type="text" class="form-control" id="staffUsername" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password *</label>
+                        <div class="password-wrapper">
+                            <input type="password" class="form-control" id="staffPassword" required>
+                            <button type="button" class="password-toggle" onclick="toggleStaffPassword()">👁</button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-control" id="staffName">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="staffEmail">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Role *</label>
+                        <select class="form-select" id="staffRole" required>
+                            <option value="teacher">Teacher</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-primary" onclick="createStaff()">
+                    <i class="bi bi-plus-circle"></i> Create
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .password-wrapper {
+        position: relative;
+    }
+    .password-wrapper input {
+        padding-right: 44px;
+    }
+    .password-toggle {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #9ca3af;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 4px;
+        line-height: 1;
+    }
+    .password-toggle:hover {
+        color: #4b5563;
+    }
+</style>
+
+<script>
+// Add this to admin-users.html script section
+
+// Toggle staff password visibility
+function toggleStaffPassword() {
+    const input = document.getElementById('staffPassword');
+    const isPassword = input.type === 'password';
+    input.type = isPassword ? 'text' : 'password';
+    const btn = event.target;
+    btn.textContent = isPassword ? '🙈' : '👁';
+}
+
+// Load staff
+function loadStaff() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        console.log('No token found');
+        return;
+    }
+    
+    const container = document.getElementById('staffList');
+    container.innerHTML = `
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Loading staff...</p>
+        </div>
+    `;
+    
+    fetch(`${API_BASE}/api/staff`, {
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(res => {
+        if (res.status === 403) {
+            container.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    You don't have permission to view staff. Admin access required.
+                </div>
+            `;
+            return null;
+        }
+        return res.json();
+    })
+    .then(data => {
+        if (data && data.success) {
+            renderStaff(data.staff);
+        } else if (data && !data.success) {
+            container.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-circle me-2"></i>
+                    ${data.error || 'Failed to load staff'}
+                </div>
+            `;
+        }
+    })
+    .catch(err => {
+        console.error('Error loading staff:', err);
+        container.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-circle me-2"></i>
+                Network error loading staff. Please try again.
+            </div>
+        `;
+    });
+}
+
+function renderStaff(staff) {
+    const container = document.getElementById('staffList');
+    
+    if (!staff || staff.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4 text-muted">
+                <i class="bi bi-people display-4 d-block mb-2"></i>
+                <p>No staff accounts created yet.</p>
+                <button class="btn btn-primary btn-sm" onclick="showCreateStaffModal()">
+                    <i class="bi bi-plus-circle"></i> Create First Staff Account
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = staff.map(s => `
+        <div class="user-card">
+            <div class="user-info">
+                <div>
+                    <span class="user-name">${s.name || s.username}</span>
+                    <span class="badge ${s.role === 'admin' ? 'bg-primary' : 'bg-success'} ms-2">${s.role}</span>
+                    <span class="badge bg-secondary ms-1">@${s.username}</span>
+                </div>
+                <span class="user-email">${s.email || 'No email'}</span>
+                <span class="user-meta">Created: ${formatDate(s.created_at)}</span>
+            </div>
+            <div>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteStaff('${s.id}')">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function showCreateStaffModal() {
+    document.getElementById('staffUsername').value = '';
+    document.getElementById('staffPassword').value = '';
+    document.getElementById('staffName').value = '';
+    document.getElementById('staffEmail').value = '';
+    document.getElementById('staffRole').value = 'teacher';
+    new bootstrap.Modal(document.getElementById('createStaffModal')).show();
+}
+
+function createStaff() {
+    const username = document.getElementById('staffUsername').value.trim();
+    const password = document.getElementById('staffPassword').value.trim();
+    const name = document.getElementById('staffName').value.trim();
+    const email = document.getElementById('staffEmail').value.trim();
+    const role = document.getElementById('staffRole').value;
+    
+    if (!username || !password) {
+        showToast('Username and password required', 'error');
+        return;
+    }
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+        showToast('Please login first', 'error');
+        return;
+    }
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    
+    fetch(`${API_BASE}/api/staff/create`, {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, password, name, email, role })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Staff created successfully!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('createStaffModal')).hide();
+            loadStaff();
+        } else {
+            showToast('❌ ' + (data.error || 'Failed to create staff'), 'error');
+        }
+    })
+    .catch(err => {
+        showToast('Network error', 'error');
+        console.error(err);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-plus-circle"></i> Create';
+    });
+}
+
+function deleteStaff(id) {
+    if (!confirm('Are you sure you want to delete this staff account?')) return;
+    
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    
+    const btn = event.target.closest('button');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    
+    fetch(`${API_BASE}/api/staff/${id}`, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Staff deleted!', 'success');
+            loadStaff();
+        } else {
+            showToast('❌ ' + (data.error || 'Failed to delete'), 'error');
+        }
+    })
+    .catch(err => {
+        showToast('Network error', 'error');
+        console.error(err);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-trash"></i>';
+    });
+}
+
+// Load staff when page loads
+// Add this to your existing DOMContentLoaded:
+// loadStaff();
+</script>
