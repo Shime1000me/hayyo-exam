@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Test Dashboard</title>
+    <title>Test Dashboard - HAYYO</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Raleway', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -20,6 +20,7 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             text-align: center;
             max-width: 500px;
+            width: 90%;
         }
         .success { color: #16a34a; font-size: 48px; }
         .token-box {
@@ -30,6 +31,8 @@
             font-size: 12px;
             margin: 16px 0;
             font-family: monospace;
+            max-height: 100px;
+            overflow-y: auto;
         }
         .btn {
             display: inline-block;
@@ -39,45 +42,179 @@
             text-decoration: none;
             border-radius: 8px;
             margin-top: 12px;
+            border: none;
+            cursor: pointer;
+            font-family: 'Raleway', sans-serif;
+            font-weight: 600;
         }
         .btn:hover { background: #1d4ed8; }
         .btn-danger {
             background: #dc2626;
         }
         .btn-danger:hover { background: #b91c1c; }
+        .btn-success {
+            background: #16a34a;
+        }
+        .btn-success:hover { background: #15803d; }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2563eb;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .status-msg {
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .status-msg.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-msg.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status-msg.info {
+            background: #cce5ff;
+            color: #004085;
+        }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
     <div class="card">
         <div class="success">✅</div>
-        <h1>🎉 You Are Logged In!</h1>
-        <p>Your authentication token was successfully received.</p>
+        <h1>🎉 Authentication Complete!</h1>
+        <p>You have been successfully authenticated.</p>
+        
+        <div id="statusMsg" class="status-msg info">
+            <div class="spinner"></div>
+            Verifying your session...
+        </div>
         
         <div id="tokenDisplay" class="token-box">Loading token...</div>
         
-        <div style="display: flex; gap: 12px; justify-content: center;">
-            <a href="dashboard.html" class="btn">Go to Dashboard</a>
+        <div class="btn-group">
+            <a href="dashboard.html" class="btn btn-success">Go to Dashboard</a>
             <a href="index.html" class="btn btn-danger">Logout</a>
         </div>
         
         <p style="margin-top: 16px; font-size: 14px; color: #6b7280;">
-            If you see this page, OAuth is working correctly!
+            🔐 You are now logged in. Your token has been saved securely.
         </p>
+        
+        <div style="margin-top: 12px; font-size: 12px; color: #6b7280;">
+            <a href="#" id="viewTokenLink" style="color: #2563eb;">Show Token Details</a>
+            <div id="tokenDetails" class="hidden" style="margin-top: 8px; background: #f8f9fa; padding: 10px; border-radius: 8px; text-align: left; font-size: 11px; word-break: break-all;">
+                <strong>Token:</strong> <span id="fullToken"></span>
+            </div>
+        </div>
     </div>
 
     <script>
+        // ============================================
+        // OAuth Callback Handler - FIXED
+        // ============================================
+        const API_BASE = 'https://hayyo-exam.onrender.com';
+        const statusMsg = document.getElementById('statusMsg');
+        const tokenDisplay = document.getElementById('tokenDisplay');
+        const fullToken = document.getElementById('fullToken');
+
+        function showStatus(message, type = 'info') {
+            statusMsg.className = 'status-msg ' + type;
+            statusMsg.innerHTML = message;
+        }
+
         // Get token from URL
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
+        const version = urlParams.get('v') || '1.0.0';
         
         if (token) {
+            // Save token
             localStorage.setItem('token', token);
-            document.getElementById('tokenDisplay').textContent = 'Token: ' + token;
+            localStorage.setItem('oauth_version', version);
+            
+            // Display token (masked)
+            const maskedToken = token.substring(0, 20) + '...' + token.substring(token.length - 10);
+            tokenDisplay.textContent = '✅ Token saved: ' + maskedToken;
+            fullToken.textContent = token;
+            
             console.log('✅ Token saved:', token);
+            showStatus('✅ Authentication successful! Redirecting...', 'success');
+            
+            // Verify token with backend
+            fetch(`${API_BASE}/api/me`, {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => {
+                if (res.status === 401) {
+                    showStatus('❌ Token verification failed. Please try again.', 'error');
+                    localStorage.removeItem('token');
+                    return null;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data && data.authenticated) {
+                    const user = data.user;
+                    showStatus(`✅ Welcome ${user.name || 'User'}! Redirecting to dashboard...`, 'success');
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+                }
+            })
+            .catch(err => {
+                console.error('Verification error:', err);
+                showStatus('⚠️ Could not verify token, but you can still proceed.', 'info');
+            });
+            
         } else {
-            document.getElementById('tokenDisplay').textContent = '❌ No token found in URL!';
-            console.log('❌ No token in URL');
+            tokenDisplay.textContent = '❌ No token found in URL!';
+            showStatus('❌ No authentication token found. Please login again.', 'error');
+            
+            // Check if token exists in localStorage
+            const storedToken = localStorage.getItem('token');
+            if (storedToken) {
+                tokenDisplay.textContent = '✅ Using existing token from localStorage';
+                showStatus('✅ Using existing session. Redirecting...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            }
         }
+
+        // Toggle token visibility
+        document.getElementById('viewTokenLink').addEventListener('click', function(e) {
+            e.preventDefault();
+            const details = document.getElementById('tokenDetails');
+            details.classList.toggle('hidden');
+            if (!details.classList.contains('hidden')) {
+                this.textContent = 'Hide Token Details';
+            } else {
+                this.textContent = 'Show Token Details';
+            }
+        });
+
+        console.log('✅ OAuth callback handler loaded');
+        console.log('📦 Version:', version);
     </script>
 </body>
 </html>
