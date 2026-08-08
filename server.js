@@ -15,11 +15,12 @@ const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const { v2: cloudinary } = require('cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const bcrypt = require('bcrypt');
 
 // ============================================
 // APP VERSION - Change this when you update the app
 // ============================================
-const APP_VERSION = '1.0.4';
+const APP_VERSION = '1.0.5';
 
 // ============================================
 // SUPABASE REST API CLIENT
@@ -205,6 +206,58 @@ async function createUser(userData) {
   }
 }
 
+// ============================================
+// CREATE DEFAULT STAFF ACCOUNTS (AUTO-RUN)
+// ============================================
+async function createDefaultStaff() {
+    try {
+        // Check if admin exists
+        const adminExists = await supabaseSelect('staff', {
+            eq: { username: 'admin' },
+            select: 'username'
+        });
+        
+        if (adminExists.length === 0) {
+            const adminPassword = await bcrypt.hash('admin123', 10);
+            await supabaseInsert('staff', {
+                username: 'admin',
+                password: adminPassword,
+                email: 'hayyoexam@gmail.com',
+                name: 'System Admin',
+                role: 'admin',
+                created_at: new Date().toISOString()
+            });
+            console.log('✅ Default admin created (username: admin, password: admin123)');
+        } else {
+            console.log('ℹ️ Admin already exists, skipping creation');
+        }
+        
+        // Check if teacher exists
+        const teacherExists = await supabaseSelect('staff', {
+            eq: { username: 'teacher' },
+            select: 'username'
+        });
+        
+        if (teacherExists.length === 0) {
+            const teacherPassword = await bcrypt.hash('teacher123', 10);
+            await supabaseInsert('staff', {
+                username: 'teacher',
+                password: teacherPassword,
+                email: 'shimehatisoburiso@gmail.com',
+                name: 'Default Teacher',
+                role: 'teacher',
+                created_at: new Date().toISOString()
+            });
+            console.log('✅ Default teacher created (username: teacher, password: teacher123)');
+        } else {
+            console.log('ℹ️ Teacher already exists, skipping creation');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error creating default staff:', error.message);
+    }
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -319,7 +372,7 @@ app.use(session({
 }));
 
 // ============================================
-// PASSPORT (Google OAuth) - WITH DEBUG LOGGING
+// PASSPORT (Google OAuth) - WITH AUTO-ROLE ASSIGNMENT
 // ============================================
 app.use(passport.initialize());
 app.use(passport.session());
@@ -394,8 +447,35 @@ passport.use(new GoogleStrategy({
       throw new Error('Could not find or create user');
     }
 
+    // ============================================================
+    // 🔥 AUTO-ASSIGN ROLES BASED ON ENVIRONMENT VARIABLES
+    // ============================================================
+    
+    let rolesUpdated = false;
+    const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim());
+    const teacherEmails = (process.env.TEACHER_EMAILS || '').split(',').map(e => e.trim());
+    
+    // Auto-make teacher if email is in TEACHER_EMAILS
+    if (teacherEmails.includes(user.email) && !user.is_teacher) {
+      console.log('🔑 Auto-making teacher:', user.email);
+      await supabaseUpdate('users', {
+        is_teacher: true,
+        updated_at: new Date().toISOString()
+      }, { id: user.id });
+      user.is_teacher = true;
+      rolesUpdated = true;
+      console.log('✅ User is now a teacher');
+    }
+    
+    if (rolesUpdated) {
+      console.log('✅ Roles updated successfully');
+    }
+
     console.log('✅ Authentication successful!');
     console.log('👤 User:', user.email, user.id);
+    console.log('   ├─ is_teacher:', user.is_teacher);
+    console.log('   ├─ is_premium:', user.is_premium);
+    console.log('   └─ Admin?', adminEmails.includes(user.email) ? 'YES' : 'NO');
     console.log('========================================');
     
     return done(null, { 
@@ -441,6 +521,9 @@ function verifyToken(req, res, next) {
   }
 }
 
+// ============================================
+// UPDATED MIDDLEWARE - Supports both Staff and Google OAuth
+// ============================================
 async function isAuthenticated(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -450,6 +533,22 @@ async function isAuthenticated(req, res, next) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
+    
+    // Check if user is from staff table (has role in token)
+    if (decoded.role) {
+      req.userData = {
+        id: decoded.userId,
+        email: decoded.email || decoded.username + '@staff.local',
+        is_teacher: decoded.isTeacher || false,
+        is_admin: decoded.isAdmin || false,
+        role: decoded.role,
+        username: decoded.username,
+        is_staff: true
+      };
+      return next();
+    }
+    
+    // Regular user - check database
     const users = await supabaseSelect('users', {
       eq: { id: decoded.userId },
       select: '*'
@@ -465,18 +564,32 @@ async function isAuthenticated(req, res, next) {
 }
 
 async function isAdmin(req, res, next) {
-  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',');
-  if (!adminEmails.includes(req.userData.email)) {
-    return res.status(403).json({ error: 'Admin access required' });
+  // Check if user is staff admin
+  if (req.user && req.user.role === 'admin') {
+    return next();
   }
-  next();
+  
+  // Check if user is in ADMIN_EMAILS (Google OAuth)
+  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim());
+  if (req.userData && adminEmails.includes(req.userData.email)) {
+    return next();
+  }
+  
+  return res.status(403).json({ error: 'Admin access required' });
 }
 
 async function isTeacher(req, res, next) {
-  if (!req.userData.is_teacher) {
-    return res.status(403).json({ error: 'Teacher access required' });
+  // Check if user is staff teacher or admin
+  if (req.user && (req.user.role === 'teacher' || req.user.role === 'admin')) {
+    return next();
   }
-  next();
+  
+  // Check if user has is_teacher flag (Google OAuth)
+  if (req.userData && req.userData.is_teacher) {
+    return next();
+  }
+  
+  return res.status(403).json({ error: 'Teacher access required' });
 }
 
 // ============================================
@@ -491,10 +604,38 @@ app.get('/api/version', (req, res) => {
 // --- AUTH ROUTES ---
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
+// ============================================
+// UPDATED: OAuth Callback with Role-Based Redirect
+// ============================================
 app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => {
   const token = generateToken(req.user);
-  const redirectUrl = 'https://Shime1000me.github.io/hayyo-exam/dashboard.html?token=' + token + '&v=' + APP_VERSION;
-  console.log('🔍 OAuth Success - Redirecting to:', redirectUrl);
+  const user = req.user;
+  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim());
+  
+  // Determine which dashboard to redirect to
+  let dashboard = 'dashboard.html'; // Student dashboard (default)
+  let role = 'Student';
+  
+  // Priority: Admin > Teacher > Student
+  if (adminEmails.includes(user.email)) {
+    dashboard = 'admin-users.html';
+    role = 'Admin';
+  } else if (user.is_teacher) {
+    dashboard = 'teacher-dashboard.html';
+    role = 'Teacher';
+  }
+  
+  const redirectUrl = 'https://Shime1000me.github.io/hayyo-exam/' + dashboard + '?token=' + token + '&v=' + APP_VERSION;
+  
+  console.log('========================================');
+  console.log('🔍 OAuth Success - Redirecting:');
+  console.log('   ├─ Email:', user.email);
+  console.log('   ├─ Role:', role);
+  console.log('   ├─ is_teacher:', user.is_teacher);
+  console.log('   ├─ is_admin:', adminEmails.includes(user.email));
+  console.log('   └─ Dashboard:', dashboard);
+  console.log('========================================');
+  
   res.redirect(redirectUrl);
 });
 
@@ -560,10 +701,197 @@ app.get('/', (req, res) => {
       payment: '/api/payment',
       admin: '/api/admin',
       teacher: '/api/teacher',
+      staff: '/api/staff',
       health: '/health',
       version: '/api/version'
     }
   });
+});
+
+// ============================================
+// STAFF AUTH - Username/Password Login
+// ============================================
+
+// Staff Login
+app.post('/api/staff/login', async (req, res) => {
+  const { username, password } = req.body;
+  
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password required' });
+  }
+  
+  try {
+    console.log('🔍 Staff login attempt:', username);
+    
+    // Find staff member by username
+    const staff = await supabaseSelect('staff', {
+      eq: { username: username },
+      select: '*'
+    });
+    
+    if (staff.length === 0) {
+      console.log('❌ Staff not found:', username);
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+    
+    const user = staff[0];
+    
+    // Compare passwords
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    
+    if (!passwordMatch) {
+      console.log('❌ Invalid password for:', username);
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+    
+    // Generate JWT token with role
+    const token = jwt.sign(
+      { 
+        userId: user.id, 
+        email: user.email || username,
+        username: user.username,
+        role: user.role,
+        isTeacher: user.role === 'teacher' || user.role === 'admin',
+        isAdmin: user.role === 'admin'
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '365d' }
+    );
+    
+    console.log('✅ Staff login successful:', username, 'Role:', user.role);
+    
+    // Determine redirect based on role
+    let redirect = 'dashboard.html';
+    if (user.role === 'admin') {
+      redirect = 'admin-users.html';
+    } else if (user.role === 'teacher') {
+      redirect = 'teacher-dashboard.html';
+    }
+    
+    res.json({
+      success: true,
+      token: token,
+      user: {
+        id: user.id,
+        username: user.username,
+        name: user.name || user.username,
+        email: user.email,
+        role: user.role
+      },
+      redirect: redirect
+    });
+    
+  } catch (error) {
+    console.error('❌ Staff login error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create staff account (Admin only)
+app.post('/api/staff/create', isAuthenticated, isAdmin, async (req, res) => {
+  const { username, password, email, name, role } = req.body;
+  
+  if (!username || !password || !role) {
+    return res.status(400).json({ error: 'Username, password, and role required' });
+  }
+  
+  if (!['admin', 'teacher'].includes(role)) {
+    return res.status(400).json({ error: 'Role must be "admin" or "teacher"' });
+  }
+  
+  try {
+    // Check if username already exists
+    const existing = await supabaseSelect('staff', {
+      eq: { username: username },
+      select: 'username'
+    });
+    
+    if (existing.length > 0) {
+      return res.status(400).json({ error: 'Username already exists' });
+    }
+    
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Create staff account
+    const newStaff = {
+      username: username,
+      password: hashedPassword,
+      email: email || '',
+      name: name || username,
+      role: role,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    const result = await supabaseInsert('staff', newStaff);
+    
+    console.log('✅ Staff account created:', username, 'Role:', role);
+    
+    res.json({
+      success: true,
+      message: `Staff account created for ${username} (${role})`,
+      staff: { 
+        id: result[0]?.id,
+        username: username,
+        email: email || '',
+        name: name || username,
+        role: role
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Create staff error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all staff (Admin only)
+app.get('/api/staff', isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const staff = await supabaseSelect('staff', {
+      select: 'id, username, email, name, role, created_at, updated_at',
+      order: { column: 'created_at', direction: 'desc' }
+    });
+    
+    res.json({ success: true, staff: staff });
+  } catch (error) {
+    console.error('❌ Get staff error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete staff (Admin only)
+app.delete('/api/staff/:id', isAuthenticated, isAdmin, async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    // Don't allow deleting the last admin
+    const admins = await supabaseSelect('staff', {
+      eq: { role: 'admin' },
+      select: 'id'
+    });
+    
+    if (admins.length <= 1) {
+      const staffToDelete = await supabaseSelect('staff', {
+        eq: { id: id },
+        select: 'role'
+      });
+      
+      if (staffToDelete.length > 0 && staffToDelete[0].role === 'admin') {
+        return res.status(400).json({ error: 'Cannot delete the last admin account' });
+      }
+    }
+    
+    await supabaseDelete('staff', { id: id });
+    
+    console.log('✅ Staff deleted:', id);
+    res.json({ success: true, message: 'Staff deleted successfully' });
+    
+  } catch (error) {
+    console.error('❌ Delete staff error:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // ============================================
@@ -1057,6 +1385,106 @@ app.get('/api/admin/payments/:id/receipt', isAuthenticated, isAdmin, async (req,
 });
 
 // ============================================
+// ADMIN - User Management
+// ============================================
+
+// Get all users
+app.get('/api/admin/users', isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const users = await supabaseSelect('users', {
+      select: 'id, email, name, is_teacher, is_premium, created_at',
+      order: { column: 'created_at', direction: 'desc' }
+    });
+    
+    res.json({ success: true, users: users });
+  } catch (error) {
+    console.error('❌ Error fetching users:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Make a user a teacher
+app.post('/api/admin/users/make-teacher', isAuthenticated, isAdmin, async (req, res) => {
+  const { email } = req.body;
+  
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+  
+  try {
+    console.log('📝 Making user a teacher:', email);
+    
+    const users = await supabaseSelect('users', {
+      eq: { email: email },
+      select: '*'
+    });
+    
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = users[0];
+    
+    await supabaseUpdate('users', {
+      is_teacher: true,
+      updated_at: new Date().toISOString()
+    }, { id: user.id });
+    
+    console.log('✅ User is now a teacher:', email);
+    
+    res.json({ 
+      success: true, 
+      message: `✅ ${email} is now a teacher!`,
+      user: { ...user, is_teacher: true }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error making teacher:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Remove teacher status
+app.post('/api/admin/users/remove-teacher', isAuthenticated, isAdmin, async (req, res) => {
+  const { email } = req.body;
+  
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+  
+  try {
+    console.log('📝 Removing teacher status:', email);
+    
+    const users = await supabaseSelect('users', {
+      eq: { email: email },
+      select: '*'
+    });
+    
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = users[0];
+    
+    await supabaseUpdate('users', {
+      is_teacher: false,
+      updated_at: new Date().toISOString()
+    }, { id: user.id });
+    
+    console.log('✅ Teacher status removed:', email);
+    
+    res.json({ 
+      success: true, 
+      message: `✅ ${email} is no longer a teacher`
+    });
+    
+  } catch (error) {
+    console.error('❌ Error removing teacher:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
 // TEACHER ROUTES
 // ============================================
 
@@ -1112,7 +1540,7 @@ app.get('/api/teacher/exams/:id', isAuthenticated, isTeacher, async (req, res) =
   }
 });
 
-// CREATE exam - NEW ENDPOINT
+// CREATE exam
 app.post('/api/teacher/exams', isAuthenticated, isTeacher, async (req, res) => {
   const { title, subject, time_limit, passing_score, description, status, price, questions } = req.body;
   
@@ -1120,7 +1548,6 @@ app.post('/api/teacher/exams', isAuthenticated, isTeacher, async (req, res) => {
     console.log('📝 Creating new exam for teacher:', req.user.userId);
     console.log('📝 Exam data:', { title, subject, time_limit, passing_score, description, status, price });
     
-    // Create exam
     const examData = {
       title: title || 'Untitled Exam',
       subject: subject || 'General',
@@ -1143,14 +1570,12 @@ app.post('/api/teacher/exams', isAuthenticated, isTeacher, async (req, res) => {
     
     console.log('✅ Exam created with ID:', examId);
     
-    // Link teacher to exam
     await supabaseInsert('teacher_exams', {
       teacher_id: req.user.userId,
       exam_id: examId,
       created_at: new Date().toISOString()
     });
     
-    // Insert questions if provided
     if (questions && questions.length > 0) {
       for (const q of questions) {
         await supabaseInsert('questions', {
@@ -1192,7 +1617,6 @@ app.put('/api/teacher/exams/:id', isAuthenticated, isTeacher, async (req, res) =
       return res.status(403).json({ error: 'You are not assigned to this exam' });
     }
     
-    // Update exam
     await supabaseUpdate('exams', {
       title: title || 'Untitled Exam',
       subject: subject || 'General',
@@ -1205,12 +1629,9 @@ app.put('/api/teacher/exams/:id', isAuthenticated, isTeacher, async (req, res) =
       updated_at: new Date().toISOString()
     }, { id: id });
     
-    // Update questions if provided
     if (questions && questions.length > 0) {
-      // Delete existing questions
       await supabaseDelete('questions', { exam_id: id });
       
-      // Insert new questions
       for (const q of questions) {
         await supabaseInsert('questions', {
           exam_id: id,
@@ -1283,7 +1704,7 @@ app.post('/api/teacher/exams/:id/questions/bulk', isAuthenticated, isTeacher, as
       });
       inserted.push(result[0]);
     }
-    // Update total questions count
+    
     await supabaseUpdate('exams', {
       total_questions: inserted.length,
       updated_at: new Date().toISOString()
@@ -1295,15 +1716,12 @@ app.post('/api/teacher/exams/:id/questions/bulk', isAuthenticated, isTeacher, as
   }
 });
 
-// ============================================
-// DELETE Exam - NEW ENDPOINT
-// ============================================
+// DELETE exam
 app.delete('/api/teacher/exams/:id', isAuthenticated, isTeacher, async (req, res) => {
   const { id } = req.params;
   try {
     console.log('🗑️ Deleting exam:', id, 'for teacher:', req.user.userId);
     
-    // Check if teacher is assigned to this exam
     const teacherExams = await supabaseSelect('teacher_exams', {
       eq: { teacher_id: req.user.userId, exam_id: id },
       select: '*'
@@ -1313,19 +1731,15 @@ app.delete('/api/teacher/exams/:id', isAuthenticated, isTeacher, async (req, res
       return res.status(403).json({ error: 'You are not assigned to this exam' });
     }
 
-    // Delete questions first (due to foreign key constraints)
     await supabaseDelete('questions', { exam_id: id });
     console.log('✅ Deleted questions for exam:', id);
     
-    // Delete exam_attempts
     await supabaseDelete('exam_attempts', { exam_id: id });
     console.log('✅ Deleted attempts for exam:', id);
     
-    // Delete teacher_exam association
     await supabaseDelete('teacher_exams', { exam_id: id });
     console.log('✅ Deleted teacher_exam association for exam:', id);
     
-    // Delete the exam
     await supabaseDelete('exams', { id: id });
     console.log('✅ Deleted exam:', id);
     
@@ -1401,12 +1815,17 @@ app.use((err, req, res, next) => {
 // ============================================
 // START SERVER
 // ============================================
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log('🚀 Hayyo Academy backend running on port ' + PORT);
   console.log('📊 Environment: ' + (process.env.NODE_ENV || 'development'));
   console.log('🔗 Supabase API: ' + SUPABASE_URL);
   console.log('🌐 Trust proxy: ' + app.get('trust proxy'));
   console.log('📦 App version: ' + APP_VERSION);
+  console.log('👥 Admin emails: ' + (process.env.ADMIN_EMAILS || 'NOT SET'));
+  console.log('👨‍🏫 Teacher emails: ' + (process.env.TEACHER_EMAILS || 'NOT SET'));
+  
+  // Create default staff accounts on startup
+  await createDefaultStaff();
 });
 
 // Handle graceful shutdown
