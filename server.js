@@ -20,7 +20,7 @@ const bcrypt = require('bcryptjs');
 // ============================================
 // APP VERSION
 // ============================================
-const APP_VERSION = '1.0.9';
+const APP_VERSION = '1.0.10';
 
 // ============================================
 // SUPABASE REST API CLIENT
@@ -1321,8 +1321,7 @@ app.post('/api/payment/upload', isAuthenticated, upload.single('receipt'), async
     if (payments.length === 0) return res.status(404).json({ error: 'No pending payment found' });
     await supabaseUpdate('payments', {
       receipt_url: req.file.path,
-      receipt_filename: req.file.originalname,
-      updated_at: new Date().toISOString()
+      receipt_filename: req.file.originalname
     }, { id: payments[0].id });
     res.json({ success: true, receipt_url: req.file.path, message: 'Receipt uploaded successfully' });
   } catch (error) {
@@ -1387,8 +1386,7 @@ app.put('/api/admin/payments/:id/approve', isAuthenticated, isAdmin, async (req,
     if (payments.length === 0) return res.status(404).json({ error: 'Payment not found or already processed' });
     const userId = payments[0].user_id;
     await supabaseUpdate('payments', {
-      status: 'approved',
-      updated_at: new Date().toISOString()
+      status: 'approved'
     }, { id: id });
     await supabaseUpdate('users', {
       is_premium: true,
@@ -1406,8 +1404,7 @@ app.put('/api/admin/payments/:id/reject', isAuthenticated, isAdmin, async (req, 
   try {
     await supabaseUpdate('payments', {
       status: 'rejected',
-      admin_notes: reason || 'Payment rejected by admin',
-      updated_at: new Date().toISOString()
+      admin_notes: reason || 'Payment rejected by admin'
     }, { id: id });
     res.json({ success: true, message: 'Payment rejected' });
   } catch (error) {
@@ -1947,7 +1944,8 @@ app.listen(PORT, async () => {
   await createDefaultStaff();
 });
 
-// Handle graceful shutdownprocess.on('SIGTERM', () => {
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
   console.log('SIGTERM received, closing server...');
   process.exit(0);
 });
