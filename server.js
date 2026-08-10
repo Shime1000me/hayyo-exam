@@ -20,7 +20,7 @@ const bcrypt = require('bcryptjs');
 // ============================================
 // APP VERSION
 // ============================================
-const APP_VERSION = '1.0.6';
+const APP_VERSION = '1.0.7';
 
 // ============================================
 // SUPABASE REST API CLIENT
@@ -714,7 +714,7 @@ app.get('/', (req, res) => {
 // STAFF AUTH - Username/Password Login
 // ============================================
 
-// Staff Login
+// Staff Login - FIXED VERSION
 app.post('/api/staff/login', async (req, res) => {
   const { username, password } = req.body;
   
@@ -725,11 +725,26 @@ app.post('/api/staff/login', async (req, res) => {
   try {
     console.log('🔍 Staff login attempt:', username);
     
-    // Find staff member by username
-    const staff = await supabaseSelect('staff', {
-      eq: { username: username },
-      select: '*'
+    // Build the URL manually to bypass the eq filter issue
+    const url = SUPABASE_URL + '/rest/v1/staff?select=*&username=eq.' + encodeURIComponent(username);
+    console.log('🔍 Fetching from:', url);
+    
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
     });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('❌ Database error:', errorText);
+      return res.status(500).json({ error: 'Database error: ' + errorText });
+    }
+    
+    const staff = await response.json();
+    console.log('🔍 Staff found:', staff.length);
     
     if (staff.length === 0) {
       console.log('❌ Staff not found:', username);
