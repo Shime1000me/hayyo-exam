@@ -203,6 +203,33 @@
             padding: 5px 15px;
             font-size: 0.85rem;
         }
+
+        /* DEBUG BOX */
+        .debug-box {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #313244;
+        }
+        .debug-box .label {
+            color: #89b4fa;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .debug-box .success { color: #a6e3a1; }
+        .debug-box .error { color: #f38ba8; }
+        .debug-box .info { color: #89b4fa; }
+        .debug-box .warn { color: #f9e2af; }
+        .debug-box .data { color: #cba6f7; }
     </style>
 </head>
 <body>
@@ -284,6 +311,12 @@
             </div>
         </div>
 
+        <!-- ===== DEBUG BOX ===== -->
+        <div class="debug-box" id="debugBox">
+            <span class="label">🔍 Debug Log:</span>
+            <div id="debugContent">Waiting for page to load...</div>
+        </div>
+
     </div>
 
     <!-- Create Staff Modal -->
@@ -345,6 +378,18 @@
         const toast = document.getElementById('toast');
         const usersContainer = document.getElementById('usersContainer');
         const searchInput = document.getElementById('searchInput');
+        const debugContent = document.getElementById('debugContent');
+
+        // ============================================================
+        // Debug Logging
+        // ============================================================
+        function logDebug(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warn' ? '⚠️' : type === 'data' ? '📊' : '🔍';
+            const color = type === 'success' ? '#a6e3a1' : type === 'error' ? '#f38ba8' : type === 'warn' ? '#f9e2af' : type === 'data' ? '#cba6f7' : '#89b4fa';
+            debugContent.innerHTML += `<div style="color:${color}">${prefix} [${timestamp}] ${message}</div>`;
+            console.log(`${prefix} ${message}`);
+        }
 
         // ============================================================
         // Helper Functions
@@ -375,10 +420,13 @@
         function loadUsers() {
             const token = getToken();
             if (!token) {
+                logDebug('❌ No token found', 'error');
                 showToast('Please login first', 'error');
-                setTimeout(() => window.location.href = 'index.html', 1500);
+                setTimeout(() => window.location.href = 'staff-login.html', 1500);
                 return;
             }
+
+            logDebug('📡 Loading users from /api/admin/users...', 'info');
 
             usersContainer.innerHTML = `
                 <div class="loading-spinner">
@@ -394,13 +442,15 @@
                 }
             })
             .then(res => {
+                logDebug(`📡 Response status: ${res.status}`, res.status === 200 ? 'success' : 'warn');
                 if (res.status === 401) {
                     localStorage.removeItem('token');
                     showToast('Session expired', 'error');
-                    setTimeout(() => window.location.href = 'index.html', 1500);
+                    setTimeout(() => window.location.href = 'staff-login.html', 1500);
                     return null;
                 }
                 if (res.status === 403) {
+                    logDebug('❌ Admin access denied', 'error');
                     usersContainer.innerHTML = `
                         <div class="alert alert-danger">
                             <i class="bi bi-exclamation-triangle me-2"></i>
@@ -416,6 +466,7 @@
                 if (data && data.success) {
                     users = data.users || [];
                     filteredUsers = users;
+                    logDebug(`✅ Loaded ${users.length} users`, 'success');
                     renderUsers();
                     showToast(`✅ Loaded ${users.length} users`, 'success');
                 } else if (data && !data.success) {
@@ -423,6 +474,7 @@
                 }
             })
             .catch(err => {
+                logDebug(`❌ Load users error: ${err.message}`, 'error');
                 console.error('Load users error:', err);
                 usersContainer.innerHTML = `
                     <div class="empty-state">
@@ -452,6 +504,8 @@
             } else {
                 filteredUsers = users;
             }
+
+            logDebug(`📋 Rendering ${filteredUsers.length} users (filtered from ${users.length})`, 'data');
 
             if (filteredUsers.length === 0) {
                 usersContainer.innerHTML = `
@@ -494,10 +548,14 @@
         // Make Teacher (for Google OAuth users)
         // ============================================================
         function makeTeacher(email) {
+            logDebug(`📝 Making teacher: ${email}`, 'info');
             if (!confirm(`Are you sure you want to make "${email}" a teacher?`)) return;
 
             const token = getToken();
-            if (!token) return;
+            if (!token) {
+                logDebug('❌ No token found', 'error');
+                return;
+            }
 
             const btn = event.target.closest('button');
             btn.disabled = true;
@@ -511,19 +569,24 @@
                 },
                 body: JSON.stringify({ email })
             })
-            .then(res => res.json())
+            .then(res => {
+                logDebug(`📡 Response status: ${res.status}`, res.status === 200 ? 'success' : 'error');
+                return res.json();
+            })
             .then(data => {
                 if (data.success) {
+                    logDebug(`✅ ${email} is now a teacher!`, 'success');
                     showToast(`✅ ${email} is now a teacher!`, 'success');
                     loadUsers();
                 } else {
+                    logDebug(`❌ Failed: ${data.error}`, 'error');
                     showToast('❌ ' + (data.error || 'Failed to make teacher'), 'error');
                     btn.disabled = false;
                     btn.innerHTML = '<i class="bi bi-person-plus"></i> Make Teacher';
                 }
             })
             .catch(err => {
-                console.error('Error:', err);
+                logDebug(`❌ Error: ${err.message}`, 'error');
                 showToast('Network error', 'error');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-person-plus"></i> Make Teacher';
@@ -534,10 +597,14 @@
         // Remove Teacher (for Google OAuth users)
         // ============================================================
         function removeTeacher(email) {
+            logDebug(`📝 Removing teacher: ${email}`, 'info');
             if (!confirm(`Are you sure you want to remove teacher status from "${email}"?`)) return;
 
             const token = getToken();
-            if (!token) return;
+            if (!token) {
+                logDebug('❌ No token found', 'error');
+                return;
+            }
 
             const btn = event.target.closest('button');
             btn.disabled = true;
@@ -551,19 +618,24 @@
                 },
                 body: JSON.stringify({ email })
             })
-            .then(res => res.json())
+            .then(res => {
+                logDebug(`📡 Response status: ${res.status}`, res.status === 200 ? 'success' : 'error');
+                return res.json();
+            })
             .then(data => {
                 if (data.success) {
+                    logDebug(`✅ ${email} is no longer a teacher`, 'success');
                     showToast(`✅ ${email} is no longer a teacher`, 'success');
                     loadUsers();
                 } else {
+                    logDebug(`❌ Failed: ${data.error}`, 'error');
                     showToast('❌ ' + (data.error || 'Failed to remove teacher'), 'error');
                     btn.disabled = false;
                     btn.innerHTML = '<i class="bi bi-person-x"></i> Remove Teacher';
                 }
             })
             .catch(err => {
-                console.error('Error:', err);
+                logDebug(`❌ Error: ${err.message}`, 'error');
                 showToast('Network error', 'error');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-person-x"></i> Remove Teacher';
@@ -587,9 +659,11 @@
         function loadStaff() {
             const token = getToken();
             if (!token) {
-                console.log('No token found');
+                logDebug('❌ No token found', 'error');
                 return;
             }
+            
+            logDebug('📡 Loading staff from /api/staff...', 'info');
             
             const container = document.getElementById('staffList');
             container.innerHTML = `
@@ -606,7 +680,9 @@
                 }
             })
             .then(res => {
+                logDebug(`📡 Response status: ${res.status}`, res.status === 200 ? 'success' : 'warn');
                 if (res.status === 403) {
+                    logDebug('❌ Admin access required for staff', 'error');
                     container.innerHTML = `
                         <div class="alert alert-warning">
                             <i class="bi bi-exclamation-triangle me-2"></i>
@@ -618,7 +694,7 @@
                 if (res.status === 401) {
                     localStorage.removeItem('token');
                     showToast('Session expired', 'error');
-                    setTimeout(() => window.location.href = 'index.html', 1500);
+                    setTimeout(() => window.location.href = 'staff-login.html', 1500);
                     return null;
                 }
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -626,8 +702,10 @@
             })
             .then(data => {
                 if (data && data.success) {
+                    logDebug(`✅ Loaded ${data.staff?.length || 0} staff members`, 'success');
                     renderStaff(data.staff);
                 } else if (data && !data.success) {
+                    logDebug(`❌ Failed to load staff: ${data.error}`, 'error');
                     container.innerHTML = `
                         <div class="alert alert-danger">
                             <i class="bi bi-exclamation-circle me-2"></i>
@@ -637,7 +715,7 @@
                 }
             })
             .catch(err => {
-                console.error('Error loading staff:', err);
+                logDebug(`❌ Load staff error: ${err.message}`, 'error');
                 container.innerHTML = `
                     <div class="alert alert-danger">
                         <i class="bi bi-exclamation-circle me-2"></i>
@@ -684,6 +762,7 @@
         }
 
         function showCreateStaffModal() {
+            logDebug('📝 Opening create staff modal', 'info');
             document.getElementById('staffUsername').value = '';
             document.getElementById('staffPassword').value = '';
             document.getElementById('staffName').value = '';
@@ -699,13 +778,17 @@
             const email = document.getElementById('staffEmail').value.trim();
             const role = document.getElementById('staffRole').value;
             
+            logDebug(`📝 Creating staff: ${username} (${role})`, 'info');
+            
             if (!username || !password) {
+                logDebug('❌ Username or password missing', 'error');
                 showToast('Username and password required', 'error');
                 return;
             }
             
             const token = getToken();
             if (!token) {
+                logDebug('❌ No token found', 'error');
                 showToast('Please login first', 'error');
                 return;
             }
@@ -722,17 +805,23 @@
                 },
                 body: JSON.stringify({ username, password, name, email, role })
             })
-            .then(res => res.json())
+            .then(res => {
+                logDebug(`📡 Response status: ${res.status}`, res.status === 200 ? 'success' : 'error');
+                return res.json();
+            })
             .then(data => {
                 if (data.success) {
+                    logDebug(`✅ Staff created: ${username}`, 'success');
                     showToast('✅ Staff created successfully!', 'success');
                     bootstrap.Modal.getInstance(document.getElementById('createStaffModal')).hide();
                     loadStaff();
                 } else {
+                    logDebug(`❌ Failed: ${data.error}`, 'error');
                     showToast('❌ ' + (data.error || 'Failed to create staff'), 'error');
                 }
             })
             .catch(err => {
+                logDebug(`❌ Error: ${err.message}`, 'error');
                 showToast('Network error', 'error');
                 console.error(err);
             })
@@ -743,10 +832,14 @@
         }
 
         function deleteStaff(id) {
+            logDebug(`🗑️ Deleting staff: ${id}`, 'warn');
             if (!confirm('Are you sure you want to delete this staff account?')) return;
             
             const token = getToken();
-            if (!token) return;
+            if (!token) {
+                logDebug('❌ No token found', 'error');
+                return;
+            }
             
             const btn = event.target.closest('button');
             btn.disabled = true;
@@ -759,16 +852,22 @@
                     'Content-Type': 'application/json'
                 }
             })
-            .then(res => res.json())
+            .then(res => {
+                logDebug(`📡 Response status: ${res.status}`, res.status === 200 ? 'success' : 'error');
+                return res.json();
+            })
             .then(data => {
                 if (data.success) {
+                    logDebug(`✅ Staff deleted: ${id}`, 'success');
                     showToast('✅ Staff deleted!', 'success');
                     loadStaff();
                 } else {
+                    logDebug(`❌ Failed: ${data.error}`, 'error');
                     showToast('❌ ' + (data.error || 'Failed to delete'), 'error');
                 }
             })
             .catch(err => {
+                logDebug(`❌ Error: ${err.message}`, 'error');
                 showToast('Network error', 'error');
                 console.error(err);
             })
@@ -787,6 +886,9 @@
         // Initialize
         // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
+            logDebug('📄 Admin Users page loaded', 'info');
+            logDebug(`🔗 API Base: ${API_BASE}`, 'data');
+            
             // Load users
             loadUsers();
             
