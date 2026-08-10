@@ -20,7 +20,7 @@ const bcrypt = require('bcryptjs');
 // ============================================
 // APP VERSION
 // ============================================
-const APP_VERSION = '1.0.7';
+const APP_VERSION = '1.0.8';
 
 // ============================================
 // SUPABASE REST API CLIENT
@@ -57,35 +57,6 @@ async function supabaseFetch(endpoint, options = {}) {
   }
 
   return response.json();
-}
-
-// Helper for SELECT queries with better error handling
-async function supabaseSelect(table, params = {}) {
-  let url = '/' + table;
-  const queryParams = new URLSearchParams();
-
-  if (params.select) queryParams.append('select', params.select);
-  if (params.eq) {
-    const eqKeys = Object.keys(params.eq);
-    if (eqKeys.length === 0) {
-      throw new Error('Empty eq filter provided');
-    }
-    
-    for (const key of eqKeys) {
-      const value = params.eq[key];
-      if (value === undefined || value === null || value === '') {
-        throw new Error('Empty value for filter key: ' + key);
-      }
-      queryParams.append(key + '=eq.' + encodeURIComponent(value), '');
-    }
-  }
-  if (params.order) queryParams.append('order', params.order.column + '.' + (params.order.direction || 'asc'));
-  if (params.limit) queryParams.append('limit', params.limit);
-
-  const queryString = queryParams.toString();
-  if (queryString) url += '?' + queryString;
-
-  return supabaseFetch(url);
 }
 
 // Helper for INSERT
@@ -551,10 +522,20 @@ async function isAuthenticated(req, res, next) {
     }
     
     // Regular user - check database
-    const users = await supabaseSelect('users', {
-      eq: { id: decoded.userId },
-      select: '*'
+    const url = SUPABASE_URL + '/rest/v1/users?select=*&id=eq.' + encodeURIComponent(decoded.userId);
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
     });
+    
+    if (!response.ok) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+    
+    const users = await response.json();
     if (users.length === 0) {
       return res.status(401).json({ error: 'User not found' });
     }
@@ -818,11 +799,20 @@ app.post('/api/staff/create', isAuthenticated, isAdmin, async (req, res) => {
   
   try {
     // Check if username already exists
-    const existing = await supabaseSelect('staff', {
-      eq: { username: username },
-      select: 'username'
+    const url = SUPABASE_URL + '/rest/v1/staff?select=username&username=eq.' + encodeURIComponent(username);
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
     });
     
+    if (!response.ok) {
+      throw new Error('Database error checking username');
+    }
+    
+    const existing = await response.json();
     if (existing.length > 0) {
       return res.status(400).json({ error: 'Username already exists' });
     }
@@ -863,13 +853,28 @@ app.post('/api/staff/create', isAuthenticated, isAdmin, async (req, res) => {
   }
 });
 
-// Get all staff (Admin only)
+// Get all staff (Admin only) - FIXED
 app.get('/api/staff', isAuthenticated, isAdmin, async (req, res) => {
   try {
-    const staff = await supabaseSelect('staff', {
-      select: 'id, username, email, name, role, created_at, updated_at',
-      order: { column: 'created_at', direction: 'desc' }
+    const url = SUPABASE_URL + '/rest/v1/staff?select=id,username,email,name,role,created_at,updated_at&order=created_at.desc';
+    console.log('🔍 Fetching staff from:', url);
+    
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
     });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('❌ Database error:', errorText);
+      return res.status(500).json({ error: 'Database error: ' + errorText });
+    }
+    
+    const staff = await response.json();
+    console.log('✅ Loaded', staff.length, 'staff members');
     
     res.json({ success: true, staff: staff });
   } catch (error) {
@@ -884,19 +889,36 @@ app.delete('/api/staff/:id', isAuthenticated, isAdmin, async (req, res) => {
   
   try {
     // Don't allow deleting the last admin
-    const admins = await supabaseSelect('staff', {
-      eq: { role: 'admin' },
-      select: 'id'
+    const url = SUPABASE_URL + '/rest/v1/staff?select=id&role=eq.admin';
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
     });
     
+    if (!response.ok) {
+      throw new Error('Failed to check admins');
+    }
+    
+    const admins = await response.json();
+    
     if (admins.length <= 1) {
-      const staffToDelete = await supabaseSelect('staff', {
-        eq: { id: id },
-        select: 'role'
+      const staffUrl = SUPABASE_URL + '/rest/v1/staff?select=role&id=eq.' + encodeURIComponent(id);
+      const staffResponse = await fetch(staffUrl, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json'
+        }
       });
       
-      if (staffToDelete.length > 0 && staffToDelete[0].role === 'admin') {
-        return res.status(400).json({ error: 'Cannot delete the last admin account' });
+      if (staffResponse.ok) {
+        const staffToDelete = await staffResponse.json();
+        if (staffToDelete.length > 0 && staffToDelete[0].role === 'admin') {
+          return res.status(400).json({ error: 'Cannot delete the last admin account' });
+        }
       }
     }
     
@@ -1026,10 +1048,20 @@ app.get('/api/exams/:id/questions', verifyToken, async (req, res) => {
 // Check exam access
 app.get('/api/exams/:id/access', isAuthenticated, async (req, res) => {
   try {
-    const exams = await supabaseSelect('exams', {
-      eq: { id: req.params.id },
-      select: 'is_premium_only, title'
+    const url = SUPABASE_URL + '/rest/v1/exams?select=is_premium_only,title&id=eq.' + encodeURIComponent(req.params.id);
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
     });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch exam');
+    }
+    
+    const exams = await response.json();
     if (exams.length === 0) return res.status(404).json({ error: 'Exam not found' });
     const exam = exams[0];
     if (!exam.is_premium_only) {
@@ -1402,16 +1434,31 @@ app.get('/api/admin/payments/:id/receipt', isAuthenticated, isAdmin, async (req,
 });
 
 // ============================================
-// ADMIN - User Management
+// ADMIN - User Management (FIXED)
 // ============================================
 
-// Get all users
+// Get all users - FIXED
 app.get('/api/admin/users', isAuthenticated, isAdmin, async (req, res) => {
   try {
-    const users = await supabaseSelect('users', {
-      select: 'id, email, name, is_teacher, is_premium, created_at',
-      order: { column: 'created_at', direction: 'desc' }
+    const url = SUPABASE_URL + '/rest/v1/users?select=id,email,name,is_teacher,is_premium,created_at&order=created_at.desc';
+    console.log('🔍 Fetching users from:', url);
+    
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
     });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('❌ Database error:', errorText);
+      return res.status(500).json({ error: 'Database error: ' + errorText });
+    }
+    
+    const users = await response.json();
+    console.log('✅ Loaded', users.length, 'users');
     
     res.json({ success: true, users: users });
   } catch (error) {
@@ -1420,7 +1467,7 @@ app.get('/api/admin/users', isAuthenticated, isAdmin, async (req, res) => {
   }
 });
 
-// Make a user a teacher
+// Make a user a teacher - FIXED
 app.post('/api/admin/users/make-teacher', isAuthenticated, isAdmin, async (req, res) => {
   const { email } = req.body;
   
@@ -1431,10 +1478,25 @@ app.post('/api/admin/users/make-teacher', isAuthenticated, isAdmin, async (req, 
   try {
     console.log('📝 Making user a teacher:', email);
     
-    const users = await supabaseSelect('users', {
-      eq: { email: email },
-      select: '*'
+    // Find user by email
+    const url = SUPABASE_URL + '/rest/v1/users?select=*&email=eq.' + encodeURIComponent(email);
+    console.log('🔍 Fetching user from:', url);
+    
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
     });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('❌ Database error:', errorText);
+      return res.status(500).json({ error: 'Database error: ' + errorText });
+    }
+    
+    const users = await response.json();
     
     if (users.length === 0) {
       return res.status(404).json({ error: 'User not found' });
@@ -1442,10 +1504,27 @@ app.post('/api/admin/users/make-teacher', isAuthenticated, isAdmin, async (req, 
     
     const user = users[0];
     
-    await supabaseUpdate('users', {
-      is_teacher: true,
-      updated_at: new Date().toISOString()
-    }, { id: user.id });
+    // Update user to be a teacher
+    const updateUrl = SUPABASE_URL + '/rest/v1/users?id=eq.' + user.id;
+    const updateResponse = await fetch(updateUrl, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({
+        is_teacher: true,
+        updated_at: new Date().toISOString()
+      })
+    });
+    
+    if (!updateResponse.ok) {
+      const errorText = await updateResponse.text();
+      console.log('❌ Update error:', errorText);
+      return res.status(500).json({ error: 'Failed to update user: ' + errorText });
+    }
     
     console.log('✅ User is now a teacher:', email);
     
@@ -1461,7 +1540,7 @@ app.post('/api/admin/users/make-teacher', isAuthenticated, isAdmin, async (req, 
   }
 });
 
-// Remove teacher status
+// Remove teacher status - FIXED
 app.post('/api/admin/users/remove-teacher', isAuthenticated, isAdmin, async (req, res) => {
   const { email } = req.body;
   
@@ -1472,10 +1551,25 @@ app.post('/api/admin/users/remove-teacher', isAuthenticated, isAdmin, async (req
   try {
     console.log('📝 Removing teacher status:', email);
     
-    const users = await supabaseSelect('users', {
-      eq: { email: email },
-      select: '*'
+    // Find user by email
+    const url = SUPABASE_URL + '/rest/v1/users?select=*&email=eq.' + encodeURIComponent(email);
+    console.log('🔍 Fetching user from:', url);
+    
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      }
     });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('❌ Database error:', errorText);
+      return res.status(500).json({ error: 'Database error: ' + errorText });
+    }
+    
+    const users = await response.json();
     
     if (users.length === 0) {
       return res.status(404).json({ error: 'User not found' });
@@ -1483,10 +1577,27 @@ app.post('/api/admin/users/remove-teacher', isAuthenticated, isAdmin, async (req
     
     const user = users[0];
     
-    await supabaseUpdate('users', {
-      is_teacher: false,
-      updated_at: new Date().toISOString()
-    }, { id: user.id });
+    // Update user to remove teacher status
+    const updateUrl = SUPABASE_URL + '/rest/v1/users?id=eq.' + user.id;
+    const updateResponse = await fetch(updateUrl, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({
+        is_teacher: false,
+        updated_at: new Date().toISOString()
+      })
+    });
+    
+    if (!updateResponse.ok) {
+      const errorText = await updateResponse.text();
+      console.log('❌ Update error:', errorText);
+      return res.status(500).json({ error: 'Failed to update user: ' + errorText });
+    }
     
     console.log('✅ Teacher status removed:', email);
     
