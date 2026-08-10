@@ -20,7 +20,7 @@ const bcrypt = require('bcryptjs');
 // ============================================
 // APP VERSION
 // ============================================
-const APP_VERSION = '1.0.8';
+const APP_VERSION = '1.0.9';
 
 // ============================================
 // SUPABASE REST API CLIENT
@@ -432,8 +432,7 @@ passport.use(new GoogleStrategy({
     if (teacherEmails.includes(user.email) && !user.is_teacher) {
       console.log('🔑 Auto-making teacher:', user.email);
       await supabaseUpdate('users', {
-        is_teacher: true,
-        updated_at: new Date().toISOString()
+        is_teacher: true
       }, { id: user.id });
       user.is_teacher = true;
       rolesUpdated = true;
@@ -827,8 +826,7 @@ app.post('/api/staff/create', isAuthenticated, isAdmin, async (req, res) => {
       email: email || '',
       name: name || username,
       role: role,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      created_at: new Date().toISOString()
     };
     
     const result = await supabaseInsert('staff', newStaff);
@@ -856,7 +854,7 @@ app.post('/api/staff/create', isAuthenticated, isAdmin, async (req, res) => {
 // Get all staff (Admin only) - FIXED
 app.get('/api/staff', isAuthenticated, isAdmin, async (req, res) => {
   try {
-    const url = SUPABASE_URL + '/rest/v1/staff?select=id,username,email,name,role,created_at,updated_at&order=created_at.desc';
+    const url = SUPABASE_URL + '/rest/v1/staff?select=id,username,email,name,role,created_at&order=created_at.desc';
     console.log('🔍 Fetching staff from:', url);
     
     const response = await fetch(url, {
@@ -1394,8 +1392,7 @@ app.put('/api/admin/payments/:id/approve', isAuthenticated, isAdmin, async (req,
     }, { id: id });
     await supabaseUpdate('users', {
       is_premium: true,
-      premium_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date().toISOString()
+      premium_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
     }, { id: userId });
     res.json({ success: true, message: 'Payment approved and premium access granted' });
   } catch (error) {
@@ -1434,7 +1431,7 @@ app.get('/api/admin/payments/:id/receipt', isAuthenticated, isAdmin, async (req,
 });
 
 // ============================================
-// ADMIN - User Management (FIXED)
+// ADMIN - User Management (FIXED - NO updated_at)
 // ============================================
 
 // Get all users - FIXED
@@ -1467,7 +1464,7 @@ app.get('/api/admin/users', isAuthenticated, isAdmin, async (req, res) => {
   }
 });
 
-// Make a user a teacher - FIXED
+// Make a user a teacher - FIXED (NO updated_at)
 app.post('/api/admin/users/make-teacher', isAuthenticated, isAdmin, async (req, res) => {
   const { email } = req.body;
   
@@ -1504,7 +1501,7 @@ app.post('/api/admin/users/make-teacher', isAuthenticated, isAdmin, async (req, 
     
     const user = users[0];
     
-    // Update user to be a teacher
+    // Update user to be a teacher (NO updated_at)
     const updateUrl = SUPABASE_URL + '/rest/v1/users?id=eq.' + user.id;
     const updateResponse = await fetch(updateUrl, {
       method: 'PATCH',
@@ -1515,8 +1512,7 @@ app.post('/api/admin/users/make-teacher', isAuthenticated, isAdmin, async (req, 
         'Prefer': 'return=representation'
       },
       body: JSON.stringify({
-        is_teacher: true,
-        updated_at: new Date().toISOString()
+        is_teacher: true
       })
     });
     
@@ -1540,7 +1536,7 @@ app.post('/api/admin/users/make-teacher', isAuthenticated, isAdmin, async (req, 
   }
 });
 
-// Remove teacher status - FIXED
+// Remove teacher status - FIXED (NO updated_at)
 app.post('/api/admin/users/remove-teacher', isAuthenticated, isAdmin, async (req, res) => {
   const { email } = req.body;
   
@@ -1577,7 +1573,7 @@ app.post('/api/admin/users/remove-teacher', isAuthenticated, isAdmin, async (req
     
     const user = users[0];
     
-    // Update user to remove teacher status
+    // Update user to remove teacher status (NO updated_at)
     const updateUrl = SUPABASE_URL + '/rest/v1/users?id=eq.' + user.id;
     const updateResponse = await fetch(updateUrl, {
       method: 'PATCH',
@@ -1588,8 +1584,7 @@ app.post('/api/admin/users/remove-teacher', isAuthenticated, isAdmin, async (req
         'Prefer': 'return=representation'
       },
       body: JSON.stringify({
-        is_teacher: false,
-        updated_at: new Date().toISOString()
+        is_teacher: false
       })
     });
     
@@ -1685,8 +1680,7 @@ app.post('/api/teacher/exams', isAuthenticated, isTeacher, async (req, res) => {
       status: status || 'draft',
       price: price || 0,
       total_questions: questions ? questions.length : 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      created_at: new Date().toISOString()
     };
     
     const examResult = await supabaseInsert('exams', examData);
@@ -1753,8 +1747,7 @@ app.put('/api/teacher/exams/:id', isAuthenticated, isTeacher, async (req, res) =
       description: description || '',
       status: status || 'draft',
       price: price || 0,
-      total_questions: questions ? questions.length : 0,
-      updated_at: new Date().toISOString()
+      total_questions: questions ? questions.length : 0
     }, { id: id });
     
     if (questions && questions.length > 0) {
@@ -1796,8 +1789,7 @@ app.put('/api/teacher/exams/:id/questions/:num', isAuthenticated, isTeacher, asy
       correct_answer: correct_answer || '',
       explanation: explanation || '',
       marks: marks || 1,
-      type: type || 'mcq',
-      updated_at: new Date().toISOString()
+      type: type || 'mcq'
     }, { exam_id: id, question_number: num });
     res.json({ success: true, message: 'Question updated successfully' });
   } catch (error) {
@@ -1834,8 +1826,7 @@ app.post('/api/teacher/exams/:id/questions/bulk', isAuthenticated, isTeacher, as
     }
     
     await supabaseUpdate('exams', {
-      total_questions: inserted.length,
-      updated_at: new Date().toISOString()
+      total_questions: inserted.length
     }, { id: id });
     
     res.json({ success: true, message: inserted.length + ' questions imported successfully' });
@@ -1956,8 +1947,7 @@ app.listen(PORT, async () => {
   await createDefaultStaff();
 });
 
-// Handle graceful shutdown
-process.on('SIGTERM', () => {
+// Handle graceful shutdownprocess.on('SIGTERM', () => {
   console.log('SIGTERM received, closing server...');
   process.exit(0);
 });
