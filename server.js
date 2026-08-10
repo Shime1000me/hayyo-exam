@@ -18,9 +18,9 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const bcrypt = require('bcryptjs');
 
 // ============================================
-// APP VERSION - Change this when you update the app
+// APP VERSION
 // ============================================
-const APP_VERSION = '1.0.5';
+const APP_VERSION = '1.0.6';
 
 // ============================================
 // SUPABASE REST API CLIENT
@@ -226,6 +226,8 @@ async function createDefaultStaff() {
             // Ignore duplicate key error - account already exists
             if (err.message && err.message.includes('duplicate key')) {
                 console.log('ℹ️ Admin account already exists');
+            } else if (err.message && err.message.includes('relation "staff" does not exist')) {
+                console.log('⚠️ Staff table not found - please create it in Supabase');
             } else {
                 console.warn('⚠️ Admin insert warning:', err.message);
             }
@@ -244,6 +246,8 @@ async function createDefaultStaff() {
             // Ignore duplicate key error - account already exists
             if (err.message && err.message.includes('duplicate key')) {
                 console.log('ℹ️ Teacher account already exists');
+            } else if (err.message && err.message.includes('relation "staff" does not exist')) {
+                console.log('⚠️ Staff table not found - please create it in Supabase');
             } else {
                 console.warn('⚠️ Teacher insert warning:', err.message);
             }
