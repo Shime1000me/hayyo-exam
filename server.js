@@ -211,47 +211,45 @@ async function createUser(userData) {
 // ============================================
 async function createDefaultStaff() {
     try {
-        // Check if admin exists
-        const adminExists = await supabaseSelect('staff', {
-            eq: { username: 'admin' },
-            select: 'username'
+        console.log('📝 Attempting to create default staff accounts...');
+        
+        // Try to insert admin account (will fail silently if already exists)
+        const adminPassword = await bcrypt.hash('admin123', 10);
+        await supabaseInsert('staff', {
+            username: 'admin',
+            password: adminPassword,
+            email: 'hayyoexam@gmail.com',
+            name: 'System Admin',
+            role: 'admin',
+            created_at: new Date().toISOString()
+        }).catch((err) => {
+            // Ignore duplicate key error - account already exists
+            if (err.message && err.message.includes('duplicate key')) {
+                console.log('ℹ️ Admin account already exists');
+            } else {
+                console.warn('⚠️ Admin insert warning:', err.message);
+            }
         });
         
-        if (adminExists.length === 0) {
-            const adminPassword = await bcrypt.hash('admin123', 10);
-            await supabaseInsert('staff', {
-                username: 'admin',
-                password: adminPassword,
-                email: 'hayyoexam@gmail.com',
-                name: 'System Admin',
-                role: 'admin',
-                created_at: new Date().toISOString()
-            });
-            console.log('✅ Default admin created (username: admin, password: admin123)');
-        } else {
-            console.log('ℹ️ Admin already exists, skipping creation');
-        }
-        
-        // Check if teacher exists
-        const teacherExists = await supabaseSelect('staff', {
-            eq: { username: 'teacher' },
-            select: 'username'
+        // Try to insert teacher account (will fail silently if already exists)
+        const teacherPassword = await bcrypt.hash('teacher123', 10);
+        await supabaseInsert('staff', {
+            username: 'teacher',
+            password: teacherPassword,
+            email: 'shimehatisoburiso@gmail.com',
+            name: 'Default Teacher',
+            role: 'teacher',
+            created_at: new Date().toISOString()
+        }).catch((err) => {
+            // Ignore duplicate key error - account already exists
+            if (err.message && err.message.includes('duplicate key')) {
+                console.log('ℹ️ Teacher account already exists');
+            } else {
+                console.warn('⚠️ Teacher insert warning:', err.message);
+            }
         });
         
-        if (teacherExists.length === 0) {
-            const teacherPassword = await bcrypt.hash('teacher123', 10);
-            await supabaseInsert('staff', {
-                username: 'teacher',
-                password: teacherPassword,
-                email: 'shimehatisoburiso@gmail.com',
-                name: 'Default Teacher',
-                role: 'teacher',
-                created_at: new Date().toISOString()
-            });
-            console.log('✅ Default teacher created (username: teacher, password: teacher123)');
-        } else {
-            console.log('ℹ️ Teacher already exists, skipping creation');
-        }
+        console.log('✅ Staff accounts check complete');
         
     } catch (error) {
         console.error('❌ Error creating default staff:', error.message);
